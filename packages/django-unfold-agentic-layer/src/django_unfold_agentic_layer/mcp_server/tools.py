@@ -1,11 +1,11 @@
 """MCP server for Django Unfold documentation."""
 
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 
 from .docs import ALL_SECTIONS, DOCS
 
 mcp = FastMCP(
-    "django_unfold_mcp",
+    "django_unfold_agentic_layer",
     instructions=(
         "Django Unfold documentation server. "
         "Use these tools to get accurate documentation for implementing "
@@ -280,15 +280,4 @@ def unfold_search_docs(query: str) -> str:
         available = ", ".join(DOCS[k]["title"] for k in ALL_SECTIONS)
         return f"No results found for '{query}'. Available sections: {available}"
 
-    return f"Found {len(results)} matching section(s):\n\n" + "\n\n---\n\n".join(
-        results
-    )
-
-
-def main():
-    """Entry point for the MCP server."""
-    mcp.run(transport="stdio")
-
-
-if __name__ == "__main__":
-    main()
+    return f"Found {len(results)} matching section(s):\n\n" + "\n\n---\n\n".join(results)

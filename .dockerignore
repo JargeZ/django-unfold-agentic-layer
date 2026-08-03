@@ -12,5 +12,5 @@ venv
 node_modules
 .pytest_cache
 .mypy_cache
-README.md
-LICENSE
+/README.md
+/LICENSE

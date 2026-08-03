@@ -1,0 +1,52 @@
+# serializer version: 1
+# name: test_build_admin_model_resource
+  dict({
+    'app_level_actions': list([
+      dict({
+        'key': 'blog_blogpost_export_all_posts',
+        'title': 'Export all posts',
+      }),
+    ]),
+    'each_model_actions': list([
+      dict({
+        'key': 'publish_posts',
+        'title': 'Publish selected blog posts',
+      }),
+      dict({
+        'key': 'delete_selected',
+        'title': 'Delete selected blog posts',
+      }),
+      dict({
+        'key': 'blog_blogpost_feature_post',
+        'title': 'Feature this post',
+      }),
+      dict({
+        'key': 'blog_blogpost_archive_post',
+        'title': 'Archive this post',
+      }),
+      dict({
+        'key': 'blog_blogpost_notify_author_on_save',
+        'title': 'Notify author on save',
+      }),
+    ]),
+    'filter_fields': list([
+      dict({
+        'format': 'free-text search across: title, body',
+        'key': 'q',
+        'title': 'Search',
+      }),
+      dict({
+        'format': 'ForeignKey',
+        'key': 'author',
+        'title': 'author',
+      }),
+      dict({
+        'format': 'DateTimeField',
+        'key': 'created_at',
+        'title': 'created at',
+      }),
+    ]),
+    'verbose_name': 'blog post',
+    'verbose_name_plural': 'blog posts',
+  })
+# ---

@@ -1,0 +1,31 @@
+version: '3'
+
+tasks:
+  lint:
+    cmds:
+      - uv run ruff format
+      - uv run ruff check --fix
+
+  lint:ci:
+    cmds:
+      - uv run ruff format --check
+      - uv run ruff check
+
+  test:
+    cmds:
+      - task: test:layer
+
+  test:layer:
+    dir: packages/django-unfold-agentic-layer
+    cmds:
+      - uv run pytest {{.CLI_ARGS}}
+
+  test:update:
+    dir: packages/django-unfold-agentic-layer
+    cmds:
+      - uv run pytest --snapshot-update {{.CLI_ARGS}}
+
+  check:
+    deps: [lint]
+    cmds:
+      - task: test

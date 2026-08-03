@@ -1,0 +1,34 @@
+# serializer version: 1
+# name: test_extract_list_filter_fields_from_field_names
+  list([
+    dict({
+      'format': 'ForeignKey',
+      'key': 'author',
+      'title': 'author',
+    }),
+    dict({
+      'format': 'DateTimeField',
+      'key': 'created_at',
+      'title': 'created at',
+    }),
+  ])
+# ---
+# name: test_extract_list_filter_fields_from_tuple_and_custom_filter_class
+  list([
+    dict({
+      'format': 'ForeignKey',
+      'key': 'author',
+      'title': 'author',
+    }),
+    dict({
+      'format': 'DateTimeField (custom filter: _RecentFilter)',
+      'key': 'created_at',
+      'title': 'created at',
+    }),
+    dict({
+      'format': 'custom filter: _RecentFilter',
+      'key': 'recent',
+      'title': 'recency',
+    }),
+  ])
+# ---
