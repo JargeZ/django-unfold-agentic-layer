@@ -8,6 +8,30 @@ import pytest
 from django.contrib.auth.models import User
 
 
+@pytest.fixture(autouse=True)
+def _clear_admin_mcp_instance_cache():
+    """Busts BuildAdminMCPInstance's process-lifetime lru_cache between tests.
+
+    Not pytest-antilru: that patches functools.lru_cache only for the
+    duration of test *collection*, then restores it (see its
+    pytest_collection hookwrapper). bridge.py — and therefore this cache — is
+    only ever imported lazily, the first time a test actually calls
+    client.post("/mcp/") (Django's URL conf resolves lazily), which happens
+    during the *call* phase, well after antilru's patch window has already
+    closed. The cache silently never gets registered for busting, and every
+    test after the first ends up reusing whichever user/permission state was
+    live when it was first built — a real, hard-to-notice cross-test leak
+    (see build_admin_mcp_instance.py's own docstring). An explicit fixture
+    doesn't depend on import timing at all.
+    """
+    yield
+    from django_unfold_agentic_layer.mcp_server.builders.build_admin_mcp_instance import (
+        _build_admin_mcp_instance,
+    )
+
+    _build_admin_mcp_instance.cache_clear()
+
+
 @pytest.fixture
 def staff_user(db) -> User:
     return User.objects.create_superuser(username="staff", password="s3cret")  # noqa: S106
@@ -16,3 +40,14 @@ def staff_user(db) -> User:
 @pytest.fixture
 def regular_user(db) -> User:
     return User.objects.create_user(username="regular", password="s3cret")  # noqa: S106
+
+
+@pytest.fixture
+def staff_user_without_permissions(db) -> User:
+    """Staff (can log into the admin at all), but zero model permissions —
+    for asserting that permission-based filtering hides everything else."""
+    return User.objects.create_user(
+        username="staff-no-perms",
+        password="s3cret",  # noqa: S106
+        is_staff=True,
+    )

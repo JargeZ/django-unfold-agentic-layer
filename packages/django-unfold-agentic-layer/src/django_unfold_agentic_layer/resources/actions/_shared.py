@@ -10,6 +10,7 @@ from typing import Any
 
 from django.contrib.admin import ModelAdmin
 from django.contrib.admin.utils import model_format_dict
+from django.http import HttpRequest
 
 from django_unfold_agentic_layer.resources.schemas import ActionInfo
 
@@ -32,12 +33,26 @@ def unfold_action_to_info(action: Any) -> ActionInfo:
     return ActionInfo(key=action.action_name, title=str(action.description))
 
 
-def get_base_unfold_actions(model_admin: ModelAdmin, getter_name: str) -> list[Any]:
-    """Call one of django-unfold's ``_get_base_actions_*`` methods, if present.
+def get_filtered_unfold_actions(
+    model_admin: ModelAdmin,
+    request: HttpRequest,
+    getter_name: str,
+    object_id: int | str | None = None,
+) -> list[Any]:
+    """Call one of django-unfold's permission-filtered ``get_actions_*`` methods.
 
-    These return the raw, unfiltered-by-permission action list straight from
-    django-unfold's own storage — exactly what a static resource description
-    needs. Returns ``[]`` for a plain ``ModelAdmin`` that isn't django-unfold's.
+    ``get_actions_detail``/``get_actions_submit_line`` are instance-scoped
+    (their object-level permission checks need an ``object_id``); at the
+    model-description level there is no specific instance yet, so
+    ``object_id=None`` is passed through — django-unfold's own
+    ``_filter_unfold_actions_by_permissions`` treats a missing ``object_id``
+    as "check the non-object form of the permission", which is exactly the
+    best-effort answer a model-level (not instance-level) description can give.
+    Returns ``[]`` for a plain ``ModelAdmin`` that isn't django-unfold's.
     """
     getter = getattr(model_admin, getter_name, None)
-    return list(getter()) if getter is not None else []
+    if getter is None:
+        return []
+    if getter_name in ("get_actions_detail", "get_actions_submit_line"):
+        return list(getter(request, object_id))
+    return list(getter(request))

@@ -38,3 +38,6 @@ htmlcov/
 
 # Lock file (optional — include if you want reproducible builds)
 # uv.lock
+
+# Local demo database (Taskfile's demo:manage task)
+django_test_app/db.sqlite3

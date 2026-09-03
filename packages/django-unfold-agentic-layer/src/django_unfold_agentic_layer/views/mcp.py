@@ -1,5 +1,7 @@
 from typing import Any
 
+from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed, JsonResponse
 from django.utils.decorators import method_decorator
 from django.views import View
@@ -19,6 +21,25 @@ class MCPView(View):
     """
 
     def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        # Dev-only escape hatch until OAuth lands: with
+        # UNFOLD_AGENTIC_LAYER_UNAUTHORIZED = True (and DEBUG), an anonymous
+        # request acts as the first active superuser. Swapping request.user
+        # (rather than skipping the checks) keeps every downstream
+        # permission filter running against a real user.
+        if (
+            not request.user.is_authenticated
+            and settings.DEBUG
+            and getattr(settings, "UNFOLD_AGENTIC_LAYER_UNAUTHORIZED", False)
+        ):
+            superuser = (
+                get_user_model()
+                ._default_manager.filter(is_superuser=True, is_active=True)
+                .order_by("pk")
+                .first()
+            )
+            if superuser is not None:
+                request.user = superuser
+
         user = request.user
         if not user.is_authenticated:
             return JsonResponse({"error": "authentication required"}, status=401)

@@ -11,12 +11,15 @@ under WSGI as well as ASGI — the pattern is adapted from gts360/django-mcp-ser
 
 from asgiref.sync import async_to_sync
 from django.http import HttpRequest, HttpResponse
+from fastmcp import FastMCP
 from fastmcp.server.http import FastMCPStreamableHTTPSessionManager
 
-from .tools import mcp
+from django_unfold_agentic_layer.mcp_server.builders.build_admin_mcp_instance import (
+    BuildAdminMCPInstance,
+)
 
 
-async def _dispatch(request: HttpRequest) -> HttpResponse:
+async def _dispatch(request: HttpRequest, mcp: FastMCP) -> HttpResponse:
     body = request.body
 
     scope = {
@@ -35,6 +38,12 @@ async def _dispatch(request: HttpRequest) -> HttpResponse:
         "scheme": "https" if request.is_secure() else "http",
         "client": (request.META.get("REMOTE_ADDR"), 0),
         "server": (request.get_host(), request.get_port()),
+        # Namespaced so it can't collide with a real ASGI/ MCP SDK scope key.
+        # Resource/tool handlers read it back via
+        # mcp_server.builders._shared.get_django_request() —
+        # fastmcp.server.dependencies.get_http_request().scope[...] — to get
+        # the actor for permission-aware admin lookups (spec §6).
+        "django_unfold_agentic_layer.request": request,
     }
 
     sent: dict = {}
@@ -63,5 +72,13 @@ async def _dispatch(request: HttpRequest) -> HttpResponse:
 
 
 def dispatch(request: HttpRequest) -> HttpResponse:
-    """Synchronous entrypoint — works from a plain Django view under WSGI or ASGI."""
-    return async_to_sync(_dispatch)(request)
+    """Synchronous entrypoint — works from a plain Django view under WSGI or ASGI.
+
+    Builds the per-user ``FastMCP`` instance here, in genuinely sync context,
+    rather than inside ``_dispatch``: the build touches the ORM (permission
+    checks, changelist introspection for the model schema), and ``_dispatch``
+    runs inside an event loop (``async_to_sync`` spins one up) where a direct
+    ORM call would trip Django's ``SynchronousOnlyOperation`` guard.
+    """
+    mcp = BuildAdminMCPInstance().execute(request)
+    return async_to_sync(_dispatch)(request, mcp)

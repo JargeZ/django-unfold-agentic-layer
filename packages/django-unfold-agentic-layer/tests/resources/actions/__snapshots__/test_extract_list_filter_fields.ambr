@@ -2,13 +2,221 @@
 # name: test_extract_list_filter_fields_from_field_names
   list([
     dict({
-      'format': 'ForeignKey',
-      'key': 'author',
+      'choices': list([
+        dict({
+          'display': 'All',
+          'query_string': '?',
+        }),
+        dict({
+          'display': 'staff',
+          'query_string': '?author__id__exact=1',
+        }),
+        dict({
+          'display': 'regular',
+          'query_string': '?author__id__exact=2',
+        }),
+      ]),
+      'format': 'RelatedFieldListFilter',
+      'key': 'author__id__exact',
+      'related_resource_uri': 'dj-admin://auth/user/',
       'title': 'author',
     }),
     dict({
-      'format': 'DateTimeField',
-      'key': 'created_at',
+      'choices': list([
+        dict({
+          'display': 'All',
+          'query_string': '?',
+        }),
+        dict({
+          'display': 'staff',
+          'query_string': '?author__id__exact=1',
+        }),
+        dict({
+          'display': 'regular',
+          'query_string': '?author__id__exact=2',
+        }),
+      ]),
+      'format': 'RelatedFieldListFilter',
+      'key': 'author__isnull',
+      'related_resource_uri': 'dj-admin://auth/user/',
+      'title': 'author',
+    }),
+    dict({
+      'choices': None,
+      'format': 'AutocompleteSelectFilter',
+      'key': 'editor__id__exact',
+      'related_resource_uri': 'dj-admin://auth/user/',
+      'title': 'editor',
+    }),
+    dict({
+      'choices': None,
+      'format': 'AutocompleteSelectFilter',
+      'key': 'editor__isnull',
+      'related_resource_uri': 'dj-admin://auth/user/',
+      'title': 'editor',
+    }),
+    dict({
+      'choices': list([
+        dict({
+          'display': 'All',
+          'query_string': '?',
+        }),
+        dict({
+          'display': 'Has editor',
+          'query_string': '?has_editor=yes',
+        }),
+        dict({
+          'display': 'No editor',
+          'query_string': '?has_editor=no',
+        }),
+      ]),
+      'format': 'HasEditorFilter',
+      'key': 'has_editor',
+      'related_resource_uri': None,
+      'title': 'has editor',
+    }),
+    dict({
+      'choices': list([
+        dict({
+          'display': 'All',
+          'query_string': '?',
+        }),
+        dict({
+          'display': 'Draft',
+          'query_string': '?status__exact=draft',
+        }),
+        dict({
+          'display': 'Published',
+          'query_string': '?status__exact=published',
+        }),
+        dict({
+          'display': 'Archived',
+          'query_string': '?status__exact=archived',
+        }),
+      ]),
+      'format': 'ChoicesFieldListFilter',
+      'key': 'status__exact',
+      'related_resource_uri': None,
+      'title': 'status',
+    }),
+    dict({
+      'choices': list([
+        dict({
+          'display': 'All',
+          'query_string': '?',
+        }),
+        dict({
+          'display': 'Draft',
+          'query_string': '?status__exact=draft',
+        }),
+        dict({
+          'display': 'Published',
+          'query_string': '?status__exact=published',
+        }),
+        dict({
+          'display': 'Archived',
+          'query_string': '?status__exact=archived',
+        }),
+      ]),
+      'format': 'ChoicesFieldListFilter',
+      'key': 'status__isnull',
+      'related_resource_uri': None,
+      'title': 'status',
+    }),
+    dict({
+      'choices': list([
+        dict({
+          'display': 'All',
+          'query_string': '?',
+        }),
+        dict({
+          'display': 'Yes',
+          'query_string': '?is_featured__exact=1',
+        }),
+        dict({
+          'display': 'No',
+          'query_string': '?is_featured__exact=0',
+        }),
+      ]),
+      'format': 'BooleanFieldListFilter',
+      'key': 'is_featured__exact',
+      'related_resource_uri': None,
+      'title': 'is featured',
+    }),
+    dict({
+      'choices': list([
+        dict({
+          'display': 'All',
+          'query_string': '?',
+        }),
+        dict({
+          'display': 'Yes',
+          'query_string': '?is_featured__exact=1',
+        }),
+        dict({
+          'display': 'No',
+          'query_string': '?is_featured__exact=0',
+        }),
+      ]),
+      'format': 'BooleanFieldListFilter',
+      'key': 'is_featured__isnull',
+      'related_resource_uri': None,
+      'title': 'is featured',
+    }),
+    dict({
+      'choices': list([
+        dict({
+          'display': 'Any date',
+          'query_string': '?',
+        }),
+        dict({
+          'display': 'Today',
+          'query_string': '?created_at__gte=2026-01-15+00%3A00%3A00-06%3A00&created_at__lt=2026-01-16+00%3A00%3A00-06%3A00',
+        }),
+        dict({
+          'display': 'Past 7 days',
+          'query_string': '?created_at__gte=2026-01-08+00%3A00%3A00-06%3A00&created_at__lt=2026-01-16+00%3A00%3A00-06%3A00',
+        }),
+        dict({
+          'display': 'This month',
+          'query_string': '?created_at__gte=2026-01-01+00%3A00%3A00-06%3A00&created_at__lt=2026-02-01+00%3A00%3A00-06%3A00',
+        }),
+        dict({
+          'display': 'This year',
+          'query_string': '?created_at__gte=2026-01-01+00%3A00%3A00-06%3A00&created_at__lt=2027-01-01+00%3A00%3A00-06%3A00',
+        }),
+      ]),
+      'format': 'DateFieldListFilter',
+      'key': 'created_at__gte',
+      'related_resource_uri': None,
+      'title': 'created at',
+    }),
+    dict({
+      'choices': list([
+        dict({
+          'display': 'Any date',
+          'query_string': '?',
+        }),
+        dict({
+          'display': 'Today',
+          'query_string': '?created_at__gte=2026-01-15+00%3A00%3A00-06%3A00&created_at__lt=2026-01-16+00%3A00%3A00-06%3A00',
+        }),
+        dict({
+          'display': 'Past 7 days',
+          'query_string': '?created_at__gte=2026-01-08+00%3A00%3A00-06%3A00&created_at__lt=2026-01-16+00%3A00%3A00-06%3A00',
+        }),
+        dict({
+          'display': 'This month',
+          'query_string': '?created_at__gte=2026-01-01+00%3A00%3A00-06%3A00&created_at__lt=2026-02-01+00%3A00%3A00-06%3A00',
+        }),
+        dict({
+          'display': 'This year',
+          'query_string': '?created_at__gte=2026-01-01+00%3A00%3A00-06%3A00&created_at__lt=2027-01-01+00%3A00%3A00-06%3A00',
+        }),
+      ]),
+      'format': 'DateFieldListFilter',
+      'key': 'created_at__lt',
+      'related_resource_uri': None,
       'title': 'created at',
     }),
   ])
@@ -16,18 +224,119 @@
 # name: test_extract_list_filter_fields_from_tuple_and_custom_filter_class
   list([
     dict({
-      'format': 'ForeignKey',
-      'key': 'author',
+      'choices': list([
+        dict({
+          'display': 'All',
+          'query_string': '?',
+        }),
+        dict({
+          'display': 'staff',
+          'query_string': '?author__id__exact=1',
+        }),
+        dict({
+          'display': 'regular',
+          'query_string': '?author__id__exact=2',
+        }),
+      ]),
+      'format': 'RelatedFieldListFilter',
+      'key': 'author__id__exact',
+      'related_resource_uri': 'dj-admin://auth/user/',
       'title': 'author',
     }),
     dict({
-      'format': 'DateTimeField (custom filter: _RecentFilter)',
-      'key': 'created_at',
+      'choices': list([
+        dict({
+          'display': 'All',
+          'query_string': '?',
+        }),
+        dict({
+          'display': 'staff',
+          'query_string': '?author__id__exact=1',
+        }),
+        dict({
+          'display': 'regular',
+          'query_string': '?author__id__exact=2',
+        }),
+      ]),
+      'format': 'RelatedFieldListFilter',
+      'key': 'author__isnull',
+      'related_resource_uri': 'dj-admin://auth/user/',
+      'title': 'author',
+    }),
+    dict({
+      'choices': list([
+        dict({
+          'display': 'Any date',
+          'query_string': '?',
+        }),
+        dict({
+          'display': 'Today',
+          'query_string': '?created_at__gte=2026-01-15+00%3A00%3A00-06%3A00&created_at__lt=2026-01-16+00%3A00%3A00-06%3A00',
+        }),
+        dict({
+          'display': 'Past 7 days',
+          'query_string': '?created_at__gte=2026-01-08+00%3A00%3A00-06%3A00&created_at__lt=2026-01-16+00%3A00%3A00-06%3A00',
+        }),
+        dict({
+          'display': 'This month',
+          'query_string': '?created_at__gte=2026-01-01+00%3A00%3A00-06%3A00&created_at__lt=2026-02-01+00%3A00%3A00-06%3A00',
+        }),
+        dict({
+          'display': 'This year',
+          'query_string': '?created_at__gte=2026-01-01+00%3A00%3A00-06%3A00&created_at__lt=2027-01-01+00%3A00%3A00-06%3A00',
+        }),
+      ]),
+      'format': 'DateFieldListFilter',
+      'key': 'created_at__gte',
+      'related_resource_uri': None,
       'title': 'created at',
     }),
     dict({
-      'format': 'custom filter: _RecentFilter',
+      'choices': list([
+        dict({
+          'display': 'Any date',
+          'query_string': '?',
+        }),
+        dict({
+          'display': 'Today',
+          'query_string': '?created_at__gte=2026-01-15+00%3A00%3A00-06%3A00&created_at__lt=2026-01-16+00%3A00%3A00-06%3A00',
+        }),
+        dict({
+          'display': 'Past 7 days',
+          'query_string': '?created_at__gte=2026-01-08+00%3A00%3A00-06%3A00&created_at__lt=2026-01-16+00%3A00%3A00-06%3A00',
+        }),
+        dict({
+          'display': 'This month',
+          'query_string': '?created_at__gte=2026-01-01+00%3A00%3A00-06%3A00&created_at__lt=2026-02-01+00%3A00%3A00-06%3A00',
+        }),
+        dict({
+          'display': 'This year',
+          'query_string': '?created_at__gte=2026-01-01+00%3A00%3A00-06%3A00&created_at__lt=2027-01-01+00%3A00%3A00-06%3A00',
+        }),
+      ]),
+      'format': 'DateFieldListFilter',
+      'key': 'created_at__lt',
+      'related_resource_uri': None,
+      'title': 'created at',
+    }),
+    dict({
+      'choices': list([
+        dict({
+          'display': 'All',
+          'query_string': '?',
+        }),
+        dict({
+          'display': 'Today',
+          'query_string': '?recent=today',
+        }),
+        dict({
+          'display': 'This week',
+          'query_string': '?recent=this_week',
+        }),
+      ]),
+      'format': '_RecentFilter',
       'key': 'recent',
+      'related_resource_uri': None,
       'title': 'recency',
     }),
   ])

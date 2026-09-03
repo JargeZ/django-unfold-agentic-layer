@@ -1,0 +1,2061 @@
+# serializer version: 1
+# name: test_full_mcp_contract_lifecycle[create-tool-call]
+  dict({
+    'content': list([
+      dict({
+        'text': dict({
+          'pk': '<pk>',
+          'resource_uri': 'dj-admin://blog/blogpost/<pk>/',
+          'success': True,
+        }),
+        'type': 'text',
+      }),
+    ]),
+    'isError': False,
+    'structuredContent': dict({
+      'pk': '<pk>',
+      'resource_uri': 'dj-admin://blog/blogpost/<pk>/',
+      'success': True,
+    }),
+  })
+# ---
+# name: test_full_mcp_contract_lifecycle[delete-tool-call-confirmation]
+  dict({
+    '_meta': dict({
+      'io.modelcontextprotocol/serverInfo': dict({
+        'name': 'django_unfold_agentic_layer',
+        'version': '4.0.5',
+      }),
+    }),
+    'inputRequests': dict({
+      'confirm': dict({
+        'method': 'elicitation/create',
+        'params': dict({
+          'message': 'Delete blog post Updated contract (pk=<pk>)? This cannot be undone.',
+          'mode': 'form',
+          'requestedSchema': dict({
+            'properties': dict({
+              'confirmed': dict({
+                'type': 'boolean',
+              }),
+            }),
+            'required': list([
+              'confirmed',
+            ]),
+            'type': 'object',
+          }),
+        }),
+      }),
+    }),
+    'resultType': 'input_required',
+  })
+# ---
+# name: test_full_mcp_contract_lifecycle[delete-tool-call-confirmed]
+  dict({
+    '_meta': dict({
+      'fastmcp': dict({
+        'wrap_result': True,
+      }),
+      'io.modelcontextprotocol/serverInfo': dict({
+        'name': 'django_unfold_agentic_layer',
+        'version': '4.0.5',
+      }),
+    }),
+    'content': list([
+      dict({
+        'text': 'Deleted blog post (pk=<pk>).',
+        'type': 'text',
+      }),
+    ]),
+    'isError': False,
+    'resultType': 'complete',
+    'structuredContent': dict({
+      'result': 'Deleted blog post (pk=<pk>).',
+    }),
+  })
+# ---
+# name: test_full_mcp_contract_lifecycle[docs-tool-call]
+  dict({
+    '_meta': dict({
+      'fastmcp': dict({
+        'wrap_result': True,
+      }),
+    }),
+    'content': list([
+      dict({
+        'text': '''
+          # Django Unfold - Installation & Quickstart
+          
+          ## Installation
+          
+          Install Django Unfold using your preferred package manager:
+          
+          ```bash
+          pip install django-unfold
+          uv add django-unfold
+          poetry add django-unfold
+          ```
+          
+          ## Configuration
+          
+          Add `unfold` to the **beginning** of your `INSTALLED_APPS` in `settings.py`:
+          
+          ```python
+          # settings.py
+          
+          INSTALLED_APPS = [
+              "unfold",  # Must be before django.contrib.admin
+              "unfold.contrib.filters",  # optional, if special filters are needed
+              "unfold.contrib.forms",  # optional, if special form elements are needed
+              "unfold.contrib.inlines",  # optional, if special inlines are needed
+              "unfold.contrib.import_export",  # optional, if django-import-export package is used
+              "unfold.contrib.guardian",  # optional, if django-guardian package is used
+              "unfold.contrib.simple_history",  # optional, if django-simple-history package is used
+              "unfold.contrib.location_field",  # optional, if django-location-field package is used
+              "unfold.contrib.constance",  # optional, if django-constance package is used
+              "django.contrib.admin",  # required
+          ]
+          ```
+          
+          ## URL Configuration
+          
+          ```python
+          # urls.py
+          
+          from django.contrib import admin
+          from django.urls import path
+          
+          urlpatterns = [
+              path("admin/", admin.site.urls),
+              # Other URL paths
+          ]
+          ```
+          
+          ## ModelAdmin Inheritance
+          
+          **CRITICAL**: All admin classes MUST inherit from `unfold.admin.ModelAdmin` instead of `django.contrib.admin.ModelAdmin`. Using the default admin class will result in unstyled forms and missing Unfold functionality.
+          
+          ```python
+          # admin.py
+          
+          from django.contrib import admin
+          from unfold.admin import ModelAdmin
+          
+          
+          @admin.register(MyModel)
+          class CustomAdminClass(ModelAdmin):
+              pass
+          ```
+          
+          ## Key Points
+          - `unfold` must be listed BEFORE `django.contrib.admin` in INSTALLED_APPS
+          - Always use `unfold.admin.ModelAdmin` as the base class
+          - The default admin URL configuration (`admin.site.urls`) works without changes
+          - No database migrations are required
+          - Unfold works alongside the default Django admin
+  
+        ''',
+        'type': 'text',
+      }),
+    ]),
+    'isError': False,
+    'structuredContent': dict({
+      'result': '''
+        # Django Unfold - Installation & Quickstart
+        
+        ## Installation
+        
+        Install Django Unfold using your preferred package manager:
+        
+        ```bash
+        pip install django-unfold
+        uv add django-unfold
+        poetry add django-unfold
+        ```
+        
+        ## Configuration
+        
+        Add `unfold` to the **beginning** of your `INSTALLED_APPS` in `settings.py`:
+        
+        ```python
+        # settings.py
+        
+        INSTALLED_APPS = [
+            "unfold",  # Must be before django.contrib.admin
+            "unfold.contrib.filters",  # optional, if special filters are needed
+            "unfold.contrib.forms",  # optional, if special form elements are needed
+            "unfold.contrib.inlines",  # optional, if special inlines are needed
+            "unfold.contrib.import_export",  # optional, if django-import-export package is used
+            "unfold.contrib.guardian",  # optional, if django-guardian package is used
+            "unfold.contrib.simple_history",  # optional, if django-simple-history package is used
+            "unfold.contrib.location_field",  # optional, if django-location-field package is used
+            "unfold.contrib.constance",  # optional, if django-constance package is used
+            "django.contrib.admin",  # required
+        ]
+        ```
+        
+        ## URL Configuration
+        
+        ```python
+        # urls.py
+        
+        from django.contrib import admin
+        from django.urls import path
+        
+        urlpatterns = [
+            path("admin/", admin.site.urls),
+            # Other URL paths
+        ]
+        ```
+        
+        ## ModelAdmin Inheritance
+        
+        **CRITICAL**: All admin classes MUST inherit from `unfold.admin.ModelAdmin` instead of `django.contrib.admin.ModelAdmin`. Using the default admin class will result in unstyled forms and missing Unfold functionality.
+        
+        ```python
+        # admin.py
+        
+        from django.contrib import admin
+        from unfold.admin import ModelAdmin
+        
+        
+        @admin.register(MyModel)
+        class CustomAdminClass(ModelAdmin):
+            pass
+        ```
+        
+        ## Key Points
+        - `unfold` must be listed BEFORE `django.contrib.admin` in INSTALLED_APPS
+        - Always use `unfold.admin.ModelAdmin` as the base class
+        - The default admin URL configuration (`admin.site.urls`) works without changes
+        - No database migrations are required
+        - Unfold works alongside the default Django admin
+  
+      ''',
+    }),
+  })
+# ---
+# name: test_full_mcp_contract_lifecycle[read-detail-resource]
+  dict({
+    '_meta': dict({
+      'count': 1,
+      'total': 1,
+    }),
+    'contents': list([
+      dict({
+        'mimeType': 'application/json',
+        'text': list([
+          dict({
+            'author': 'dj-admin://auth/user/<pk>/',
+            'body': 'Body text',
+            'editor': None,
+            'is_featured': False,
+            'metadata': dict({
+            }),
+            'pk': '<pk>',
+            'status': 'published',
+            'title': 'Hello contract',
+          }),
+        ]),
+        'uri': 'dj-admin://blog/blogpost/<pk>/',
+      }),
+      dict({
+        'mimeType': 'text/markdown',
+        'text': '''
+          # blog post #1
+          
+          - **title**: Hello contract
+          - **body**: Body text
+          - **author**: dj-admin://auth/user/<pk>/
+          - **editor**: *(empty)*
+          - **status**: published
+          - **is_featured**: False
+          - **metadata**: {}
+        ''',
+        'uri': 'dj-admin://blog/blogpost/<pk>/',
+      }),
+    ]),
+  })
+# ---
+# name: test_full_mcp_contract_lifecycle[read-list-resource]
+  dict({
+    '_meta': dict({
+      'count': 1,
+      'total': 1,
+    }),
+    'contents': list([
+      dict({
+        'mimeType': 'application/json',
+        'text': list([
+          dict({
+            'author': 'dj-admin://auth/user/<pk>/',
+            'body': 'Body text',
+            'editor': None,
+            'is_featured': False,
+            'metadata': dict({
+            }),
+            'pk': '<pk>',
+            'status': 'published',
+            'title': 'Hello contract',
+          }),
+        ]),
+        'uri': 'dj-admin://blog/blogpost/',
+      }),
+      dict({
+        'mimeType': 'text/markdown',
+        'text': '''
+          # blog post #1
+          
+          - **title**: Hello contract
+          - **body**: Body text
+          - **author**: dj-admin://auth/user/<pk>/
+          - **editor**: *(empty)*
+          - **status**: published
+          - **is_featured**: False
+          - **metadata**: {}
+        ''',
+        'uri': 'dj-admin://blog/blogpost/',
+      }),
+    ]),
+  })
+# ---
+# name: test_full_mcp_contract_lifecycle[resource-templates-list]
+  dict({
+    'resourceTemplates': list([
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Encapsulate all admin options and functionality for a given model.',
+        'mimeType': 'application/json',
+        'name': 'group',
+        'uriTemplate': 'dj-admin://auth/group/{pk}/',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Encapsulate all admin options and functionality for a given model.',
+        'mimeType': 'application/json',
+        'name': 'groups (list)',
+        'uriTemplate': 'dj-admin://auth/group/{?q,limit,offset,order_by}',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Adds support for various ModelAdmin actions (list, detail, row, submit line)',
+        'mimeType': 'application/json',
+        'name': 'user',
+        'uriTemplate': 'dj-admin://auth/user/{pk}/',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Adds support for various ModelAdmin actions (list, detail, row, submit line)',
+        'mimeType': 'application/json',
+        'name': 'users (list)',
+        'uriTemplate': 'dj-admin://auth/user/{?q,limit,offset,order_by}',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Adds support for various ModelAdmin actions (list, detail, row, submit line)',
+        'mimeType': 'application/json',
+        'name': 'blog post',
+        'uriTemplate': 'dj-admin://blog/blogpost/{pk}/',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Adds support for various ModelAdmin actions (list, detail, row, submit line)',
+        'mimeType': 'application/json',
+        'name': 'blog posts (list)',
+        'uriTemplate': 'dj-admin://blog/blogpost/{?q,editor__id__exact,editor__isnull,has_editor,status__exact,status__isnull,is_featured__exact,is_featured__isnull,created_at__gte,created_at__lt,limit,offset,order_by}',
+      }),
+    ]),
+  })
+# ---
+# name: test_full_mcp_contract_lifecycle[tools-list]
+  dict({
+    'tools': list([
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Create a new group.',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'name': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Name (required)',
+            }),
+            'permissions': dict({
+              'anyOf': list([
+                dict({
+                  'items': dict({
+                    'type': 'string',
+                  }),
+                  'type': 'array',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Permissions — Hold down “Control”, or “Command” on a Mac, to select more than one.. Browse valid values at dj-admin://auth/permission/',
+            }),
+          }),
+          'type': 'object',
+        }),
+        'name': 'create_auth_group',
+        'title': 'Create Auth Group',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Update an existing group. Only send the fields you want to change.',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'name': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Name (required)',
+            }),
+            'permissions': dict({
+              'anyOf': list([
+                dict({
+                  'items': dict({
+                    'type': 'string',
+                  }),
+                  'type': 'array',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Permissions — Hold down “Control”, or “Command” on a Mac, to select more than one.. Browse valid values at dj-admin://auth/permission/',
+            }),
+            'pk': dict({
+              'description': 'Primary key of the instance to update.',
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'pk',
+          ]),
+          'type': 'object',
+        }),
+        'name': 'update_auth_group',
+        'title': 'Update Auth Group',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'annotations': dict({
+          'destructiveHint': True,
+        }),
+        'description': 'Delete a group. Asks for confirmation before deleting.',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'pk': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'pk',
+          ]),
+          'type': 'object',
+        }),
+        'name': 'delete_auth_group',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Delete Auth Group',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Create a new user.',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'date_joined': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Date joined (required)',
+            }),
+            'email': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Email address',
+            }),
+            'first_name': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'First name',
+            }),
+            'groups': dict({
+              'anyOf': list([
+                dict({
+                  'items': dict({
+                    'type': 'string',
+                  }),
+                  'type': 'array',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Groups — The groups this user belongs to. A user will get all permissions granted to each of their groups. Hold down “Control”, or “Command” on a Mac, to select more than one.. Browse valid values at dj-admin://auth/group/',
+            }),
+            'is_active': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'boolean',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Active — Designates whether this user should be treated as active. Unselect this instead of deleting accounts.',
+            }),
+            'is_staff': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'boolean',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Staff status — Designates whether the user can log into this admin site.',
+            }),
+            'is_superuser': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'boolean',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Superuser status — Designates that this user has all permissions without explicitly assigning them.',
+            }),
+            'last_login': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Last login',
+            }),
+            'last_name': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Last name',
+            }),
+            'password': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Password (required)',
+            }),
+            'user_permissions': dict({
+              'anyOf': list([
+                dict({
+                  'items': dict({
+                    'type': 'string',
+                  }),
+                  'type': 'array',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'User permissions — Specific permissions for this user. Hold down “Control”, or “Command” on a Mac, to select more than one.. Browse valid values at dj-admin://auth/permission/',
+            }),
+            'username': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Username — Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only. (required)',
+            }),
+          }),
+          'type': 'object',
+        }),
+        'name': 'create_auth_user',
+        'title': 'Create Auth User',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Update an existing user. Only send the fields you want to change.',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'date_joined': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Date joined (required)',
+            }),
+            'email': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Email address',
+            }),
+            'first_name': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'First name',
+            }),
+            'groups': dict({
+              'anyOf': list([
+                dict({
+                  'items': dict({
+                    'type': 'string',
+                  }),
+                  'type': 'array',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Groups — The groups this user belongs to. A user will get all permissions granted to each of their groups. Hold down “Control”, or “Command” on a Mac, to select more than one.. Browse valid values at dj-admin://auth/group/',
+            }),
+            'is_active': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'boolean',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Active — Designates whether this user should be treated as active. Unselect this instead of deleting accounts.',
+            }),
+            'is_staff': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'boolean',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Staff status — Designates whether the user can log into this admin site.',
+            }),
+            'is_superuser': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'boolean',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Superuser status — Designates that this user has all permissions without explicitly assigning them.',
+            }),
+            'last_login': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Last login',
+            }),
+            'last_name': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Last name',
+            }),
+            'password': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Password (required)',
+            }),
+            'pk': dict({
+              'description': 'Primary key of the instance to update.',
+              'type': 'string',
+            }),
+            'user_permissions': dict({
+              'anyOf': list([
+                dict({
+                  'items': dict({
+                    'type': 'string',
+                  }),
+                  'type': 'array',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'User permissions — Specific permissions for this user. Hold down “Control”, or “Command” on a Mac, to select more than one.. Browse valid values at dj-admin://auth/permission/',
+            }),
+            'username': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Username — Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only. (required)',
+            }),
+          }),
+          'required': list([
+            'pk',
+          ]),
+          'type': 'object',
+        }),
+        'name': 'update_auth_user',
+        'title': 'Update Auth User',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'annotations': dict({
+          'destructiveHint': True,
+        }),
+        'description': 'Delete a user. Asks for confirmation before deleting.',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'pk': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'pk',
+          ]),
+          'type': 'object',
+        }),
+        'name': 'delete_auth_user',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Delete Auth User',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Create a new blog post.',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'author': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Author (required). Browse valid values at dj-admin://auth/user/',
+            }),
+            'body': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Body',
+            }),
+            'editor': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Editor. Browse valid values at dj-admin://auth/user/',
+            }),
+            'is_featured': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'boolean',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Is featured',
+            }),
+            'metadata': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Metadata',
+            }),
+            'status': dict({
+              'anyOf': list([
+                dict({
+                  'enum': list([
+                    'draft',
+                    'published',
+                    'archived',
+                  ]),
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Status (required)',
+            }),
+            'title': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Title (required)',
+            }),
+          }),
+          'type': 'object',
+        }),
+        'name': 'create_blog_blogpost',
+        'title': 'Create Blog Blogpost',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Update an existing blog post. Only send the fields you want to change.',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'author': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Author (required). Browse valid values at dj-admin://auth/user/',
+            }),
+            'body': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Body',
+            }),
+            'editor': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Editor. Browse valid values at dj-admin://auth/user/',
+            }),
+            'is_featured': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'boolean',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Is featured',
+            }),
+            'metadata': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Metadata',
+            }),
+            'pk': dict({
+              'description': 'Primary key of the instance to update.',
+              'type': 'string',
+            }),
+            'status': dict({
+              'anyOf': list([
+                dict({
+                  'enum': list([
+                    'draft',
+                    'published',
+                    'archived',
+                  ]),
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Status (required)',
+            }),
+            'title': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Title (required)',
+            }),
+          }),
+          'required': list([
+            'pk',
+          ]),
+          'type': 'object',
+        }),
+        'name': 'update_blog_blogpost',
+        'title': 'Update Blog Blogpost',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'annotations': dict({
+          'destructiveHint': True,
+        }),
+        'description': 'Delete a blog post. Asks for confirmation before deleting.',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'pk': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'pk',
+          ]),
+          'type': 'object',
+        }),
+        'name': 'delete_blog_blogpost',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Delete Blog Blogpost',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': '''
+          Get Django Unfold installation instructions and quickstart guide.
+          
+          Returns complete setup instructions including pip/uv/poetry install,
+          INSTALLED_APPS configuration, URL setup, and ModelAdmin inheritance.
+        ''',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+          }),
+          'type': 'object',
+        }),
+        'name': 'unfold_get_started',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Unfold Get Started',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': '''
+          Get the complete UNFOLD settings dictionary documentation.
+          
+          Returns all configuration options: SITE_TITLE, SITE_HEADER, SITE_ICON,
+          SITE_LOGO, SIDEBAR navigation, COLORS (oklch), THEME, ENVIRONMENT,
+          DASHBOARD_CALLBACK, LOGIN, STYLES, SCRIPTS, BORDER_RADIUS, TABS, and more.
+          Includes callback function examples.
+        ''',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+          }),
+          'type': 'object',
+        }),
+        'name': 'unfold_configuration',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Unfold Configuration',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': '''
+          Get documentation for Django Unfold actions.
+          
+          Covers all action types: global (changelist top), row (each row),
+          detail (changeform top), and submit line (form submit). Includes
+          @action decorator usage, icons, ActionVariant colors, permissions,
+          and complete code examples.
+        ''',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+          }),
+          'type': 'object',
+        }),
+        'name': 'unfold_actions',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Unfold Actions',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': '''
+          Get documentation for Django Unfold custom filters.
+          
+          Covers unfold.contrib.filters: DropdownFilter, RelatedDropdownFilter,
+          MultipleRelatedDropdownFilter, ChoicesDropdownFilter, SingleNumericFilter,
+          RangeNumericFilter, SliderNumericFilter, RangeDateFilter, RangeDateTimeFilter,
+          TextFilter, FieldTextFilter, AutocompleteSelectFilter, and list_filter_submit.
+        ''',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+          }),
+          'type': 'object',
+        }),
+        'name': 'unfold_filters',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Unfold Filters',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': '''
+          Get documentation for the @display decorator.
+          
+          Covers label display (auto-colored and custom-colored), header display
+          (two-line with initials/images), and dropdown display (list-based and
+          custom template). Includes all parameter options and examples.
+        ''',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+          }),
+          'type': 'object',
+        }),
+        'name': 'unfold_decorators',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Unfold Decorators',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': '''
+          Get documentation for Django Unfold UI components.
+          
+          Covers all dashboard components: card, chart/bar, chart/line, button,
+          container, flex, icon, navigation, progress, separator, table, text,
+          title, tracker, cohort, layer. Includes template syntax, nesting,
+          and Chart.js data format.
+        ''',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+          }),
+          'type': 'object',
+        }),
+        'name': 'unfold_components',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Unfold Components',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': '''
+          Get documentation for Django Unfold inlines.
+          
+          Covers StackedInline, TabularInline, NonrelatedTabularInline,
+          NonrelatedStackedInline, and sortable inlines with drag-and-drop.
+          Includes setup, get_form_queryset, save_new_instance, ordering_field.
+        ''',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+          }),
+          'type': 'object',
+        }),
+        'name': 'unfold_inlines',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Unfold Inlines',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': '''
+          Get documentation for Django Unfold form widgets.
+          
+          Covers ArrayWidget (PostgreSQL ArrayField), WYSIWYG editor (Trix),
+          and all available widget classes: text, email, URL, integer, decimal,
+          textarea, password, select, radio, date, time, color, UUID, image,
+          file, boolean switch, money. Includes formfield_overrides usage.
+        ''',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+          }),
+          'type': 'object',
+        }),
+        'name': 'unfold_widgets',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Unfold Widgets',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': '''
+          Get documentation for Django Unfold changelist tabs.
+          
+          Covers UNFOLD['TABS'] configuration with models list, items list,
+          title, link (reverse_lazy), and permission callbacks.
+        ''',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+          }),
+          'type': 'object',
+        }),
+        'name': 'unfold_tabs',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Unfold Tabs',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': '''
+          Get documentation for creating a custom Django Unfold dashboard.
+          
+          Covers template creation (admin/index.html), DASHBOARD_CALLBACK setup,
+          template directory configuration, and using components in dashboard.
+        ''',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+          }),
+          'type': 'object',
+        }),
+        'name': 'unfold_dashboard',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Unfold Dashboard',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': '''
+          Get documentation for creating custom admin pages.
+          
+          Covers UnfoldModelAdminViewMixin, class-based views integration,
+          get_urls() override, model_admin=self requirement, template extension,
+          and sidebar navigation integration.
+        ''',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+          }),
+          'type': 'object',
+        }),
+        'name': 'unfold_pages',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Unfold Pages',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': '''
+          Get documentation for custom styles, scripts, and Tailwind CSS.
+          
+          Covers UNFOLD['STYLES'] and UNFOLD['SCRIPTS'] configuration,
+          Tailwind 4.x setup (0.57+), Tailwind 3.x setup (below 0.56),
+          CSS compilation, and recommendations.
+        ''',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+          }),
+          'type': 'object',
+        }),
+        'name': 'unfold_styles_scripts',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Unfold Styles Scripts',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': '''
+          Get django-import-export integration documentation.
+          
+          Covers INSTALLED_APPS setup, ImportForm, ExportForm,
+          SelectableFieldsExportForm, and ExportActionModelAdmin.
+        ''',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+          }),
+          'type': 'object',
+        }),
+        'name': 'unfold_integration_import_export',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Unfold Integration Import Export',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': '''
+          Get django-guardian integration documentation.
+          
+          Covers setup for object-level permissions with unfold.contrib.guardian.
+        ''',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+          }),
+          'type': 'object',
+        }),
+        'name': 'unfold_integration_guardian',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Unfold Integration Guardian',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': '''
+          Get django-simple-history integration documentation.
+          
+          Covers INSTALLED_APPS ordering and dual inheritance with
+          SimpleHistoryAdmin and ModelAdmin.
+        ''',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+          }),
+          'type': 'object',
+        }),
+        'name': 'unfold_integration_simple_history',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Unfold Integration Simple History',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': '''
+          Get django-celery-beat integration documentation.
+          
+          Covers unregistering default admin classes, re-registering with
+          Unfold ModelAdmin, custom form widgets, and complete code example.
+        ''',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+          }),
+          'type': 'object',
+        }),
+        'name': 'unfold_integration_celery_beat',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Unfold Integration Celery Beat',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': '''
+          Get django-modeltranslation integration documentation.
+          
+          Covers TabbedTranslationAdmin + ModelAdmin dual inheritance
+          and EXTENSIONS flags configuration for language indicators.
+        ''',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+          }),
+          'type': 'object',
+        }),
+        'name': 'unfold_integration_modeltranslation',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Unfold Integration Modeltranslation',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Get django-money integration documentation. Auto-styled, no extra config needed.',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+          }),
+          'type': 'object',
+        }),
+        'name': 'unfold_integration_money',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Unfold Integration Money',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': '''
+          Get django-constance integration documentation.
+          
+          Covers INSTALLED_APPS ordering, UNFOLD_CONSTANCE_ADDITIONAL_FIELDS,
+          and custom field configuration.
+        ''',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+          }),
+          'type': 'object',
+        }),
+        'name': 'unfold_integration_constance',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Unfold Integration Constance',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': '''
+          Get django-location-field integration documentation.
+          
+          Covers UnfoldAdminLocationWidget setup and form configuration.
+        ''',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+          }),
+          'type': 'object',
+        }),
+        'name': 'unfold_integration_location_field',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Unfold Integration Location Field',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Get djangoql integration documentation. Auto-styled, no extra config needed.',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+          }),
+          'type': 'object',
+        }),
+        'name': 'unfold_integration_djangoql',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Unfold Integration Djangoql',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Get django-json-widget integration documentation. Auto-styled with dark mode.',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+          }),
+          'type': 'object',
+        }),
+        'name': 'unfold_integration_json_widget',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Unfold Integration Json Widget',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': '''
+          Get a complete overview of all Django Unfold features and supported packages.
+          
+          Lists all core features, third-party integrations, and the technology stack.
+        ''',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+          }),
+          'type': 'object',
+        }),
+        'name': 'unfold_features_overview',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Unfold Features Overview',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': '''
+          Get a complete Django Unfold integration example project.
+          
+          Returns a full working example with settings.py, models.py, admin.py,
+          views.py, and dashboard template showing all major features together.
+        ''',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+          }),
+          'type': 'object',
+        }),
+        'name': 'unfold_complete_example',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Unfold Complete Example',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Search Django Unfold documentation by keyword.',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'query': dict({
+              'description': '''
+                Search term to find in documentation sections.
+                   Examples: 'sidebar', 'chart', 'import export', 'color', 'action'.
+              ''',
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'query',
+          ]),
+          'type': 'object',
+        }),
+        'name': 'unfold_search_docs',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Unfold Search Docs',
+      }),
+    ]),
+  })
+# ---
+# name: test_full_mcp_contract_lifecycle[update-tool-call]
+  dict({
+    'content': list([
+      dict({
+        'text': dict({
+          'pk': '<pk>',
+          'resource_uri': 'dj-admin://blog/blogpost/<pk>/',
+          'success': True,
+        }),
+        'type': 'text',
+      }),
+    ]),
+    'isError': False,
+    'structuredContent': dict({
+      'pk': '<pk>',
+      'resource_uri': 'dj-admin://blog/blogpost/<pk>/',
+      'success': True,
+    }),
+  })
+# ---
+# name: test_unauthenticated_and_forbidden_contract[anonymous]
+  tuple(
+    401,
+    dict({
+      'error': 'authentication required',
+    }),
+  )
+# ---
+# name: test_unauthenticated_and_forbidden_contract[non-staff]
+  tuple(
+    403,
+    dict({
+      'error': 'staff permission required',
+    }),
+  )
+# ---

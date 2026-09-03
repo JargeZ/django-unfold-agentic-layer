@@ -8,6 +8,7 @@ BlogPost model so admin-facing behavior can be exercised for real. Not a
 template for a real project's settings — see CLAUDE.md.
 """
 
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -18,16 +19,25 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
+# pytest-django boots this settings module for the test suite, where an
+# in-memory database (fast, isolated per process) is what's wanted. The
+# Taskfile's `demo:*` tasks run manage.py directly against this same module
+# for local migrate/runserver use, where a file-backed database is what's
+# wanted instead, so they set DJANGO_TEST_APP_DB to a path relative to
+# BASE_DIR (see Taskfile.yaml).
+_test_app_db_name = os.environ.get("DJANGO_TEST_APP_DB")
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": ":memory:",
+        "NAME": str(BASE_DIR / _test_app_db_name) if _test_app_db_name else ":memory:",
     }
 }
 
 INSTALLED_APPS = [
     # Unfold must precede django.contrib.admin so it can override admin templates.
     "unfold",
+    "unfold.contrib.filters",  # AutocompleteSelectFilter, used by blog.BlogPostAdmin
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",

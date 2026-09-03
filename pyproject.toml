@@ -14,3 +14,5 @@ select = ["E", "F", "I", "UP"]
 [tool.ruff.lint.per-file-ignores]
 # Embedded documentation prose, not code — line-length doesn't apply.
 "packages/django-unfold-agentic-layer/src/django_unfold_agentic_layer/mcp_server/docs.py" = ["E501"]
+# Django-generated, not hand-written — don't reformat machine output.
+"**/migrations/*.py" = ["E501"]

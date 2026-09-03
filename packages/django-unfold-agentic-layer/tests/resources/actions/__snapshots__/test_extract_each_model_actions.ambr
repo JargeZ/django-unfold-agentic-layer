@@ -2,12 +2,12 @@
 # name: test_extract_each_model_actions
   list([
     dict({
-      'key': 'publish_posts',
-      'title': 'Publish selected blog posts',
-    }),
-    dict({
       'key': 'delete_selected',
       'title': 'Delete selected blog posts',
+    }),
+    dict({
+      'key': 'publish_posts',
+      'title': 'Publish selected blog posts',
     }),
     dict({
       'key': 'blog_blogpost_feature_post',

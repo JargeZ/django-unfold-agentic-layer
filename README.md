@@ -13,6 +13,39 @@ Install it, add it to `INSTALLED_APPS`, include its `urls.py` — your project n
 
 This repository is a [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/); `django-unfold-agentic-layer` (in `packages/django-unfold-agentic-layer/`) is currently its only member. See [`packages/django-unfold-agentic-layer/README.md`](packages/django-unfold-agentic-layer/README.md) for install/usage instructions, and [CLAUDE.md](CLAUDE.md) for architecture and conventions.
 
+## Quick start
+
+```bash
+pip install django-unfold-agentic-layer
+```
+
+```python
+# settings.py
+INSTALLED_APPS = [
+    "unfold",                        # before django.contrib.admin
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "django_unfold_agentic_layer",
+]
+```
+
+```python
+# urls.py (project root)
+from django.contrib import admin
+from django.urls import include, path
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("", include("django_unfold_agentic_layer.urls")),  # → POST /mcp/
+]
+```
+
+Full details (middleware, URL prefix, editable/path install, access rules) in the [package README](packages/django-unfold-agentic-layer/README.md#install).
+
 ---
 
 ## Why this exists
