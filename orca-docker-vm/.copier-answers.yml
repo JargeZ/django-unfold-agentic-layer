@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier; rerun `orca-docker-vm/update.sh` instead of editing.
-_commit: 5f95c11
+_commit: c889523
 _src_path: gh:JargeZ/orca-recipes
 claude_volume: orca-claude
 cursor_volume: orca-cursor
