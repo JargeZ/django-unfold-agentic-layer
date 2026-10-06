@@ -30,12 +30,14 @@ def _read_resource(client, uri):
 
 
 @pytest.mark.django_db
-def test_resource_templates_include_blog_post_detail_and_list(client, staff_user, regular_user):
+def test_resource_templates_include_blog_post_detail_and_list(
+    client, bearer_login, staff_user, regular_user
+):
     # RelatedFieldListFilter.has_output() (Django's own filters.py) drops the
     # FK filter from the changelist entirely when the *related* table (User,
     # not BlogPost) has fewer than 2 rows — regular_user only exists here to
     # clear that bar so the filter shows up in the schema at all.
-    client.force_login(staff_user)
+    bearer_login(client, staff_user)
 
     result = _rpc(client, "resources/templates/list")
 
@@ -67,9 +69,9 @@ def test_resource_templates_include_blog_post_detail_and_list(client, staff_user
 
 
 @pytest.mark.django_db
-def test_read_detail_resource_returns_json_and_markdown(client, staff_user):
+def test_read_detail_resource_returns_json_and_markdown(client, bearer_login, staff_user):
     post = BlogPost.objects.create(title="Hello", body="World", author=staff_user)
-    client.force_login(staff_user)
+    bearer_login(client, staff_user)
 
     result = _read_resource(client, f"dj-admin://blog/blogpost/{post.pk}/")
 
@@ -90,8 +92,8 @@ def test_read_detail_resource_returns_json_and_markdown(client, staff_user):
 
 
 @pytest.mark.django_db
-def test_read_detail_resource_for_missing_pk_is_an_mcp_error(client, staff_user):
-    client.force_login(staff_user)
+def test_read_detail_resource_for_missing_pk_is_an_mcp_error(client, bearer_login, staff_user):
+    bearer_login(client, staff_user)
 
     response = client.post(
         MCP_URL,
@@ -112,11 +114,13 @@ def test_read_detail_resource_for_missing_pk_is_an_mcp_error(client, staff_user)
 
 
 @pytest.mark.django_db
-def test_read_list_resource_applies_filter_order_and_limit(client, staff_user, regular_user):
+def test_read_list_resource_applies_filter_order_and_limit(
+    client, bearer_login, staff_user, regular_user
+):
     BlogPost.objects.create(title="Alpha", author=staff_user)
     BlogPost.objects.create(title="Beta", author=regular_user)
     BlogPost.objects.create(title="Gamma", author=staff_user)
-    client.force_login(staff_user)
+    bearer_login(client, staff_user)
 
     result = _read_resource(
         client,
@@ -132,11 +136,11 @@ def test_read_list_resource_applies_filter_order_and_limit(client, staff_user, r
 
 @pytest.mark.django_db
 def test_read_list_resource_applies_custom_and_autocomplete_filters(
-    client, staff_user, regular_user
+    client, bearer_login, staff_user, regular_user
 ):
     with_editor = BlogPost.objects.create(title="Edited", author=staff_user, editor=regular_user)
     BlogPost.objects.create(title="Unedited", author=staff_user)
-    client.force_login(staff_user)
+    bearer_login(client, staff_user)
 
     # HasEditorFilter — a field-independent custom SimpleListFilter.
     result = _read_resource(client, "dj-admin://blog/blogpost/?has_editor=yes")
@@ -156,9 +160,9 @@ def test_read_list_resource_applies_custom_and_autocomplete_filters(
 
 @pytest.mark.django_db
 def test_staff_user_without_permissions_sees_no_admin_resources(
-    client, staff_user_without_permissions
+    client, bearer_login, staff_user_without_permissions
 ):
-    client.force_login(staff_user_without_permissions)
+    bearer_login(client, staff_user_without_permissions)
 
     result = _rpc(client, "resources/templates/list")
 

@@ -8,6 +8,7 @@ from django.http import HttpRequest, QueryDict
 from fastmcp import FastMCP
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
+from django_unfold_agentic_layer.apps import DjangoUnfoldAgenticLayerConfig
 from django_unfold_agentic_layer.mcp_server.builders.build_model_create_tool_definition import (
     BuildModelCreateToolDefinition,
 )
@@ -81,6 +82,10 @@ def _build_admin_mcp_instance(user: AbstractBaseUser, admin_site: AdminSite) -> 
     build_delete_tool = BuildModelDeleteToolDefinition()
 
     for app in admin_site.get_app_list(request):
+        # Our own OAuth clients/tokens: an agent must never be able to read
+        # or revoke MCP sessions through MCP itself.
+        if app["app_label"] == DjangoUnfoldAgenticLayerConfig.label:
+            continue
         for model_dict in app["models"]:
             model_admin = admin_site._registry[model_dict["model"]]
             # One misconfigured ModelAdmin (e.g. add_fieldsets naming fields

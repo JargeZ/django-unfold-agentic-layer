@@ -33,6 +33,14 @@ tasks:
     cmds:
       - uv run python django_test_app/manage.py {{.CLI_ARGS}}
 
+  demo:run:
+    desc: Migrate and run django_test_app at http://localhost:8585 (admin at /admin/, MCP at /mcp/). Pass another addr/port with `task demo:run -- localhost:9000`.
+    cmds:
+      - task: demo:manage
+        vars: {CLI_ARGS: migrate}
+      - task: demo:manage
+        vars: {CLI_ARGS: 'runserver {{.CLI_ARGS | default "localhost:8585"}}'}
+
   check:
     deps: [lint]
     cmds:

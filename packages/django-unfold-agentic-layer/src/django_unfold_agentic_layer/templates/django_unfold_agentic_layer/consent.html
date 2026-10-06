@@ -1,0 +1,54 @@
+{% extends "unfold/layouts/unauthenticated.html" %}
+
+{% load i18n unfold %}
+
+{% block content %}
+    {% include "unfold/helpers/unauthenticated_title.html" with title=site_title|default:_("Django site admin") subtitle=_("Authorize access to") %}
+
+    <div class="flex flex-col gap-6">
+        <div class="flex items-center gap-4">
+            <div class="flex items-center justify-center rounded-default bg-primary-100 text-primary-600 h-10 w-10 shrink-0 dark:bg-primary-500/20 dark:text-primary-500">
+                <span class="material-symbols-outlined">smart_toy</span>
+            </div>
+
+            <div class="min-w-0">
+                <p class="font-semibold text-font-important-light truncate dark:text-font-important-dark">{{ client_name }}</p>
+                <p class="text-sm truncate">{% blocktranslate with host=redirect_host %}will return to {{ host }}{% endblocktranslate %}</p>
+            </div>
+        </div>
+
+        <p>
+            {% blocktranslate trimmed with username=request.user.get_username %}
+                This MCP client is asking to use the admin on your behalf, signed in as
+                <strong class="font-semibold text-font-important-light dark:text-font-important-dark">{{ username }}</strong>.
+            {% endblocktranslate %}
+        </p>
+
+        <ul class="flex flex-col gap-3 border border-base-200 rounded-default p-4 shadow-xs dark:border-base-800">
+            <li class="flex gap-3">
+                <span class="material-symbols-outlined text-primary-600 dark:text-primary-500">visibility</span>
+                <span>{% translate "See and change the data you can access in the admin" %}</span>
+            </li>
+            <li class="flex gap-3">
+                <span class="material-symbols-outlined text-primary-600 dark:text-primary-500">shield_person</span>
+                <span>{% translate "Act only within your own permissions" %}</span>
+            </li>
+            <li class="flex gap-3">
+                <span class="material-symbols-outlined text-primary-600 dark:text-primary-500">schedule</span>
+                <span>{% blocktranslate with ttl=expires_at|timeuntil:now %}Access expires in {{ ttl }}{% endblocktranslate %}</span>
+            </li>
+        </ul>
+
+        <form method="post" class="flex flex-col gap-3">
+            {% csrf_token %}
+
+            {% component "unfold/components/button.html" with submit=1 name="approve" variant="primary" class="w-full" %}
+                {% translate "Allow access" %} <span class="material-symbols-outlined relative right-0 transition-all group-hover:-right-1 text-sm">arrow_forward</span>
+            {% endcomponent %}
+
+            {% component "unfold/components/button.html" with submit=1 name="deny" variant="secondary" class="w-full" %}
+                {% translate "Deny" %}
+            {% endcomponent %}
+        </form>
+    </div>
+{% endblock %}

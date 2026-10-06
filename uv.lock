@@ -380,14 +380,14 @@ source = { editable = "packages/django-unfold-agentic-layer" }
 dependencies = [
     { name = "django", version = "5.2.16", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "django", version = "6.0.7", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "django-unfold", version = "0.91.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "django-unfold", version = "0.102.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "fastmcp" },
     { name = "pydantic" },
 ]
 
 [package.dev-dependencies]
 dev = [
-    { name = "django-unfold", version = "0.91.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "django-unfold", version = "0.102.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "pytest" },
     { name = "pytest-django" },
     { name = "pytest-freezer" },
@@ -397,13 +397,13 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "django", specifier = ">=5.0" },
+    { name = "django-unfold", specifier = ">=0.91.0" },
     { name = "fastmcp", specifier = ">=4.0.0,<5" },
     { name = "pydantic", specifier = ">=2.0" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "django-unfold", specifier = ">=0.91.0" },
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-django", specifier = ">=4.8.0" },
     { name = "pytest-freezer", specifier = ">=0.4.0" },

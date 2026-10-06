@@ -13,13 +13,20 @@ from asgiref.sync import async_to_sync
 from django.http import HttpRequest, HttpResponse
 from fastmcp import FastMCP
 from fastmcp.server.http import FastMCPStreamableHTTPSessionManager
+from starlette.types import ASGIApp
 
 from django_unfold_agentic_layer.mcp_server.builders.build_admin_mcp_instance import (
     BuildAdminMCPInstance,
 )
 
 
-async def _dispatch(request: HttpRequest, mcp: FastMCP) -> HttpResponse:
+async def call_asgi(app: ASGIApp, request: HttpRequest, path: str | None = None) -> HttpResponse:
+    """Drive any ASGI ``app`` with ``request`` and collect its response.
+
+    ``path`` overrides the scope path, for apps whose routes are relative to
+    where Django mounted them (the SDK's OAuth app routes ``/token``, not
+    ``/mcp/o/token``).
+    """
     body = request.body
 
     scope = {
@@ -32,7 +39,7 @@ async def _dispatch(request: HttpRequest, mcp: FastMCP) -> HttpResponse:
             if key.lower() != "content-length"
         ]
         + [(b"content-length", str(len(body)).encode("latin-1"))],
-        "path": request.path,
+        "path": path or request.path,
         "raw_path": request.get_full_path().encode("utf-8"),
         "query_string": request.META["QUERY_STRING"].encode("latin-1"),
         "scheme": "https" if request.is_secure() else "http",
@@ -59,16 +66,20 @@ async def _dispatch(request: HttpRequest, mcp: FastMCP) -> HttpResponse:
         elif message["type"] == "http.response.body":
             body_chunks.append(message.get("body", b""))
 
+    await app(scope, receive, send)
+
+    headers = {key.decode("latin-1"): value.decode("latin-1") for key, value in sent["headers"]}
+    return HttpResponse(b"".join(body_chunks), status=sent["status"], headers=headers)
+
+
+async def _dispatch(request: HttpRequest, mcp: FastMCP) -> HttpResponse:
     manager = FastMCPStreamableHTTPSessionManager(
         app=mcp._mcp_server,
         json_response=True,
         stateless=True,
     )
     async with manager.run():
-        await manager.handle_request(scope, receive, send)
-
-    headers = {key.decode("latin-1"): value.decode("latin-1") for key, value in sent["headers"]}
-    return HttpResponse(b"".join(body_chunks), status=sent["status"], headers=headers)
+        return await call_asgi(manager.handle_request, request)
 
 
 def dispatch(request: HttpRequest) -> HttpResponse:

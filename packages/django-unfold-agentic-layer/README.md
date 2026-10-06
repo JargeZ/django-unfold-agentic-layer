@@ -26,7 +26,7 @@ INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",          # required: /mcp/ authenticates staff users
     "django.contrib.contenttypes",
-    "django.contrib.sessions",      # required for session-cookie auth
+    "django.contrib.sessions",      # required for the admin login in the OAuth flow
     "django.contrib.messages",
     "django.contrib.staticfiles",
     # ...
@@ -50,23 +50,31 @@ from django.urls import include, path
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("", include("django_unfold_agentic_layer.urls")),  # → /mcp/
+    path("", include("django_unfold_agentic_layer.urls")),  # → /mcp/, /mcp/o/…
 ]
 ```
 
-This wires up a single route, `POST /mcp/` (URL name `django_unfold_agentic_layer:mcp`). To serve it under a prefix, change the include path — e.g. `path("agent/", include("django_unfold_agentic_layer.urls"))` gives `/agent/mcp/`. The view is CSRF-exempt, so no extra CSRF setup is needed for MCP clients.
+Then `python manage.py migrate` (the app stores OAuth clients and hashed tokens in its own tables).
+
+This wires up `POST /mcp` (URL name `django_unfold_agentic_layer:mcp`; `/mcp/` works too) plus its OAuth endpoints under `/mcp/o/` — every route the app adds lives under `mcp/`, so it can't collide with your own (e.g. a django-oauth-toolkit at `/o/`). To serve it under a prefix, change the include path — e.g. `path("agent/", include("django_unfold_agentic_layer.urls"))` gives `/agent/mcp`. The view is CSRF-exempt, so no extra CSRF setup is needed for MCP clients.
 
 Works under **either WSGI or ASGI** deployment — the bridge that delegates requests into the MCP server doesn't rely on ASGI-only mechanics (see `mcp_server/bridge.py` and CLAUDE.md for how).
 
 ## Access
 
-`/mcp/` requires an authenticated, active staff user:
+`/mcp/` speaks the standard [MCP authorization](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization) flow (OAuth 2.1 + PKCE, dynamic client registration), so clients log in on their own:
 
-- Anonymous request → `401` JSON body
-- Authenticated but non-staff → `403` JSON body
-- Authenticated staff → delegated to the MCP server
+```bash
+claude mcp add --transport http unfold https://your-project.example/mcp
+# then /mcp → Authenticate: the browser opens your admin login, then a consent page
+```
 
-Point any MCP client that speaks Streamable HTTP at `https://your-project.example/mcp/`, authenticated the same way the rest of your admin is (session cookie, or whatever auth your deployment fronts it with).
+- No/invalid/expired `Bearer` token → `401` with `WWW-Authenticate: Bearer resource_metadata="…/mcp/o/.well-known/oauth-protected-resource"` — what clients use to start the login.
+- Only active **staff** users can log in and approve a client; `is_active`/`is_staff` is re-checked on every request (`403` otherwise), so un-staffing someone cuts off their tokens immediately.
+- A login lasts `SESSION_TTL` (default 1 day); no refresh tokens are issued, so the client re-runs the browser login after that.
+- The Django session cookie does **not** authenticate `/mcp/` — only the token does.
+
+The OAuth server itself is the MCP SDK's (`mcp.server.auth`); this app only stores its state. Discovery stays inside `/mcp/o/` (via the 401's `resource_metadata` and `<issuer>/.well-known/openid-configuration`), nothing is added at your site root. The issuer must be `https` (or `localhost`) — behind a proxy, set `SECURE_PROXY_SSL_HEADER`/`USE_X_FORWARDED_HOST` so Django builds the right absolute URLs.
 
 ## What's available today
 
@@ -85,15 +93,21 @@ Not yet covered: bulk/row/detail admin *actions* (e.g. a custom `@action` on a `
 
 ## Settings
 
-**Local development without auth** (until OAuth lands):
+**Local development without auth**:
 
 ```python
 UNFOLD_AGENTIC_LAYER_UNAUTHORIZED = True  # only honored when DEBUG = True
 ```
 
-Anonymous `/mcp/` requests then act as the first active superuser (lowest pk); all permission filtering still runs against that real user. Ignored when `DEBUG = False`.
+`/mcp/` requests without a token then act as the first active superuser (lowest pk); all permission filtering still runs against that real user. Ignored when `DEBUG = False`.
 
 Configure the app with an `UNFOLD_AGENTIC_LAYER` dict in your project's settings — the same override-by-dict pattern Unfold itself uses for its own `UNFOLD` setting. Any key you omit falls back to its default. See `django_unfold_agentic_layer/conf.py` for the current list of settings; none are required for `/mcp/` to work.
+
+```python
+from datetime import timedelta
+
+UNFOLD_AGENTIC_LAYER = {"SESSION_TTL": timedelta(hours=8)}  # MCP login lifetime, default 1 day
+```
 
 ## Development
 

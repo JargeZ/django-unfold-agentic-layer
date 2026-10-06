@@ -73,8 +73,8 @@ def _modern_rpc(client, method, params, request_id=1):
 
 
 @pytest.mark.django_db
-def test_create_tool_creates_instance(client, staff_user):
-    client.force_login(staff_user)
+def test_create_tool_creates_instance(client, bearer_login, staff_user):
+    bearer_login(client, staff_user)
 
     result = _call_tool(
         client,
@@ -95,8 +95,8 @@ def test_create_tool_creates_instance(client, staff_user):
 
 
 @pytest.mark.django_db
-def test_create_tool_reports_validation_errors(client, staff_user):
-    client.force_login(staff_user)
+def test_create_tool_reports_validation_errors(client, bearer_login, staff_user):
+    bearer_login(client, staff_user)
 
     # "author" is required and omitted.
     result = _call_tool(client, "create_blog_blogpost", {"title": "Missing author"})
@@ -107,9 +107,9 @@ def test_create_tool_reports_validation_errors(client, staff_user):
 
 
 @pytest.mark.django_db
-def test_update_tool_applies_partial_update(client, staff_user):
+def test_update_tool_applies_partial_update(client, bearer_login, staff_user):
     post = BlogPost.objects.create(title="Original", body="Original body", author=staff_user)
-    client.force_login(staff_user)
+    bearer_login(client, staff_user)
 
     result = _call_tool(
         client, "update_blog_blogpost", {"pk": str(post.pk), "body": "Updated body"}
@@ -122,9 +122,9 @@ def test_update_tool_applies_partial_update(client, staff_user):
 
 
 @pytest.mark.django_db
-def test_delete_tool_requires_confirmation_then_deletes(client, staff_user):
+def test_delete_tool_requires_confirmation_then_deletes(client, bearer_login, staff_user):
     post = BlogPost.objects.create(title="ToDelete", author=staff_user)
-    client.force_login(staff_user)
+    bearer_login(client, staff_user)
 
     first = _modern_rpc(
         client, "tools/call", {"name": "delete_blog_blogpost", "arguments": {"pk": str(post.pk)}}
@@ -147,9 +147,9 @@ def test_delete_tool_requires_confirmation_then_deletes(client, staff_user):
 
 
 @pytest.mark.django_db
-def test_delete_tool_cancelled_keeps_instance(client, staff_user):
+def test_delete_tool_cancelled_keeps_instance(client, bearer_login, staff_user):
     post = BlogPost.objects.create(title="KeepMe", author=staff_user)
-    client.force_login(staff_user)
+    bearer_login(client, staff_user)
 
     first = _modern_rpc(
         client, "tools/call", {"name": "delete_blog_blogpost", "arguments": {"pk": str(post.pk)}}
@@ -170,8 +170,10 @@ def test_delete_tool_cancelled_keeps_instance(client, staff_user):
 
 
 @pytest.mark.django_db
-def test_staff_user_without_permissions_has_no_crud_tools(client, staff_user_without_permissions):
-    client.force_login(staff_user_without_permissions)
+def test_staff_user_without_permissions_has_no_crud_tools(
+    client, bearer_login, staff_user_without_permissions
+):
+    bearer_login(client, staff_user_without_permissions)
 
     result = _rpc(client, "tools/list")
 
@@ -180,7 +182,7 @@ def test_staff_user_without_permissions_has_no_crud_tools(client, staff_user_wit
 
 
 @pytest.mark.django_db
-def test_broken_model_admin_is_skipped_not_fatal(client, staff_user, monkeypatch):
+def test_broken_model_admin_is_skipped_not_fatal(client, bearer_login, staff_user, monkeypatch):
     from django.contrib import admin
     from django.core.exceptions import FieldError
 
@@ -188,7 +190,7 @@ def test_broken_model_admin_is_skipped_not_fatal(client, staff_user, monkeypatch
         raise FieldError("Unknown field(s) (password1, password2) specified for User")
 
     monkeypatch.setattr(admin.site._registry[BlogPost], "get_form", broken_get_form)
-    client.force_login(staff_user)
+    bearer_login(client, staff_user)
 
     names = {tool["name"] for tool in _rpc(client, "tools/list")["tools"]}
 

@@ -13,6 +13,7 @@ Two patterns borrowed directly from sibling projects in this ecosystem:
 
 import enum
 from collections.abc import Mapping
+from datetime import timedelta
 from typing import Any, Final, TypedDict, cast
 
 from django.conf import settings
@@ -26,12 +27,16 @@ class Settings(enum.StrEnum):
     """Keys for all django_unfold_agentic_layer settings."""
 
     PORTAL_TITLE = "PORTAL_TITLE"
+    #: Lifetime of an MCP OAuth access token; once it expires the client
+    #: re-runs the browser login flow (no refresh tokens are issued).
+    SESSION_TTL = "SESSION_TTL"
 
 
 class SettingsDict(TypedDict, total=False):
     """Settings type that can be used for typing ``UNFOLD_AGENTIC_LAYER``."""
 
     PORTAL_TITLE: str
+    SESSION_TTL: timedelta
 
 
 assert SettingsDict.__optional_keys__ == set(Settings), (
@@ -41,6 +46,7 @@ assert SettingsDict.__optional_keys__ == set(Settings), (
 #: Default settings for django_unfold_agentic_layer.
 DEFAULTS: Final[Mapping[Settings, Any]] = {
     Settings.PORTAL_TITLE: "Agentic Layer",
+    Settings.SESSION_TTL: timedelta(days=1),
 }
 
 assert all(setting_key in DEFAULTS for setting_key in Settings), (

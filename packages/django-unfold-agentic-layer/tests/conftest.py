@@ -4,8 +4,14 @@ As fixtures multiply, group them semantically (e.g. tests/fixtures/<topic>.py)
 and re-export them here — see CLAUDE.md.
 """
 
+import hashlib
+import secrets
+from datetime import timedelta
+
 import pytest
 from django.contrib.auth.models import User
+from django.utils import timezone
+from django_unfold_agentic_layer.models import OAuthClient, OAuthToken
 
 
 @pytest.fixture(autouse=True)
@@ -51,3 +57,27 @@ def staff_user_without_permissions(db) -> User:
         password="s3cret",  # noqa: S106
         is_staff=True,
     )
+
+
+@pytest.fixture
+def bearer_login(db):
+    """``bearer_login(client, user)`` — the MCP equivalent of ``client.force_login``:
+    issues ``user`` a live OAuth access token (skipping the browser flow
+    ``test_oauth.py`` covers) and sends it on every following request."""
+    oauth_client, _ = OAuthClient.objects.get_or_create(
+        client_id="test-client", defaults={"info": {}}
+    )
+
+    def login(client, user: User) -> None:
+        token = secrets.token_urlsafe(32)
+        OAuthToken.objects.create(
+            token_hash=hashlib.sha256(token.encode()).hexdigest(),
+            kind=OAuthToken.Kind.ACCESS,
+            client=oauth_client,
+            user=user,
+            data={"client_id": oauth_client.client_id, "scopes": []},
+            expires_at=timezone.now() + timedelta(days=1),
+        )
+        client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+
+    return login

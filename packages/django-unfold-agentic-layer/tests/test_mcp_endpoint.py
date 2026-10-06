@@ -25,8 +25,8 @@ def _rpc(client, payload):
 
 
 @pytest.mark.django_db
-def test_tools_list_returns_all_docs_tools_for_staff_user(client, staff_user):
-    client.force_login(staff_user)
+def test_tools_list_returns_all_docs_tools_for_staff_user(client, bearer_login, staff_user):
+    bearer_login(client, staff_user)
 
     response = _rpc(client, {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}})
 
@@ -48,8 +48,8 @@ def test_anonymous_request_is_rejected_before_reaching_mcp(client):
 
 
 @pytest.mark.django_db
-def test_non_staff_request_is_rejected(client, regular_user):
-    client.force_login(regular_user)
+def test_non_staff_request_is_rejected(client, bearer_login, regular_user):
+    bearer_login(client, regular_user)
 
     response = _rpc(client, {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}})
 
@@ -61,7 +61,9 @@ def test_unauthorized_dev_mode_acts_as_first_superuser(client, settings, staff_u
     settings.DEBUG = True
     settings.UNFOLD_AGENTIC_LAYER_UNAUTHORIZED = True
 
-    response = _rpc(client, {"jsonrpc": "2.0", "id": 1, "method": "resources/templates/list", "params": {}})
+    response = _rpc(
+        client, {"jsonrpc": "2.0", "id": 1, "method": "resources/templates/list", "params": {}}
+    )
 
     assert response.status_code == 200
     # Admin resources only appear for a user with model permissions — proof
@@ -69,4 +71,7 @@ def test_unauthorized_dev_mode_acts_as_first_superuser(client, settings, staff_u
     assert response.json()["result"]["resourceTemplates"]
 
     settings.DEBUG = False
-    assert _rpc(client, {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}).status_code == 401
+    assert (
+        _rpc(client, {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}).status_code
+        == 401
+    )

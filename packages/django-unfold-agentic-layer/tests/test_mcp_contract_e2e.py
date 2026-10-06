@@ -97,13 +97,13 @@ def _normalize_contract(value: Any) -> Any:
 
 
 @pytest.mark.django_db
-def test_full_mcp_contract_lifecycle(client, staff_user, snapshot, freezer):
+def test_full_mcp_contract_lifecycle(client, bearer_login, staff_user, snapshot, freezer):
     """One flowing story, per the ``test`` skill's guidance for a regression
     that's really a single narrative: log in, discover the docs + dynamic
     admin surface, look up a doc, then create/read/update/delete a real
     ``BlogPost`` through the tools and resources that surface generates."""
     freezer.move_to("2026-01-15T12:00:00+00:00")
-    client.force_login(staff_user)
+    bearer_login(client, staff_user)
 
     tools = _rpc(client, "tools/list").json()
     assert tools["result"] == snapshot(name="tools-list")
@@ -160,13 +160,13 @@ def test_full_mcp_contract_lifecycle(client, staff_user, snapshot, freezer):
 
 
 @pytest.mark.django_db
-def test_unauthenticated_and_forbidden_contract(client, regular_user, snapshot):
+def test_unauthenticated_and_forbidden_contract(client, bearer_login, regular_user, snapshot):
     """The auth gate's own response contract (spec: 401 anonymous, 403
     non-staff — plain JSON, no login redirect) — a real client can't follow a
     redirect, so this shape is as much a "contract" as the MCP payloads."""
     anonymous = _rpc(client, "tools/list")
     assert (anonymous.status_code, anonymous.json()) == snapshot(name="anonymous")
 
-    client.force_login(regular_user)
+    bearer_login(client, regular_user)
     non_staff = _rpc(client, "tools/list")
     assert (non_staff.status_code, non_staff.json()) == snapshot(name="non-staff")
