@@ -1,0 +1,10 @@
+# serializer version: 1
+# name: test_extract_search_filter_field_when_search_enabled
+  dict({
+    'choices': None,
+    'format': 'free-text search across: title, body',
+    'key': 'q',
+    'related_resource_uri': None,
+    'title': 'Search',
+  })
+# ---

@@ -1,570 +1,226 @@
-<p align="center">
-  <img src="https://img.shields.io/pypi/v/mcp-django-unfold?color=6366f1&style=for-the-badge" alt="PyPI version" />
-  <img src="https://img.shields.io/pypi/pyversions/mcp-django-unfold?color=818cf8&style=for-the-badge" alt="Python versions" />
-  <img src="https://img.shields.io/badge/MCP-Compatible-4f46e5?style=for-the-badge" alt="MCP Compatible" />
-  <img src="https://img.shields.io/badge/License-MIT-059669?style=for-the-badge" alt="License" />
-</p>
+<div align="center">
 
-# 🔮 MCP Django Unfold
+# 🔮 django-unfold-agentic-layer
 
-> **A Model Context Protocol (MCP) server that gives AI agents complete, accurate knowledge of the [Django Unfold](https://unfoldadmin.com) admin theme — so they can implement it without hallucination.**
+**Turn your Django Unfold admin into an MCP server — AI agents get docs and your live admin, with your permissions**
 
-Built with the [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk) (FastMCP), this server exposes **25 documentation tools** covering every feature, configuration option, and third-party integration of Django Unfold. Compatible with Claude Desktop, VS Code GitHub Copilot, Cursor, and any MCP-compatible client.
+[![PyPI](https://img.shields.io/pypi/v/django-unfold-agentic-layer?style=flat-square)](https://pypi.org/project/django-unfold-agentic-layer/)
+[![Python](https://img.shields.io/pypi/pyversions/django-unfold-agentic-layer?style=flat-square)](https://pypi.org/project/django-unfold-agentic-layer/)
+[![Last commit](https://img.shields.io/github/last-commit/JargeZ/django-unfold-agentic-layer?style=flat-square)](https://github.com/JargeZ/django-unfold-agentic-layer/commits/main)
+[![Stars](https://img.shields.io/github/stars/JargeZ/django-unfold-agentic-layer?style=flat-square)](https://github.com/JargeZ/django-unfold-agentic-layer/stargazers)
+[![Issues](https://img.shields.io/github/issues/JargeZ/django-unfold-agentic-layer?style=flat-square)](https://github.com/JargeZ/django-unfold-agentic-layer/issues)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](https://github.com/JargeZ/django-unfold-agentic-layer/pulls)
+<br>
+[![Django](https://img.shields.io/badge/Django-5.0+-092E20?style=flat-square&logo=django&logoColor=white)](https://www.djangoproject.com/)
+[![Unfold](https://img.shields.io/badge/Unfold-0.91+-6366f1?style=flat-square)](https://unfoldadmin.com)
+[![MCP](https://img.shields.io/badge/MCP-Streamable_HTTP-4f46e5?style=flat-square)](https://modelcontextprotocol.io)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-ready-D97757?style=flat-square&logo=anthropic&logoColor=white)](https://code.claude.com)
 
----
+**English** · [Русский](README.ru.md)
 
-## 📑 Table of Contents
-
-- [Why This Exists](#-why-this-exists)
-- [Architecture](#-architecture)
-- [Project Structure](#-project-structure)
-- [Quick Start](#-quick-start)
-- [Client Configuration](#-client-configuration)
-- [Available Tools](#-available-tools)
-- [How It Was Built](#-how-it-was-built)
-- [Development Guide](#-development-guide)
-- [Production Deployment](#-production-deployment)
-- [Dev → Prod Pipeline](#-dev--prod-pipeline)
-- [Contributing](#-contributing)
-- [License](#-license)
+</div>
 
 ---
 
-## 💡 Why This Exists
+> [!WARNING]
+> **The project is under active development.** APIs and behavior may change. Testing and feedback are very welcome — please [open an issue](https://github.com/JargeZ/django-unfold-agentic-layer/issues) if something breaks!
 
-AI coding agents (Claude, Copilot, Cursor) frequently hallucinate when generating Django Unfold code — inventing non-existent settings, using wrong import paths, or missing critical ordering requirements in `INSTALLED_APPS`. This MCP server solves that by providing:
+## ✨ What it is
 
-- **Verified documentation** — every code example is sourced directly from the official Django Unfold docs
-- **Complete coverage** — 24 documentation sections spanning installation to advanced integrations
-- **Instant access** — AI agents call tools and get authoritative answers in milliseconds
-- **Search** — full-text search across all documentation sections
+A regular Django app. Add it to `INSTALLED_APPS`, include its `urls.py` — and your project serves an
+MCP endpoint at `/mcp`. No separate process, works under both WSGI and ASGI.
 
----
+- 📚 **Unfold docs for agents** — 25 tools with the official Django Unfold docs, so agents stop hallucinating settings and imports
+- 🗂️ **Your admin, live** — every registered model as MCP resources (detail + list with your `list_filter`/search) and `create`/`update`/`delete` tools
+- 🛡️ **Admin permissions apply** — an agent sees and does exactly what its user can do in the admin; validation goes through the model's admin form
+- 🔐 **Standard MCP OAuth** — clients log in through your admin login + consent page, only active staff users
 
-## 🏗️ Architecture
+## 🚀 Installation
 
-### System Overview
+**Requirements:** Python 3.11+, Django 5.0+, `django-unfold` 0.91+.
 
-```mermaid
-%%{init: {'theme': 'dark', 'themeVariables': {'primaryColor': '#6366f1', 'primaryTextColor': '#ffffff', 'primaryBorderColor': '#818cf8', 'lineColor': '#a5b4fc', 'secondaryColor': '#1e1b4b', 'tertiaryColor': '#312e81', 'background': '#0f0d1a', 'mainBkg': '#1e1b4b', 'nodeBorder': '#818cf8', 'clusterBkg': '#1a1744', 'clusterBorder': '#4f46e5', 'titleColor': '#ffffff', 'edgeLabelBackground': '#1e1b4b', 'textColor': '#e0e7ff', 'noteTextColor': '#ffffff', 'noteBkgColor': '#312e81'}}}%%
-flowchart TB
-    subgraph clients["🖥️ MCP Clients"]
-        direction LR
-        claude["Claude Desktop"]
-        vscode["VS Code Copilot"]
-        cursor["Cursor / Other IDE"]
-        custom["Custom MCP Client"]
-    end
-
-    subgraph transport["📡 Transport Layer"]
-        stdio["stdio (stdin/stdout)"]
-    end
-
-    subgraph server["⚙️ MCP Server — mcp-django-unfold"]
-        direction TB
-        fastmcp["FastMCP Runtime\n(mcp Python SDK)"]
-        
-        subgraph tools["🔧 25 Documentation Tools"]
-            direction LR
-            core["Core Tools\n─────────\nunfold_get_started\nunfold_configuration\nunfold_actions\nunfold_filters\nunfold_decorators"]
-            ui["UI Tools\n─────────\nunfold_components\nunfold_inlines\nunfold_widgets\nunfold_tabs\nunfold_dashboard"]
-            adv["Advanced Tools\n─────────\nunfold_pages\nunfold_styles_scripts\nunfold_features_overview\nunfold_complete_example\nunfold_search_docs"]
-            integ["Integration Tools\n─────────\nimport_export\nguardian\nsimple_history\ncelery_beat\nmodeltranslation\nmoney · constance\nlocation · djangoql\njson_widget"]
-        end
-
-        subgraph docs["📚 Documentation Store"]
-            docsmod["docs.py\n─────────\nDOCS dict\n24 sections\nFull code examples"]
-        end
-    end
-
-    clients -->|"JSON-RPC over stdio"| transport
-    transport --> fastmcp
-    fastmcp --> tools
-    tools --> docs
-
-    style clients fill:#1e1b4b,stroke:#6366f1,stroke-width:2px,color:#e0e7ff
-    style transport fill:#312e81,stroke:#818cf8,stroke-width:2px,color:#e0e7ff
-    style server fill:#0f172a,stroke:#6366f1,stroke-width:2px,color:#e0e7ff
-    style tools fill:#1a1744,stroke:#4f46e5,stroke-width:1px,color:#e0e7ff
-    style docs fill:#1a1744,stroke:#4f46e5,stroke-width:1px,color:#e0e7ff
-    style claude fill:#312e81,stroke:#818cf8,color:#ffffff
-    style vscode fill:#312e81,stroke:#818cf8,color:#ffffff
-    style cursor fill:#312e81,stroke:#818cf8,color:#ffffff
-    style custom fill:#312e81,stroke:#818cf8,color:#ffffff
-    style stdio fill:#312e81,stroke:#818cf8,color:#ffffff
-    style fastmcp fill:#4f46e5,stroke:#818cf8,color:#ffffff
-    style core fill:#312e81,stroke:#6366f1,color:#e0e7ff
-    style ui fill:#312e81,stroke:#6366f1,color:#e0e7ff
-    style adv fill:#312e81,stroke:#6366f1,color:#e0e7ff
-    style integ fill:#312e81,stroke:#6366f1,color:#e0e7ff
-    style docsmod fill:#312e81,stroke:#6366f1,color:#e0e7ff
-```
-
-### Request Flow
-
-```mermaid
-%%{init: {'theme': 'dark', 'themeVariables': {'primaryColor': '#6366f1', 'primaryTextColor': '#ffffff', 'primaryBorderColor': '#818cf8', 'lineColor': '#a5b4fc', 'secondaryColor': '#1e1b4b', 'tertiaryColor': '#312e81', 'background': '#0f0d1a', 'mainBkg': '#1e1b4b', 'nodeBorder': '#818cf8', 'clusterBkg': '#1a1744', 'clusterBorder': '#4f46e5', 'titleColor': '#ffffff', 'edgeLabelBackground': '#1e1b4b', 'textColor': '#e0e7ff'}}}%%
-sequenceDiagram
-    participant C as 🖥️ AI Client
-    participant T as 📡 stdio Transport
-    participant S as ⚙️ FastMCP Server
-    participant TM as 🔧 Tool Manager
-    participant D as 📚 Docs Store
-
-    Note over C,D: Tool Discovery Phase
-    C->>T: initialize request
-    T->>S: JSON-RPC handshake
-    S-->>T: server capabilities (25 tools)
-    T-->>C: tool list + descriptions
-
-    Note over C,D: Tool Invocation Phase
-    C->>T: tools/call: unfold_configuration
-    T->>S: dispatch to handler
-    S->>TM: lookup "unfold_configuration"
-    TM->>D: DOCS["configuration"]
-    D-->>TM: full markdown content
-    TM-->>S: documentation string
-    S-->>T: tool result (content)
-    T-->>C: configuration docs
-
-    Note over C,D: Search Phase
-    C->>T: tools/call: unfold_search_docs("sidebar")
-    T->>S: dispatch to handler
-    S->>TM: lookup "unfold_search_docs"
-    TM->>D: scan ALL_SECTIONS for "sidebar"
-    D-->>TM: matching sections
-    TM-->>S: aggregated results
-    S-->>T: tool result (matches)
-    T-->>C: search results
-```
-
----
-
-## 📂 Project Structure
-
-```mermaid
-%%{init: {'theme': 'dark', 'themeVariables': {'primaryColor': '#6366f1', 'primaryTextColor': '#ffffff', 'primaryBorderColor': '#818cf8', 'lineColor': '#a5b4fc', 'secondaryColor': '#1e1b4b', 'tertiaryColor': '#312e81', 'background': '#0f0d1a', 'mainBkg': '#1e1b4b', 'nodeBorder': '#818cf8', 'clusterBkg': '#1a1744', 'clusterBorder': '#4f46e5', 'titleColor': '#ffffff', 'edgeLabelBackground': '#1e1b4b', 'textColor': '#e0e7ff'}}}%%
-graph TB
-    subgraph root["📦 mcp-django-unfold/"]
-        pyproject["pyproject.toml\n─────────\nname · version\ndependencies\nentry point\nhatch build"]
-        dockerfile["Dockerfile\n─────────\npython:3.12-slim\npip install\nENTRYPOINT"]
-        readme["README.md"]
-        lock["uv.lock"]
-
-        subgraph src["src/mcp_django_unfold/"]
-            init["__init__.py\n─────────\n__version__"]
-            server_py["server.py\n─────────\nFastMCP init\n25 @mcp.tool()\nmain() entry"]
-            docs_py["docs.py\n─────────\nDOCS dict\n24 doc sections\nALL_SECTIONS list"]
-        end
-    end
-
-    pyproject -->|"entry point"| server_py
-    server_py -->|"imports"| docs_py
-    server_py -->|"imports"| init
-    dockerfile -->|"pip install ."| pyproject
-
-    style root fill:#0f172a,stroke:#6366f1,stroke-width:2px,color:#e0e7ff
-    style src fill:#1a1744,stroke:#4f46e5,stroke-width:2px,color:#e0e7ff
-    style pyproject fill:#312e81,stroke:#818cf8,color:#ffffff
-    style dockerfile fill:#312e81,stroke:#818cf8,color:#ffffff
-    style readme fill:#312e81,stroke:#818cf8,color:#ffffff
-    style lock fill:#312e81,stroke:#818cf8,color:#ffffff
-    style init fill:#4f46e5,stroke:#818cf8,color:#ffffff
-    style server_py fill:#4f46e5,stroke:#a78bfa,stroke-width:2px,color:#ffffff
-    style docs_py fill:#4f46e5,stroke:#a78bfa,stroke-width:2px,color:#ffffff
-```
-
-```
-mcp-django-unfold/
-├── pyproject.toml              # Package metadata, dependencies, build config
-├── Dockerfile                  # Container image for production
-├── .dockerignore               # Docker build exclusions
-├── .gitignore                  # Git exclusions
-├── README.md                   # This file
-├── LICENSE                     # MIT license
-├── uv.lock                     # Dependency lock file
-└── src/
-    └── mcp_django_unfold/
-        ├── __init__.py         # Package init + version
-        ├── server.py           # FastMCP server + 25 tool definitions
-        └── docs.py             # Complete documentation content (24 sections)
-```
-
-| File | Purpose |
-|------|---------|
-| `server.py` | FastMCP server initialization, all 25 `@mcp.tool()` handlers, and `main()` entry point |
-| `docs.py` | `DOCS` dictionary containing 24 full documentation sections with code examples |
-| `pyproject.toml` | Package name, version, Python ≥3.11, `mcp[cli]` dependency, hatchling build |
-| `Dockerfile` | Production-ready container using `python:3.12-slim` |
-
----
-
-## 🚀 Quick Start
-
-### Option 1: uvx (recommended — zero install)
+**1. Install the package** from git:
 
 ```bash
-uvx mcp-django-unfold
+# uv
+uv add "django-unfold-agentic-layer @ git+https://github.com/JargeZ/django-unfold-agentic-layer.git#subdirectory=packages/django-unfold-agentic-layer"
+
+# poetry
+poetry add "git+https://github.com/JargeZ/django-unfold-agentic-layer.git#subdirectory=packages/django-unfold-agentic-layer"
 ```
 
-### Option 2: pip install
+Pin a branch, tag or commit with `.git@<ref>#subdirectory=…`.
+
+**2. Add it to `settings.py`:**
+
+```python
+INSTALLED_APPS = [
+    "unfold",  # before django.contrib.admin
+    "django.contrib.admin",
+    "django.contrib.auth",  # required: /mcp authenticates staff users
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",  # required: admin login in the OAuth flow
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "django_unfold_agentic_layer",  # exactly this string
+    # your apps
+]
+```
+
+`SessionMiddleware` and `AuthenticationMiddleware` must be in `MIDDLEWARE` (they are in any project with the admin).
+
+**3. Include the URLs** in the project's root `urls.py`:
+
+```python
+from django.contrib import admin
+from django.urls import include, path
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("", include("django_unfold_agentic_layer.urls")),  # → /mcp, /mcp/o/…
+]
+```
+
+> [!NOTE]
+> Every route of the app lives under `mcp/`, so it won't collide with yours (e.g. django-oauth-toolkit at `/o/`).
+> Need a prefix? `path("agent/", include(...))` gives `/agent/mcp`.
+
+**4. Apply migrations** (OAuth clients and hashed tokens live in the app's own tables):
 
 ```bash
-pip install mcp-django-unfold
-mcp-django-unfold
+python manage.py migrate
 ```
 
-### Option 3: Docker
+## 🔌 Connecting clients
+
+Clients log in on their own via standard MCP OAuth: the browser opens your admin login, then a consent page.
+
+**Claude Code**
 
 ```bash
-docker build -t mcp-django-unfold .
-docker run -i --rm mcp-django-unfold
+claude mcp add --transport http unfold https://your-project.example/mcp
+# then in Claude Code: /mcp → unfold → Authenticate
 ```
 
----
-
-## ⚙️ Client Configuration
-
-### Claude Desktop
-
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
+**Cursor** — `.cursor/mcp.json`:
 
 ```json
 {
   "mcpServers": {
-    "django-unfold": {
-      "command": "uvx",
-      "args": ["mcp-django-unfold"]
-    }
+    "unfold": { "url": "https://your-project.example/mcp" }
   }
 }
 ```
 
-### VS Code (GitHub Copilot)
-
-Add to your project's `.vscode/mcp.json`:
-
-```json
-{
-  "servers": {
-    "django-unfold": {
-      "command": "uvx",
-      "args": ["mcp-django-unfold"]
-    }
-  }
-}
-```
-
-### Cursor
-
-Add to `~/.cursor/mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "django-unfold": {
-      "command": "uvx",
-      "args": ["mcp-django-unfold"]
-    }
-  }
-}
-```
-
-### Docker-based Configuration
-
-For any client that supports Docker:
-
-```json
-{
-  "mcpServers": {
-    "django-unfold": {
-      "command": "docker",
-      "args": ["run", "-i", "--rm", "mcp-django-unfold"]
-    }
-  }
-}
-```
-
----
-
-## 🔧 Available Tools
-
-### Core Documentation
-
-| Tool | Description |
-|------|-------------|
-| `unfold_get_started` | Installation, INSTALLED_APPS ordering, ModelAdmin setup |
-| `unfold_configuration` | Complete `UNFOLD` settings dict — every option with examples |
-| `unfold_actions` | Global, row, detail & submit line actions with icons/variants |
-| `unfold_filters` | Dropdown, numeric, date, text, autocomplete filters |
-| `unfold_decorators` | `@display` decorator — labels, headers, dropdowns |
-
-### UI & Layout
-
-| Tool | Description |
-|------|-------------|
-| `unfold_components` | Dashboard components — card, chart, button, table, progress... |
-| `unfold_inlines` | Stacked, tabular, nonrelated & sortable inlines |
-| `unfold_widgets` | Form widgets — ArrayWidget, switches, WYSIWYG, all input types |
-| `unfold_tabs` | Changelist tab navigation |
-| `unfold_dashboard` | Custom dashboard with DASHBOARD_CALLBACK |
-| `unfold_pages` | Custom admin pages with class-based views |
-| `unfold_styles_scripts` | Custom CSS/JS, Tailwind 3.x & 4.x setup |
-
-### Third-party Integrations
-
-| Tool | Description |
-|------|-------------|
-| `unfold_integration_import_export` | django-import-export forms and admin setup |
-| `unfold_integration_guardian` | django-guardian object-level permissions |
-| `unfold_integration_simple_history` | django-simple-history model tracking |
-| `unfold_integration_celery_beat` | django-celery-beat task scheduling admin |
-| `unfold_integration_modeltranslation` | django-modeltranslation with language flags |
-| `unfold_integration_money` | django-money (auto-styled) |
-| `unfold_integration_constance` | django-constance dynamic settings |
-| `unfold_integration_location_field` | django-location-field map widget |
-| `unfold_integration_djangoql` | djangoql advanced search (auto-styled) |
-| `unfold_integration_json_widget` | django-json-widget (auto-styled) |
-
-### Meta
-
-| Tool | Description |
-|------|-------------|
-| `unfold_features_overview` | Complete feature list and technology stack |
-| `unfold_complete_example` | Full working project — settings, models, admin, templates |
-| `unfold_search_docs` | Full-text search across all 24 documentation sections |
-
----
-
-## 🧱 How It Was Built
-
-### Technology Stack
-
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| **Protocol** | [Model Context Protocol](https://modelcontextprotocol.io) | Standardized AI ↔ tool communication |
-| **SDK** | [mcp Python SDK](https://github.com/modelcontextprotocol/python-sdk) (FastMCP) | Server framework with `@mcp.tool()` decorator pattern |
-| **Transport** | stdio (stdin/stdout) | Local process communication — fast, no network overhead |
-| **Build** | [Hatchling](https://hatch.pypa.io) | Modern Python build backend |
-| **Runtime** | Python ≥ 3.11 | Type hints, modern syntax |
-| **Package** | [uvx](https://docs.astral.sh/uv/) / pip | Zero-install execution via uvx |
-| **Container** | Docker (`python:3.12-slim`) | Production-ready deployment |
-
-### Design Decisions
-
-1. **Embedded documentation** — All docs are stored as Python strings in `docs.py` rather than fetched at runtime. This ensures zero latency, offline operation, and version-locked accuracy.
-
-2. **One tool per topic** — Each documentation section gets its own MCP tool with a descriptive docstring. AI agents can discover and call exactly the tool they need.
-
-3. **Full-text search** — The `unfold_search_docs` tool scans all sections by keyword, so agents can find relevant docs even when they don't know the exact tool name.
-
-4. **stdio transport** — Chosen for local-first usage. The server starts as a child process of the AI client — no ports, no network config, no auth needed.
-
-5. **src layout** — Standard Python packaging layout (`src/mcp_django_unfold/`) with hatchling build for clean wheel generation and PyPI publishing.
-
----
-
-## 🛠️ Development Guide
-
-### Prerequisites
-
-- Python 3.11+
-- [uv](https://docs.astral.sh/uv/) (recommended) or pip
-
-### Setup
+**MCP Inspector** — for debugging:
 
 ```bash
-# Clone the repository
-git clone https://github.com/rissets/mcp-django-unfold.git
-cd mcp-django-unfold
+npx @modelcontextprotocol/inspector
+# Transport: Streamable HTTP, URL: http://localhost:8000/mcp
+```
 
-# Install dependencies in a virtual environment
+> [!TIP]
+> Local development without OAuth — only honored when `DEBUG = True`:
+>
+> ```python
+> UNFOLD_AGENTIC_LAYER_UNAUTHORIZED = True
+> ```
+>
+> Requests without a token act as the first active superuser; permission filtering still applies.
+
+### 🌐 HTTPS and reverse proxies
+
+MCP OAuth requires `https` (plain `http` works only on `localhost`/`127.0.0.1`). All OAuth URLs are
+built from the incoming request with Django's standard `request.build_absolute_uri()`, so behind a
+TLS-terminating proxy (nginx, Traefik, a PaaS load balancer) tell Django the original scheme — the
+same setting the admin and CSRF already rely on:
+
+```python
+# settings.py — only if your proxy sets this header and strips it from client requests
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True  # only if the proxy rewrites Host
+```
+
+Without it, the OAuth endpoints answer `500` with `"error": "server_error"` and a description of
+exactly this fix instead of advertising unusable `http://` URLs.
+
+## 🧰 What the agent gets
+
+| Primitive | Example | What it does |
+|---|---|---|
+| 📚 Doc tools | `unfold_filters`, `unfold_search_docs` | Django Unfold docs, including all third-party integrations |
+| 📄 Detail resource | `dj-admin://blog/blogpost/42/` | One object's fields as JSON + Markdown; FK/M2M as links |
+| 📋 List resource | `dj-admin://blog/blogpost/{?params}` | Your `list_filter`/search params, `limit`/`offset`/`order_by` |
+| ✏️ Tools | `create_blog_blogpost`, `update_blog_blogpost` | Through the admin form; errors come back per field |
+| 🗑️ Tool | `delete_blog_blogpost` | Asks for confirmation before deleting |
+| ⚡ Action tools | `run_blog_blogpost_publish_posts` | Every admin/Unfold action (bulk, list, row, detail) with its form; `DANGER` ones ask for confirmation |
+
+Everything goes through the admin's own `has_*_permission` checks, re-run on every request — the agent never sees
+or does what its user can't do in the admin right now; granting or revoking a permission applies to the very next call.
+
+## 🔐 Access and sessions
+
+- Only active **staff** users can log in; `is_active`/`is_staff` is re-checked on every request — un-staffing someone cuts off their tokens immediately.
+- The Django session cookie does **not** authenticate `/mcp` — only the `Bearer` token does.
+- A login lasts `SESSION_TTL` (default 1 day), no refresh tokens.
+- Clients and tokens are visible in the admin — deleting one revokes it. A deleted client gets a page asking the person to
+  clear the saved authentication in their MCP client (Claude Code: `/mcp` → server → Clear authentication) and reconnect.
+
+## ⚙️ Settings
+
+All optional — an `UNFOLD_AGENTIC_LAYER` dict, the same override pattern as Unfold's `UNFOLD`:
+
+```python
+from datetime import timedelta
+
+UNFOLD_AGENTIC_LAYER = {
+    "SESSION_TTL": timedelta(hours=8),  # MCP login lifetime, default 1 day
+    # CACHES alias that remembers answered confirmations of dangerous tools, so one
+    # confirmation can't be replayed into many runs. Default "default" — with several
+    # worker processes it must be a shared backend (Redis, DB, Memcached), not LocMem.
+    "CONFIRMATION_CACHE": "default",
+}
+```
+
+The full list is in [`conf.py`](packages/django-unfold-agentic-layer/src/django_unfold_agentic_layer/conf.py).
+
+## 🗺️ Roadmap
+
+- [x] Admin actions (`@action`) as MCP tools
+- [ ] Submit-line actions (`actions_submit_line`)
+- [ ] Stateful mode / SSE for server-initiated notifications
+- [ ] `allowed_hosts`/`allowed_origins` configuration via settings
+- [ ] Custom field rendering
+
+Details in [CLAUDE.md](CLAUDE.md) and [docs/specs](docs/specs/dynamic-admin-mcp-primitives.md).
+
+## 🛠️ Development
+
+The repo is a [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/); the package lives in `packages/django-unfold-agentic-layer/`.
+
+```bash
 uv sync
+uvx pre-commit install   # secret scanning (gitleaks, trufflehog) + ruff on every commit
+cd packages/django-unfold-agentic-layer
+uv run pytest
 ```
 
-### Run Locally
+The tests boot a throwaway Django project (`django_test_app/`) and drive real MCP requests through `/mcp`.
+Architecture and conventions are in [CLAUDE.md](CLAUDE.md).
 
-```bash
-# Run the server directly
-uv run mcp-django-unfold
-```
-
-### Test with MCP Inspector
-
-The [MCP Inspector](https://github.com/modelcontextprotocol/inspector) lets you interactively browse and call tools:
-
-```bash
-npx @modelcontextprotocol/inspector uv run mcp-django-unfold
-```
-
-This opens a web UI where you can:
-- See all 25 registered tools
-- Read each tool's description and parameters
-- Execute tools and inspect the returned documentation
-
-### Verify the Server
-
-```bash
-# Quick smoke test — check tools load
-uv run python -c "
-from mcp_django_unfold.server import mcp
-print(f'Server: {mcp.name}')
-print(f'Tools:  {len(mcp._tool_manager._tools)}')
-"
-# Expected output:
-# Server: django_unfold_mcp
-# Tools:  25
-```
-
-### Adding Documentation
-
-1. Add a new section to the `DOCS` dictionary in `src/mcp_django_unfold/docs.py`
-2. Create a corresponding `@mcp.tool()` function in `src/mcp_django_unfold/server.py`
-3. The search tool (`unfold_search_docs`) will automatically index the new section
-
-### Code Style
-
-```bash
-# Format
-uv run ruff format src/
-
-# Lint
-uv run ruff check src/
-```
-
----
-
-## 🚢 Production Deployment
-
-### Publish to PyPI
-
-```bash
-# Build the package
-uv build
-# This creates dist/mcp_django_unfold-0.1.0.tar.gz and .whl
-
-# Upload to PyPI
-uv publish
-# Or with twine:
-# twine upload dist/*
-```
-
-Once published, anyone can run it instantly:
-
-```bash
-uvx mcp-django-unfold
-```
-
-### Docker
-
-```bash
-# Build
-docker build -t mcp-django-unfold .
-
-# Run (interactive mode required for stdio)
-docker run -i --rm mcp-django-unfold
-
-# Tag and push to a registry
-docker tag mcp-django-unfold ghcr.io/rissets/mcp-django-unfold:latest
-docker push ghcr.io/rissets/mcp-django-unfold:latest
-```
-
-### Version Bump Workflow
-
-1. Update `version` in `pyproject.toml`
-2. Update `__version__` in `src/mcp_django_unfold/__init__.py`
-3. Commit, tag, and push:
-
-```bash
-git add -A
-git commit -m "release: v0.2.0"
-git tag v0.2.0
-git push origin main --tags
-```
-
-4. Build and publish:
-
-```bash
-uv build && uv publish
-```
-
----
-
-## 🔄 Dev → Prod Pipeline
-
-```mermaid
-%%{init: {'theme': 'dark', 'themeVariables': {'primaryColor': '#6366f1', 'primaryTextColor': '#ffffff', 'primaryBorderColor': '#818cf8', 'lineColor': '#a5b4fc', 'secondaryColor': '#1e1b4b', 'tertiaryColor': '#312e81', 'background': '#0f0d1a', 'mainBkg': '#1e1b4b', 'nodeBorder': '#818cf8', 'clusterBkg': '#1a1744', 'clusterBorder': '#4f46e5', 'titleColor': '#ffffff', 'edgeLabelBackground': '#1e1b4b', 'textColor': '#e0e7ff'}}}%%
-graph LR
-    subgraph dev["🛠️ Development"]
-        code["Write Code"]
-        test["Test with\nMCP Inspector"]
-        local["Run Local\nuv run mcp-django-unfold"]
-    end
-
-    subgraph build["📦 Build & Publish"]
-        hatch["uv build\n.tar.gz + .whl"]
-        twine["uv publish\nto PyPI"]
-        docker_build["docker build\n-t mcp-django-unfold ."]
-    end
-
-    subgraph prod["🚀 Production Use"]
-        uvx["uvx mcp-django-unfold"]
-        pip_install["pip install\nmcp-django-unfold"]
-        docker_run["docker run -i --rm\nmcp-django-unfold"]
-    end
-
-    code --> test
-    test --> local
-    local -->|"ready"| hatch
-    hatch --> twine
-    hatch --> docker_build
-    twine --> uvx
-    twine --> pip_install
-    docker_build --> docker_run
-
-    style dev fill:#1a1744,stroke:#6366f1,stroke-width:2px,color:#e0e7ff
-    style build fill:#1a1744,stroke:#6366f1,stroke-width:2px,color:#e0e7ff
-    style prod fill:#1a1744,stroke:#6366f1,stroke-width:2px,color:#e0e7ff
-    style code fill:#312e81,stroke:#818cf8,color:#ffffff
-    style test fill:#312e81,stroke:#818cf8,color:#ffffff
-    style local fill:#312e81,stroke:#818cf8,color:#ffffff
-    style hatch fill:#4f46e5,stroke:#818cf8,color:#ffffff
-    style twine fill:#4f46e5,stroke:#818cf8,color:#ffffff
-    style docker_build fill:#4f46e5,stroke:#818cf8,color:#ffffff
-    style uvx fill:#059669,stroke:#34d399,stroke-width:2px,color:#ffffff
-    style pip_install fill:#059669,stroke:#34d399,stroke-width:2px,color:#ffffff
-    style docker_run fill:#059669,stroke:#34d399,stroke-width:2px,color:#ffffff
-```
-
-| Stage | Command | What Happens |
-|-------|---------|--------------|
-| **Dev** | `uv sync` | Install deps locally in `.venv` |
-| **Dev** | `uv run mcp-django-unfold` | Run server for local testing |
-| **Dev** | `npx @modelcontextprotocol/inspector ...` | Interactive tool browser |
-| **Build** | `uv build` | Generate `.tar.gz` + `.whl` in `dist/` |
-| **Publish** | `uv publish` | Upload to PyPI |
-| **Prod** | `uvx mcp-django-unfold` | Zero-install run from PyPI |
-| **Prod** | `docker run -i --rm mcp-django-unfold` | Containerized run |
-
----
+> [!TIP]
+> **Developing with AI agents?** Give each agent its own isolated, disposable workspace — check out
+> [**orca-recipes**](https://github.com/JargeZ/orca-recipes): per-workspace Docker environments for
+> next-gen dev setups (Claude Code, Cursor, OpenCode). This repo ships one: `orca.yaml` + `dev.Dockerfile`.
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feat/new-docs-section`
-3. Make your changes to `docs.py` and `server.py`
-4. Test with MCP Inspector
-5. Submit a pull request
+Issues and pull requests are welcome!
 
----
+## 🙏 Credits
+
+Inspired by [rissets/mcp-django-unfold](https://github.com/rissets/mcp-django-unfold) — the project that sparked the idea of building a full MCP compatibility layer for Django Unfold. The Unfold documentation skills are taken from that repository; everything else is a completely new implementation.
 
 ## 📄 License
 
-MIT — see [LICENSE](LICENSE) for details.
-
----
-
-<p align="center">
-  Built with ❤️ for the Django Unfold community<br/>
-  <a href="https://unfoldadmin.com">Django Unfold</a> · <a href="https://modelcontextprotocol.io">Model Context Protocol</a> · <a href="https://github.com/modelcontextprotocol/python-sdk">MCP Python SDK</a>
-</p>
+[MIT](LICENSE)

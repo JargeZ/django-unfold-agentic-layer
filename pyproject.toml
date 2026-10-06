@@ -1,40 +1,21 @@
-[project]
-name = "mcp-django-unfold"
-version = "0.1.0"
-description = "MCP server providing comprehensive Django Unfold documentation for AI agents"
-readme = "README.md"
-license = {text = "MIT"}
-requires-python = ">=3.11"
-authors = [
-    {name = "Danang Hari Setiawan"},
-]
-keywords = ["mcp", "django", "unfold", "admin", "documentation", "ai", "llm"]
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Topic :: Software Development :: Documentation",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-]
-dependencies = [
-    "mcp[cli]>=1.0.0",
-]
+[tool.uv.workspace]
+members = ["packages/*"]
 
-[project.urls]
-Homepage = "https://github.com/rissets/mcp-django-unfold"
-Repository = "https://github.com/rissets/mcp-django-unfold"
-Issues = "https://github.com/rissets/mcp-django-unfold/issues"
+[dependency-groups]
+dev = ["ruff>=0.6"]
 
-[project.scripts]
-mcp-django-unfold = "mcp_django_unfold.server:main"
+[tool.ruff]
+line-length = 100
+target-version = "py311"
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "S"]
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/mcp_django_unfold"]
+[tool.ruff.lint.per-file-ignores]
+# Embedded documentation prose, not code — line-length doesn't apply.
+"packages/django-unfold-agentic-layer/src/django_unfold_agentic_layer/mcp_server/docs.py" = ["E501"]
+# Django-generated, not hand-written — don't reformat machine output.
+"**/migrations/*.py" = ["E501"]
+"**/tests/**" = ["S101"]
+# Module-level asserts keep the settings enum and TypedDict in sync (see conf.py).
+"**/conf.py" = ["S101"]

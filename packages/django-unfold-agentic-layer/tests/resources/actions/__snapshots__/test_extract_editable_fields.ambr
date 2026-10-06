@@ -1,0 +1,81 @@
+# serializer version: 1
+# name: test_extract_editable_fields_for_create
+  list([
+    dict({
+      'choices': None,
+      'help_text': '',
+      'name': 'title',
+      'python_type': 'str',
+      'related_resource_uri': None,
+      'required': True,
+      'title': 'Title',
+    }),
+    dict({
+      'choices': None,
+      'help_text': '',
+      'name': 'body',
+      'python_type': 'str',
+      'related_resource_uri': None,
+      'required': False,
+      'title': 'Body',
+    }),
+    dict({
+      'choices': None,
+      'help_text': '',
+      'name': 'author',
+      'python_type': 'related',
+      'related_resource_uri': 'dj-admin://auth/user/',
+      'required': True,
+      'title': 'Author',
+    }),
+    dict({
+      'choices': None,
+      'help_text': '',
+      'name': 'editor',
+      'python_type': 'related',
+      'related_resource_uri': 'dj-admin://auth/user/',
+      'required': False,
+      'title': 'Editor',
+    }),
+    dict({
+      'choices': list([
+        tuple(
+          'draft',
+          'Draft',
+        ),
+        tuple(
+          'published',
+          'Published',
+        ),
+        tuple(
+          'archived',
+          'Archived',
+        ),
+      ]),
+      'help_text': '',
+      'name': 'status',
+      'python_type': 'choice',
+      'related_resource_uri': None,
+      'required': True,
+      'title': 'Status',
+    }),
+    dict({
+      'choices': None,
+      'help_text': '',
+      'name': 'is_featured',
+      'python_type': 'bool',
+      'related_resource_uri': None,
+      'required': False,
+      'title': 'Is featured',
+    }),
+    dict({
+      'choices': None,
+      'help_text': '',
+      'name': 'metadata',
+      'python_type': 'str',
+      'related_resource_uri': None,
+      'required': False,
+      'title': 'Metadata',
+    }),
+  ])
+# ---

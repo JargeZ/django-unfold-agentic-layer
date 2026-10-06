@@ -1,0 +1,621 @@
+# serializer version: 1
+# name: test_build_admin_app_resource
+  dict({
+    'description': 'Simple blog app used to exercise the admin resource-generation module in tests.',
+    'models': list([
+      dict({
+        'action_tools': list([
+          dict({
+            'dangerous': False,
+            'description': 'Publish selected blog posts. Runs on the selected blog posts (pass their pks).',
+            'fields': list([
+              dict({
+                'choices': None,
+                'help_text': '',
+                'name': 'editor',
+                'python_type': 'related',
+                'related_resource_uri': 'dj-admin://auth/user/',
+                'required': False,
+                'title': 'editor',
+              }),
+            ]),
+            'name': 'publish_posts',
+            'scope': 'bulk',
+            'title': 'Publish selected blog posts',
+            'tool_name': 'run_blog_blogpost_publish_posts',
+          }),
+          dict({
+            'dangerous': False,
+            'description': 'Assign editor to selected posts. Runs on the selected blog posts (pass their pks).',
+            'fields': list([
+              dict({
+                'choices': None,
+                'help_text': '',
+                'name': 'editor',
+                'python_type': 'related',
+                'related_resource_uri': 'dj-admin://auth/user/',
+                'required': False,
+                'title': 'editor',
+              }),
+            ]),
+            'name': 'assign_editor',
+            'scope': 'bulk',
+            'title': 'Assign editor to selected posts',
+            'tool_name': 'run_blog_blogpost_assign_editor',
+          }),
+          dict({
+            'dangerous': True,
+            'description': 'Archive selected posts. Runs on the selected blog posts (pass their pks). Asks for confirmation before running.',
+            'fields': list([
+              dict({
+                'choices': None,
+                'help_text': '',
+                'name': 'editor',
+                'python_type': 'related',
+                'related_resource_uri': 'dj-admin://auth/user/',
+                'required': False,
+                'title': 'editor',
+              }),
+            ]),
+            'name': 'archive_selected',
+            'scope': 'bulk',
+            'title': 'Archive selected posts',
+            'tool_name': 'run_blog_blogpost_archive_selected',
+          }),
+          dict({
+            'dangerous': False,
+            'description': 'Export all posts. Runs on blog posts as a whole, without selecting any.',
+            'fields': list([
+            ]),
+            'name': 'export_all_posts',
+            'scope': 'model',
+            'title': 'Export all posts',
+            'tool_name': 'run_blog_blogpost_export_all_posts',
+          }),
+          dict({
+            'dangerous': False,
+            'description': 'Create draft. New draft. Creates an empty draft authored by you. Runs on blog posts as a whole, without selecting any.',
+            'fields': list([
+              dict({
+                'choices': None,
+                'help_text': '',
+                'name': 'title',
+                'python_type': 'str',
+                'related_resource_uri': None,
+                'required': True,
+                'title': 'title',
+              }),
+            ]),
+            'name': 'create_draft',
+            'scope': 'model',
+            'title': 'Create draft',
+            'tool_name': 'run_blog_blogpost_create_draft',
+          }),
+          dict({
+            'dangerous': False,
+            'description': 'Feature this post. Runs on one blog post (pass its pk).',
+            'fields': list([
+            ]),
+            'name': 'feature_post',
+            'scope': 'instance',
+            'title': 'Feature this post',
+            'tool_name': 'run_blog_blogpost_feature_post',
+          }),
+          dict({
+            'dangerous': False,
+            'description': 'Set status. Change status. Runs on one blog post (pass its pk).',
+            'fields': list([
+              dict({
+                'choices': list([
+                  tuple(
+                    'draft',
+                    'Draft',
+                  ),
+                  tuple(
+                    'published',
+                    'Published',
+                  ),
+                  tuple(
+                    'archived',
+                    'Archived',
+                  ),
+                ]),
+                'help_text': '',
+                'name': 'status',
+                'python_type': 'choice',
+                'related_resource_uri': None,
+                'required': True,
+                'title': 'status',
+              }),
+            ]),
+            'name': 'set_status',
+            'scope': 'instance',
+            'title': 'Set status',
+            'tool_name': 'run_blog_blogpost_set_status',
+          }),
+          dict({
+            'dangerous': False,
+            'description': 'Publish this post. Runs on one blog post (pass its pk).',
+            'fields': list([
+            ]),
+            'name': 'publish_post',
+            'scope': 'instance',
+            'title': 'Publish this post',
+            'tool_name': 'run_blog_blogpost_publish_post',
+          }),
+          dict({
+            'dangerous': False,
+            'description': 'Append note. Runs on one blog post (pass its pk).',
+            'fields': list([
+              dict({
+                'choices': None,
+                'help_text': 'Appended to the end of the post body.',
+                'name': 'note',
+                'python_type': 'str',
+                'related_resource_uri': None,
+                'required': True,
+                'title': 'note',
+              }),
+            ]),
+            'name': 'append_note',
+            'scope': 'instance',
+            'title': 'Append note',
+            'tool_name': 'run_blog_blogpost_append_note',
+          }),
+        ]),
+        'app_label': 'blog',
+        'app_level_actions': list([
+          dict({
+            'key': 'blog_blogpost_export_all_posts',
+            'title': 'Export all posts',
+          }),
+          dict({
+            'key': 'blog_blogpost_create_draft',
+            'title': 'Create draft',
+          }),
+        ]),
+        'can_add': True,
+        'can_change': True,
+        'can_delete': True,
+        'create_fields': list([
+          dict({
+            'choices': None,
+            'help_text': '',
+            'name': 'title',
+            'python_type': 'str',
+            'related_resource_uri': None,
+            'required': True,
+            'title': 'Title',
+          }),
+          dict({
+            'choices': None,
+            'help_text': '',
+            'name': 'body',
+            'python_type': 'str',
+            'related_resource_uri': None,
+            'required': False,
+            'title': 'Body',
+          }),
+          dict({
+            'choices': None,
+            'help_text': '',
+            'name': 'author',
+            'python_type': 'related',
+            'related_resource_uri': 'dj-admin://auth/user/',
+            'required': True,
+            'title': 'Author',
+          }),
+          dict({
+            'choices': None,
+            'help_text': '',
+            'name': 'editor',
+            'python_type': 'related',
+            'related_resource_uri': 'dj-admin://auth/user/',
+            'required': False,
+            'title': 'Editor',
+          }),
+          dict({
+            'choices': list([
+              tuple(
+                'draft',
+                'Draft',
+              ),
+              tuple(
+                'published',
+                'Published',
+              ),
+              tuple(
+                'archived',
+                'Archived',
+              ),
+            ]),
+            'help_text': '',
+            'name': 'status',
+            'python_type': 'choice',
+            'related_resource_uri': None,
+            'required': True,
+            'title': 'Status',
+          }),
+          dict({
+            'choices': None,
+            'help_text': '',
+            'name': 'is_featured',
+            'python_type': 'bool',
+            'related_resource_uri': None,
+            'required': False,
+            'title': 'Is featured',
+          }),
+          dict({
+            'choices': None,
+            'help_text': '',
+            'name': 'metadata',
+            'python_type': 'str',
+            'related_resource_uri': None,
+            'required': False,
+            'title': 'Metadata',
+          }),
+        ]),
+        'description': 'Adds support for various ModelAdmin actions (list, detail, row, submit line)',
+        'each_model_actions': list([
+          dict({
+            'key': 'delete_selected',
+            'title': 'Delete selected blog posts',
+          }),
+          dict({
+            'key': 'publish_posts',
+            'title': 'Publish selected blog posts',
+          }),
+          dict({
+            'key': 'assign_editor',
+            'title': 'Assign editor to selected posts',
+          }),
+          dict({
+            'key': 'archive_selected',
+            'title': 'Archive selected posts',
+          }),
+          dict({
+            'key': 'blog_blogpost_feature_post',
+            'title': 'Feature this post',
+          }),
+          dict({
+            'key': 'blog_blogpost_set_status',
+            'title': 'Set status',
+          }),
+          dict({
+            'key': 'blog_blogpost_feature_post',
+            'title': 'Feature this post',
+          }),
+          dict({
+            'key': 'blog_blogpost_publish_post',
+            'title': 'Publish this post',
+          }),
+          dict({
+            'key': 'blog_blogpost_append_note',
+            'title': 'Append note',
+          }),
+          dict({
+            'key': 'blog_blogpost_notify_author_on_save',
+            'title': 'Save and notify author',
+          }),
+        ]),
+        'filter_fields': list([
+          dict({
+            'choices': None,
+            'format': 'free-text search across: title, body',
+            'key': 'q',
+            'related_resource_uri': None,
+            'title': 'Search',
+          }),
+          dict({
+            'choices': list([
+              dict({
+                'display': 'All',
+                'query_string': '?',
+              }),
+              dict({
+                'display': 'regular',
+                'query_string': '?author__id__exact=2',
+              }),
+              dict({
+                'display': 'staff',
+                'query_string': '?author__id__exact=1',
+              }),
+            ]),
+            'format': 'RelatedFieldListFilter',
+            'key': 'author__id__exact',
+            'related_resource_uri': 'dj-admin://auth/user/',
+            'title': 'author',
+          }),
+          dict({
+            'choices': list([
+              dict({
+                'display': 'All',
+                'query_string': '?',
+              }),
+              dict({
+                'display': 'regular',
+                'query_string': '?author__id__exact=2',
+              }),
+              dict({
+                'display': 'staff',
+                'query_string': '?author__id__exact=1',
+              }),
+            ]),
+            'format': 'RelatedFieldListFilter',
+            'key': 'author__isnull',
+            'related_resource_uri': 'dj-admin://auth/user/',
+            'title': 'author',
+          }),
+          dict({
+            'choices': None,
+            'format': 'AutocompleteSelectFilter',
+            'key': 'editor__id__exact',
+            'related_resource_uri': 'dj-admin://auth/user/',
+            'title': 'editor',
+          }),
+          dict({
+            'choices': None,
+            'format': 'AutocompleteSelectFilter',
+            'key': 'editor__isnull',
+            'related_resource_uri': 'dj-admin://auth/user/',
+            'title': 'editor',
+          }),
+          dict({
+            'choices': list([
+              dict({
+                'display': 'All',
+                'query_string': '?',
+              }),
+              dict({
+                'display': 'Has editor',
+                'query_string': '?has_editor=yes',
+              }),
+              dict({
+                'display': 'No editor',
+                'query_string': '?has_editor=no',
+              }),
+            ]),
+            'format': 'HasEditorFilter',
+            'key': 'has_editor',
+            'related_resource_uri': None,
+            'title': 'has editor',
+          }),
+          dict({
+            'choices': list([
+              dict({
+                'display': 'All',
+                'query_string': '?',
+              }),
+              dict({
+                'display': 'Draft',
+                'query_string': '?status__exact=draft',
+              }),
+              dict({
+                'display': 'Published',
+                'query_string': '?status__exact=published',
+              }),
+              dict({
+                'display': 'Archived',
+                'query_string': '?status__exact=archived',
+              }),
+            ]),
+            'format': 'ChoicesFieldListFilter',
+            'key': 'status__exact',
+            'related_resource_uri': None,
+            'title': 'status',
+          }),
+          dict({
+            'choices': list([
+              dict({
+                'display': 'All',
+                'query_string': '?',
+              }),
+              dict({
+                'display': 'Draft',
+                'query_string': '?status__exact=draft',
+              }),
+              dict({
+                'display': 'Published',
+                'query_string': '?status__exact=published',
+              }),
+              dict({
+                'display': 'Archived',
+                'query_string': '?status__exact=archived',
+              }),
+            ]),
+            'format': 'ChoicesFieldListFilter',
+            'key': 'status__isnull',
+            'related_resource_uri': None,
+            'title': 'status',
+          }),
+          dict({
+            'choices': list([
+              dict({
+                'display': 'All',
+                'query_string': '?',
+              }),
+              dict({
+                'display': 'Yes',
+                'query_string': '?is_featured__exact=1',
+              }),
+              dict({
+                'display': 'No',
+                'query_string': '?is_featured__exact=0',
+              }),
+            ]),
+            'format': 'BooleanFieldListFilter',
+            'key': 'is_featured__exact',
+            'related_resource_uri': None,
+            'title': 'is featured',
+          }),
+          dict({
+            'choices': list([
+              dict({
+                'display': 'All',
+                'query_string': '?',
+              }),
+              dict({
+                'display': 'Yes',
+                'query_string': '?is_featured__exact=1',
+              }),
+              dict({
+                'display': 'No',
+                'query_string': '?is_featured__exact=0',
+              }),
+            ]),
+            'format': 'BooleanFieldListFilter',
+            'key': 'is_featured__isnull',
+            'related_resource_uri': None,
+            'title': 'is featured',
+          }),
+          dict({
+            'choices': list([
+              dict({
+                'display': 'Any date',
+                'query_string': '?',
+              }),
+              dict({
+                'display': 'Today',
+                'query_string': '?created_at__gte=2026-01-15+00%3A00%3A00-06%3A00&created_at__lt=2026-01-16+00%3A00%3A00-06%3A00',
+              }),
+              dict({
+                'display': 'Past 7 days',
+                'query_string': '?created_at__gte=2026-01-08+00%3A00%3A00-06%3A00&created_at__lt=2026-01-16+00%3A00%3A00-06%3A00',
+              }),
+              dict({
+                'display': 'This month',
+                'query_string': '?created_at__gte=2026-01-01+00%3A00%3A00-06%3A00&created_at__lt=2026-02-01+00%3A00%3A00-06%3A00',
+              }),
+              dict({
+                'display': 'This year',
+                'query_string': '?created_at__gte=2026-01-01+00%3A00%3A00-06%3A00&created_at__lt=2027-01-01+00%3A00%3A00-06%3A00',
+              }),
+            ]),
+            'format': 'DateFieldListFilter',
+            'key': 'created_at__gte',
+            'related_resource_uri': None,
+            'title': 'created at',
+          }),
+          dict({
+            'choices': list([
+              dict({
+                'display': 'Any date',
+                'query_string': '?',
+              }),
+              dict({
+                'display': 'Today',
+                'query_string': '?created_at__gte=2026-01-15+00%3A00%3A00-06%3A00&created_at__lt=2026-01-16+00%3A00%3A00-06%3A00',
+              }),
+              dict({
+                'display': 'Past 7 days',
+                'query_string': '?created_at__gte=2026-01-08+00%3A00%3A00-06%3A00&created_at__lt=2026-01-16+00%3A00%3A00-06%3A00',
+              }),
+              dict({
+                'display': 'This month',
+                'query_string': '?created_at__gte=2026-01-01+00%3A00%3A00-06%3A00&created_at__lt=2026-02-01+00%3A00%3A00-06%3A00',
+              }),
+              dict({
+                'display': 'This year',
+                'query_string': '?created_at__gte=2026-01-01+00%3A00%3A00-06%3A00&created_at__lt=2027-01-01+00%3A00%3A00-06%3A00',
+              }),
+            ]),
+            'format': 'DateFieldListFilter',
+            'key': 'created_at__lt',
+            'related_resource_uri': None,
+            'title': 'created at',
+          }),
+        ]),
+        'list_per_page': 100,
+        'model_name': 'blogpost',
+        'sortable_fields': list([
+          'title',
+          'author',
+          'status',
+          'is_featured',
+          'created_at',
+        ]),
+        'update_fields': list([
+          dict({
+            'choices': None,
+            'help_text': '',
+            'name': 'title',
+            'python_type': 'str',
+            'related_resource_uri': None,
+            'required': True,
+            'title': 'Title',
+          }),
+          dict({
+            'choices': None,
+            'help_text': '',
+            'name': 'body',
+            'python_type': 'str',
+            'related_resource_uri': None,
+            'required': False,
+            'title': 'Body',
+          }),
+          dict({
+            'choices': None,
+            'help_text': '',
+            'name': 'author',
+            'python_type': 'related',
+            'related_resource_uri': 'dj-admin://auth/user/',
+            'required': True,
+            'title': 'Author',
+          }),
+          dict({
+            'choices': None,
+            'help_text': '',
+            'name': 'editor',
+            'python_type': 'related',
+            'related_resource_uri': 'dj-admin://auth/user/',
+            'required': False,
+            'title': 'Editor',
+          }),
+          dict({
+            'choices': list([
+              tuple(
+                'draft',
+                'Draft',
+              ),
+              tuple(
+                'published',
+                'Published',
+              ),
+              tuple(
+                'archived',
+                'Archived',
+              ),
+            ]),
+            'help_text': '',
+            'name': 'status',
+            'python_type': 'choice',
+            'related_resource_uri': None,
+            'required': True,
+            'title': 'Status',
+          }),
+          dict({
+            'choices': None,
+            'help_text': '',
+            'name': 'is_featured',
+            'python_type': 'bool',
+            'related_resource_uri': None,
+            'required': False,
+            'title': 'Is featured',
+          }),
+          dict({
+            'choices': None,
+            'help_text': '',
+            'name': 'metadata',
+            'python_type': 'str',
+            'related_resource_uri': None,
+            'required': False,
+            'title': 'Metadata',
+          }),
+        ]),
+        'verbose_name': 'blog post',
+        'verbose_name_plural': 'blog posts',
+      }),
+    ]),
+    'title': 'Blog',
+  })
+# ---

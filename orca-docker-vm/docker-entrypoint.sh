@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Generates only missing keys: unique per container, stable across restarts.
+ssh-keygen -A
+
+if [ -n "${ORCA_SSH_PUBLIC_KEY:-}" ]; then
+  install -d -m 700 -o dev -g dev /home/dev/.ssh
+  printf '%s\n' "$ORCA_SSH_PUBLIC_KEY" > /home/dev/.ssh/authorized_keys
+  chown dev:dev /home/dev/.ssh/authorized_keys
+  chmod 600 /home/dev/.ssh/authorized_keys
+fi
+
+# Podman (copier `podman`): Docker API on DOCKER_HOST, rootless as dev (infra.Dockerfile). Without the
+# docker run flags from docker-create.sh only this service fails, not sshd.
+install -d -m 700 -o dev -g dev "$XDG_RUNTIME_DIR" "$XDG_RUNTIME_DIR/podman"
+# shellcheck disable=SC2016  # expands in dev's shell
+su dev -c 'exec podman system service --time=0 "$DOCKER_HOST"' >/var/log/podman.log 2>&1 &
+
+exec /usr/sbin/sshd -D -e

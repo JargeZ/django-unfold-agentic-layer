@@ -1,0 +1,230 @@
+# serializer version: 1
+# name: test_every_action_kind_becomes_a_tool_with_its_form_as_parameters
+  list([
+    dict({
+      'description': 'Publish selected blog posts. Runs on the selected blog posts (pass their pks).',
+      'inputSchema': dict({
+        'additionalProperties': False,
+        'properties': dict({
+          'editor': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'editor. Browse valid values at dj-admin://auth/user/',
+          }),
+          'pks': dict({
+            'description': 'Primary keys of the instances to run the action on.',
+            'items': dict({
+              'type': 'string',
+            }),
+            'type': 'array',
+          }),
+        }),
+        'required': list([
+          'pks',
+        ]),
+        'type': 'object',
+      }),
+      'name': 'run_blog_blogpost_publish_posts',
+    }),
+    dict({
+      'description': 'Assign editor to selected posts. Runs on the selected blog posts (pass their pks).',
+      'inputSchema': dict({
+        'additionalProperties': False,
+        'properties': dict({
+          'editor': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'editor. Browse valid values at dj-admin://auth/user/',
+          }),
+          'pks': dict({
+            'description': 'Primary keys of the instances to run the action on.',
+            'items': dict({
+              'type': 'string',
+            }),
+            'type': 'array',
+          }),
+        }),
+        'required': list([
+          'pks',
+        ]),
+        'type': 'object',
+      }),
+      'name': 'run_blog_blogpost_assign_editor',
+    }),
+    dict({
+      'description': 'Archive selected posts. Runs on the selected blog posts (pass their pks). Asks for confirmation before running.',
+      'inputSchema': dict({
+        'additionalProperties': False,
+        'properties': dict({
+          'editor': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'editor. Browse valid values at dj-admin://auth/user/',
+          }),
+          'pks': dict({
+            'description': 'Primary keys of the instances to run the action on.',
+            'items': dict({
+              'type': 'string',
+            }),
+            'type': 'array',
+          }),
+        }),
+        'required': list([
+          'pks',
+        ]),
+        'type': 'object',
+      }),
+      'name': 'run_blog_blogpost_archive_selected',
+    }),
+    dict({
+      'description': 'Export all posts. Runs on blog posts as a whole, without selecting any.',
+      'inputSchema': dict({
+        'additionalProperties': False,
+        'properties': dict({
+        }),
+        'type': 'object',
+      }),
+      'name': 'run_blog_blogpost_export_all_posts',
+    }),
+    dict({
+      'description': 'Create draft. New draft. Creates an empty draft authored by you. Runs on blog posts as a whole, without selecting any.',
+      'inputSchema': dict({
+        'additionalProperties': False,
+        'properties': dict({
+          'title': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'title (required)',
+          }),
+        }),
+        'type': 'object',
+      }),
+      'name': 'run_blog_blogpost_create_draft',
+    }),
+    dict({
+      'description': 'Feature this post. Runs on one blog post (pass its pk).',
+      'inputSchema': dict({
+        'additionalProperties': False,
+        'properties': dict({
+          'pk': dict({
+            'description': 'Primary key of the instance to run the action on.',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'pk',
+        ]),
+        'type': 'object',
+      }),
+      'name': 'run_blog_blogpost_feature_post',
+    }),
+    dict({
+      'description': 'Set status. Change status. Runs on one blog post (pass its pk).',
+      'inputSchema': dict({
+        'additionalProperties': False,
+        'properties': dict({
+          'pk': dict({
+            'description': 'Primary key of the instance to run the action on.',
+            'type': 'string',
+          }),
+          'status': dict({
+            'anyOf': list([
+              dict({
+                'enum': list([
+                  'draft',
+                  'published',
+                  'archived',
+                ]),
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'status (required)',
+          }),
+        }),
+        'required': list([
+          'pk',
+        ]),
+        'type': 'object',
+      }),
+      'name': 'run_blog_blogpost_set_status',
+    }),
+    dict({
+      'description': 'Publish this post. Runs on one blog post (pass its pk).',
+      'inputSchema': dict({
+        'additionalProperties': False,
+        'properties': dict({
+          'pk': dict({
+            'description': 'Primary key of the instance to run the action on.',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'pk',
+        ]),
+        'type': 'object',
+      }),
+      'name': 'run_blog_blogpost_publish_post',
+    }),
+    dict({
+      'description': 'Append note. Runs on one blog post (pass its pk).',
+      'inputSchema': dict({
+        'additionalProperties': False,
+        'properties': dict({
+          'note': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'note — Appended to the end of the post body. (required)',
+          }),
+          'pk': dict({
+            'description': 'Primary key of the instance to run the action on.',
+            'type': 'string',
+          }),
+        }),
+        'required': list([
+          'pk',
+        ]),
+        'type': 'object',
+      }),
+      'name': 'run_blog_blogpost_append_note',
+    }),
+  ])
+# ---

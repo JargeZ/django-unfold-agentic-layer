@@ -1,0 +1,14 @@
+# Changes here will be overwritten by Copier; rerun `orca-docker-vm/update.sh` instead of editing.
+_commit: 5f95c11
+_src_path: gh:JargeZ/orca-recipes
+claude_volume: orca-claude
+cursor_volume: orca-cursor
+dev_dockerfile: dev.Dockerfile
+git_token_keychain_service: django-unfold-agentic-layer-orca-git-token
+opencode_volume: orca-opencode
+podman: true
+project_root: /home/dev/django-unfold-agentic-layer
+project_slug: django-unfold-agentic-layer
+repo_ref: main
+repo_url: https://github.com/JargeZ/django-unfold-agentic-layer.git
+sync_command: uv sync

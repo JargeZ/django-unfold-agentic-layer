@@ -1,0 +1,13 @@
+# serializer version: 1
+# name: test_extract_app_level_actions
+  list([
+    dict({
+      'key': 'blog_blogpost_export_all_posts',
+      'title': 'Export all posts',
+    }),
+    dict({
+      'key': 'blog_blogpost_create_draft',
+      'title': 'Create draft',
+    }),
+  ])
+# ---

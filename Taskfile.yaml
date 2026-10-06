@@ -1,0 +1,54 @@
+version: '3'
+
+tasks:
+  lint:
+    cmds:
+      - uv run ruff format
+      - uv run ruff check --fix
+
+  lint:ci:
+    cmds:
+      - uv run ruff format --check
+      - uv run ruff check
+
+  test:
+    cmds:
+      - task: test:layer
+
+  test:layer:
+    dir: packages/django-unfold-agentic-layer
+    cmds:
+      - uv run pytest {{.CLI_ARGS}}
+
+  test:update:
+    dir: packages/django-unfold-agentic-layer
+    cmds:
+      - uv run pytest --snapshot-update {{.CLI_ARGS}}
+
+  demo:manage:
+    desc: Run django_test_app's manage.py against a local sqlite file (e.g. `task demo:manage -- migrate`, `task demo:manage -- runserver`, `task demo:manage -- createsuperuser`).
+    dir: packages/django-unfold-agentic-layer
+    env:
+      DJANGO_TEST_APP_DB: db.sqlite3
+    cmds:
+      - uv run python django_test_app/manage.py {{.CLI_ARGS}}
+
+  demo:seed:
+    desc: Create the demo superuser admin/admin if missing.
+    cmds:
+      - task: demo:manage
+        vars: {CLI_ARGS: seed_admin}
+
+  demo:run:
+    desc: Migrate, seed admin/admin and run django_test_app at http://localhost:8585 (admin at /admin/, MCP at /mcp/). Pass another addr/port with `task demo:run -- localhost:9000`.
+    cmds:
+      - task: demo:manage
+        vars: {CLI_ARGS: migrate}
+      - task: demo:seed
+      - task: demo:manage
+        vars: {CLI_ARGS: 'runserver {{.CLI_ARGS | default "localhost:8585"}}'}
+
+  check:
+    deps: [lint]
+    cmds:
+      - task: test

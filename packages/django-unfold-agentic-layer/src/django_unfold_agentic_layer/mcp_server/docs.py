@@ -72,9 +72,8 @@ class CustomAdminClass(ModelAdmin):
 - The default admin URL configuration (`admin.site.urls`) works without changes
 - No database migrations are required
 - Unfold works alongside the default Django admin
-"""
+""",
     },
-
     "configuration": {
         "title": "Settings & Configuration Options",
         "content": """# Django Unfold - Complete Settings Configuration
@@ -284,9 +283,8 @@ def permission_callback(request):
 ## Icons
 Unfold uses Google Material Symbols. Browse available icons at: https://fonts.google.com/icons
 Icons are specified as strings, e.g., "dashboard", "people", "settings", "speed", "diamond", etc.
-"""
+""",
     },
-
     "actions": {
         "title": "Actions (Global, Row, Detail, Submit Line)",
         "content": """# Django Unfold - Actions
@@ -434,9 +432,8 @@ class MyAdmin(ModelAdmin):
     def existing_action_wrapper(self, *args, **kwargs):
         return redirect("https://example.com")
 ```
-"""
+""",
     },
-
     "filters": {
         "title": "Custom Filters",
         "content": """# Django Unfold - Filters
@@ -574,9 +571,8 @@ class MyAdmin(ModelAdmin):
 ```
 
 **Note**: The related model's admin must have `search_fields` defined for autocomplete to work.
-"""
+""",
     },
-
     "decorators": {
         "title": "Display Decorator",
         "content": """# Django Unfold - @display Decorator
@@ -690,9 +686,8 @@ def display_dropdown(self, obj):
         "content": "Any HTML content or template string",
     }
 ```
-"""
+""",
     },
-
     "components": {
         "title": "UI Components for Dashboards",
         "content": """# Django Unfold - UI Components
@@ -794,9 +789,8 @@ Then in template:
 {% component "unfold/components/chart/line.html" with data=chart_data %}
 {% endcomponent %}
 ```
-"""
+""",
     },
-
     "inlines": {
         "title": "Inlines (Stacked, Tabular, Nonrelated, Sortable)",
         "content": """# Django Unfold - Inlines
@@ -901,9 +895,8 @@ class MyInline(TabularInline):
 - Sorting only works for existing (saved) records
 - New items must be saved first before they can be sorted
 - Sorting is for inline views only, not changelist views
-"""
+""",
     },
-
     "widgets": {
         "title": "Form Widgets",
         "content": """# Django Unfold - Widgets
@@ -1015,9 +1008,8 @@ class MyAdmin(ModelAdmin):
         },
     }
 ```
-"""
+""",
     },
-
     "tabs": {
         "title": "Changelist Tabs",
         "content": """# Django Unfold - Changelist Tabs
@@ -1070,9 +1062,8 @@ def permission_callback(request):
 - Permissions can be callback strings or lambda functions
 - Multiple tab groups can be defined for different model sets
 - Links typically use `reverse_lazy` pointing to admin changelist URLs
-"""
+""",
     },
-
     "dashboard": {
         "title": "Custom Dashboard",
         "content": """# Django Unfold - Custom Dashboard
@@ -1177,9 +1168,8 @@ UNFOLD = {
 - Custom CSS classes in the dashboard template are NOT automatically compiled
 - For custom styling, either configure Tailwind CSS or write custom CSS
 - Load custom styles via `UNFOLD["STYLES"]` setting
-"""
+""",
     },
-
     "pages": {
         "title": "Custom Admin Pages",
         "content": """# Django Unfold - Custom Pages
@@ -1241,9 +1231,8 @@ Extend from `admin/base.html` for full Unfold UI (header, sidebar, menu):
 - The `model_admin=self` parameter is **required** when creating the view
 - `permission_required` must be defined even if empty `()`
 - `title` is required for page header display
-"""
+""",
     },
-
     "styles_scripts": {
         "title": "Custom Styles, Scripts & Tailwind CSS",
         "content": """# Django Unfold - Custom Styles & Scripts
@@ -1357,9 +1346,8 @@ npx tailwindcss -i styles.css -o your_project/static/css/styles.css --minify --w
 
 ## Recommendation
 For Unfold 0.56+, prefer writing custom CSS directly rather than setting up Tailwind. This avoids conflicts with Unfold's built-in Tailwind configuration.
-"""
+""",
     },
-
     "integrations_import_export": {
         "title": "Integration: django-import-export",
         "content": """# Django Unfold - django-import-export Integration
@@ -1411,9 +1399,8 @@ class ExampleAdmin(ModelAdmin, ExportActionModelAdmin):
 ```
 
 **Note**: `ExportActionModelAdmin` was removed in django-import-export 4.x as styling issues were fixed upstream.
-"""
+""",
     },
-
     "integrations_guardian": {
         "title": "Integration: django-guardian",
         "content": """# Django Unfold - django-guardian Integration
@@ -1434,9 +1421,8 @@ INSTALLED_APPS = [
 After setup, an "Object permissions" button appears on change form detail pages.
 
 Official docs: https://django-guardian.readthedocs.io/en/stable/installation/
-"""
+""",
     },
-
     "integrations_simple_history": {
         "title": "Integration: django-simple-history",
         "content": """# Django Unfold - django-simple-history Integration
@@ -1475,9 +1461,8 @@ class UserAdmin(SimpleHistoryAdmin, ModelAdmin):
 ```
 
 Inherit from both `SimpleHistoryAdmin` and `unfold.admin.ModelAdmin`.
-"""
+""",
     },
-
     "integrations_celery_beat": {
         "title": "Integration: django-celery-beat",
         "content": """# Django Unfold - django-celery-beat Integration
@@ -1548,9 +1533,8 @@ class SolarScheduleAdmin(ModelAdmin):
 class ClockedScheduleAdmin(BaseClockedScheduleAdmin, ModelAdmin):
     pass
 ```
-"""
+""",
     },
-
     "integrations_modeltranslation": {
         "title": "Integration: django-modeltranslation",
         "content": """# Django Unfold - django-modeltranslation Integration
@@ -1590,9 +1574,8 @@ UNFOLD = {
 ```
 
 Flags appear as suffix in each field's label, helping distinguish language versions.
-"""
+""",
     },
-
     "integrations_money": {
         "title": "Integration: django-money",
         "content": """# Django Unfold - django-money Integration
@@ -1604,9 +1587,8 @@ Unfold auto-detects MoneyField and applies `UnfoldAdminMoneyWidget` from `unfold
 The widget handles both amount input and currency selection dropdown.
 
 Official docs: https://django-money.readthedocs.io/en/latest/
-"""
+""",
     },
-
     "integrations_constance": {
         "title": "Integration: django-constance",
         "content": """# Django Unfold - django-constance Integration
@@ -1651,9 +1633,8 @@ CONSTANCE_ADDITIONAL_FIELDS = {
 ```
 
 `UNFOLD_CONSTANCE_ADDITIONAL_FIELDS` provides extra field types like `image_field` and `file_field`.
-"""
+""",
     },
-
     "integrations_location_field": {
         "title": "Integration: django-location-field",
         "content": """# Django Unfold - django-location-field Integration
@@ -1695,9 +1676,8 @@ class ExampleModelForm(forms.ModelForm):
 class ExampleModelAdmin(ModelAdmin):
     form = ExampleModelForm
 ```
-"""
+""",
     },
-
     "integrations_djangoql": {
         "title": "Integration: djangoql",
         "content": """# Django Unfold - djangoql Integration
@@ -1709,9 +1689,8 @@ No additional configuration needed. Unfold automatically styles djangoql's:
 
 Custom djangoql pages (like documentation) are NOT styled by Unfold.
 Unfold removes the "help" link to djangoql's documentation page via CSS.
-"""
+""",
     },
-
     "integrations_json_widget": {
         "title": "Integration: django-json-widget",
         "content": """# Django Unfold - django-json-widget Integration
@@ -1724,9 +1703,8 @@ No additional configuration needed. Unfold automatically applies:
 - Consistent admin appearance
 
 Both `unfold` and `django-json-widget` in INSTALLED_APPS is sufficient.
-"""
+""",
     },
-
     "features_overview": {
         "title": "Features Overview",
         "content": """# Django Unfold - Complete Features Overview
@@ -1780,9 +1758,8 @@ Both `unfold` and `django-json-widget` in INSTALLED_APPS is sufficient.
 - Alpine.js (JavaScript framework)
 - HTMX (AJAX calls)
 - Trix (WYSIWYG editor)
-"""
+""",
     },
-
     "complete_example": {
         "title": "Complete Integration Example",
         "content": """# Django Unfold - Complete Integration Example
@@ -2064,7 +2041,7 @@ def orders_badge(request):
     {% endcomponent %}
 {% endblock %}
 ```
-"""
+""",
     },
 }
 

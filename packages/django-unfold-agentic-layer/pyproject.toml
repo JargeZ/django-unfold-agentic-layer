@@ -1,0 +1,57 @@
+[project]
+name = "django-unfold-agentic-layer"
+version = "0.1.0"
+description = "Installable Django app that lets the agentic layer act on a live Django Unfold admin"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.11"
+authors = [
+    {name = "Pavel Khorikov (JargeZ)"},
+]
+keywords = ["django", "unfold", "admin", "ai", "agentic", "mcp"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: Django",
+    "Framework :: Django :: 5.0",
+    "Framework :: Django :: 5.1",
+    "Framework :: Django :: 5.2",
+    "Framework :: Django :: 6.0",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "django>=5.0",
+    "django-unfold>=0.91.0",
+    "fastmcp>=4.0.0,<5",
+    "pydantic>=2.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-django>=4.8.0",
+    "pytest-freezer>=0.4.0",
+    "syrupy>=4.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/JargeZ/django-unfold-agentic-layer"
+Repository = "https://github.com/JargeZ/django-unfold-agentic-layer"
+Issues = "https://github.com/JargeZ/django-unfold-agentic-layer/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/django_unfold_agentic_layer"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "server.settings"
+testpaths = ["tests"]
+pythonpath = [".", "django_test_app",]
