@@ -160,6 +160,10 @@ from datetime import timedelta
 
 UNFOLD_AGENTIC_LAYER = {
     "SESSION_TTL": timedelta(hours=8),  # MCP login lifetime, default 1 day
+    # CACHES alias that remembers answered confirmations of dangerous tools, so one
+    # confirmation can't be replayed into many runs. Default "default" — with several
+    # worker processes it must be a shared backend (Redis, DB, Memcached), not LocMem.
+    "CONFIRMATION_CACHE": "default",
 }
 ```
 

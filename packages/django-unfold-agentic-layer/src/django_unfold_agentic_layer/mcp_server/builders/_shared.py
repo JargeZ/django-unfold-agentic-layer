@@ -1,16 +1,18 @@
 """Small helpers shared by the resource/tool builders in this package."""
 
+import hashlib
 import inspect
 import uuid
 from typing import Annotated, Literal
 
-from django.core.cache import cache
+from django.core.cache import caches
 from django.http import HttpRequest
 from fastmcp import Context
 from fastmcp.server.dependencies import get_http_request
 from mcp.types import ElicitRequest, ElicitRequestFormParams, InputRequiredResult
 from pydantic import Field
 
+from django_unfold_agentic_layer.conf import Settings, get_config
 from django_unfold_agentic_layer.resources.schemas import EditableFieldInfo
 
 #: The ASGI scope key bridge.py stashes the originating Django HttpRequest
@@ -23,6 +25,12 @@ REQUEST_SCOPE_KEY = "django_unfold_agentic_layer.request"
 REQUEST_STATE_TTL = 600
 
 _CONSUMED_STATE_CACHE_PREFIX = "django_unfold_agentic_layer.consumed_request_state:"
+
+
+def _consumed_state_cache_key(request_state: str) -> str:
+    # Hashed: a sealed requestState is longer than memcached's 250-char key limit.
+    return _CONSUMED_STATE_CACHE_PREFIX + hashlib.sha256(request_state.encode()).hexdigest()
+
 
 #: python_type -> the Python type an editable field's value is accepted as.
 #: Deliberately coarse — Django's own form validation does the real parsing
@@ -137,11 +145,10 @@ def is_confirmed(ctx: Context) -> bool | None:
     """
     if ctx.input_responses is None or ctx.request_state is None:
         return None
-    # ponytail: Django's default LocMemCache is per-process; multi-worker
-    # deployments need a shared CACHES backend for replay protection to hold.
-    if not cache.add(
-        _CONSUMED_STATE_CACHE_PREFIX + ctx.request_state, True, timeout=REQUEST_STATE_TTL
-    ):
+    # Django's default LocMemCache is per-process; multi-worker deployments
+    # need a shared backend here (CONFIRMATION_CACHE) for replay protection.
+    cache = caches[get_config()[Settings.CONFIRMATION_CACHE]]
+    if not cache.add(_consumed_state_cache_key(ctx.request_state), True, timeout=REQUEST_STATE_TTL):
         return None
     confirm = ctx.input_responses.get("confirm")
     return (

@@ -85,7 +85,8 @@ def _build_admin_mcp_instance(user: AbstractBaseUser, admin_site: AdminSite) -> 
     admin_mcp = FastMCP(
         "django_unfold_agentic_layer",
         request_state_security=RequestStateSecurity(
-            keys=[request_state_key], ttl=REQUEST_STATE_TTL,
+            keys=[request_state_key],
+            ttl=REQUEST_STATE_TTL,
         ),
     )
     admin_mcp.mount(docs_mcp)

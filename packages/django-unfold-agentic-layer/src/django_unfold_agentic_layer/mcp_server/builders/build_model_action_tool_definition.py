@@ -74,7 +74,14 @@ class BuildModelActionToolDefinition(BaseLogicAction):
 
         def run_body(ctx: Context, kwargs: dict[str, Any]) -> ToolResult | InputRequiredResult:
             pk, pks = kwargs.pop("pk", None), kwargs.pop("pks", None)
+            request = get_django_request()
             if action.dangerous:
+                # Validate first, so the user never confirms a run that can't happen.
+                invalid = RunAdminAction().execute(
+                    model_admin, request, action, kwargs, pk=pk, pks=pks, dry_run=True
+                )
+                if invalid is not None:
+                    return _tool_result(invalid)
                 confirmed = is_confirmed(ctx)
                 if confirmed is None:
                     target_text = f" on pk={pk}" if pk else f" on {len(pks)} item(s)" if pks else ""
@@ -95,9 +102,7 @@ class BuildModelActionToolDefinition(BaseLogicAction):
                         )
                     )
 
-            result = RunAdminAction().execute(
-                model_admin, get_django_request(), action, kwargs, pk=pk, pks=pks
-            )
+            result = RunAdminAction().execute(model_admin, request, action, kwargs, pk=pk, pks=pks)
             return _tool_result(result)
 
         async def run(*, ctx: Context, **kwargs: Any) -> ToolResult | InputRequiredResult:

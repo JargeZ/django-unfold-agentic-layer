@@ -1,15 +1,13 @@
 """Edge cases of the ``run_*`` admin action tools, end to end through /mcp/.
 
 Pins down the QA pass over every BlogPostAdmin action: what already works
-(regression guards), the bugs that were fixed (F1–F3), and the known ones
-still open, written as their *expected* behavior under ``xfail(strict=True)``
-— once one is fixed its test XPASSes, which fails the run as a reminder to
-drop the marker.
+and regression guards for the bugs it found (F1–F5).
 """
 
 import json
 
 import pytest
+from django.core.cache import caches
 from server.apps.blog.models import BlogPost
 
 from tests.test_mcp_admin_actions import _call, _run_tools
@@ -171,7 +169,7 @@ def test_arguments_outside_the_schema_are_rejected(logged_in, post, tool, argume
 
 
 @pytest.mark.django_db
-def test_publish_posts_ignores_duplicate_and_missing_pks(logged_in, post, other_post):
+def test_publish_posts_ignores_duplicate_pks_but_rejects_missing_ones(logged_in, post, other_post):
     both = _call_tool(
         logged_in, "run_blog_blogpost_publish_posts", {"pks": [str(post.pk), str(other_post.pk)]}
     )
@@ -182,7 +180,14 @@ def test_publish_posts_ignores_duplicate_and_missing_pks(logged_in, post, other_
         "run_blog_blogpost_publish_posts",
         {"pks": [str(post.pk), MISSING_PK, str(post.pk)]},
     )
-    assert mixed["messages"] == [{"level": "success", "message": "Published 1 post(s)."}]
+    assert mixed["errors"] == {
+        "pks": [{"message": f"No blog post found with pk(s): {MISSING_PK}.", "code": "not_found"}]
+    }
+
+    duplicated = _call_tool(
+        logged_in, "run_blog_blogpost_publish_posts", {"pks": [str(post.pk), str(post.pk)]}
+    )
+    assert duplicated["messages"] == [{"level": "success", "message": "Published 1 post(s)."}]
 
 
 @pytest.mark.django_db
@@ -385,6 +390,32 @@ def test_confirmation_is_single_use(logged_in, post):
     assert post.status == "draft"
 
 
+@pytest.mark.django_db
+def test_confirmation_cache_is_configurable(logged_in, post, settings):
+    settings.CACHES = {
+        "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+        "confirmations": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "confirmations",
+        },
+    }
+    settings.UNFOLD_AGENTIC_LAYER = {"CONFIRMATION_CACHE": "confirmations"}
+    call = _archive_call(post)
+    first = _modern_rpc(logged_in, "tools/call", call)
+    _answer(logged_in, call, ACCEPT, first["requestState"])
+
+    def replay_runs() -> bool:
+        BlogPost.objects.filter(pk=post.pk).update(status="draft")
+        _answer(logged_in, call, ACCEPT, first["requestState"])
+        post.refresh_from_db()
+        return post.status == "archived"
+
+    caches["default"].clear()
+    assert not replay_runs()  # consumed state lives in "confirmations", not "default"
+    caches["confirmations"].clear()
+    assert replay_runs()
+
+
 # F3 (fixed): a malformed pk reached the ORM and came back as a raw
 # "Field 'id' expected a number" ValueError.
 @pytest.mark.django_db
@@ -400,12 +431,11 @@ def test_bulk_action_rejects_malformed_pks(logged_in, post, pks):
     }
 
 
-# --- known bugs, written as the expected behavior ------------------------------
+# --- F4/F5 regressions ----------------------------------------------------------
 
 
-# F4: when none of the selected pks exist, the action still "succeeds" with
-# "Published 0 post(s)." — an agent can't tell it acted on nothing.
-@pytest.mark.xfail(strict=True, reason="F4: bulk action on only-missing pks reports success")
+# F4: when selected pks don't exist, the admin would "succeed" with
+# "Published 0 post(s)." — an agent must be told what it missed.
 @pytest.mark.django_db
 def test_bulk_action_on_only_missing_pks_fails(logged_in):
     result = _call_tool(
@@ -415,10 +445,8 @@ def test_bulk_action_on_only_missing_pks_fails(logged_in):
     assert [error["code"] for error in result["errors"]["pks"]] == ["not_found"]
 
 
-# F5: a DANGER action asks for confirmation before validating its input, so
-# the user confirms "Archive selected posts?" for an empty selection and only
-# then gets "Select at least one item.".
-@pytest.mark.xfail(strict=True, reason="F5: confirmation is asked before input validation")
+# F5: a DANGER action validates its input before asking for confirmation, so
+# the user is never asked to confirm "Archive selected posts?" for nothing.
 @pytest.mark.django_db
 def test_danger_action_validates_before_asking_for_confirmation(logged_in):
     result = _modern_rpc(logged_in, "tools/call", {"name": ARCHIVE, "arguments": {"pks": []}})

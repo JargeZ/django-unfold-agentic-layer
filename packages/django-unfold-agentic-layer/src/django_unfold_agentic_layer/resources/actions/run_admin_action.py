@@ -53,7 +53,9 @@ class RunAdminAction(BaseLogicAction):
 
     Forms are validated here first as well, because on invalid input Django
     and Unfold only re-render HTML; doing it up front turns that into the
-    same structured ``errors`` the create/update tools return.
+    same structured ``errors`` the create/update tools return. ``dry_run``
+    stops right after that validation (``None`` if it passed), so a caller
+    can reject bad input before asking the user to confirm.
     """
 
     def execute(
@@ -64,7 +66,8 @@ class RunAdminAction(BaseLogicAction):
         data: dict[str, Any],
         pk: str | None = None,
         pks: list[str] | None = None,
-    ) -> ActionResult:
+        dry_run: bool = False,
+    ) -> ActionResult | None:
         post = self._form_data(data)
         action_request = copy.copy(request)
         action_request.method = "POST"
@@ -95,11 +98,30 @@ class RunAdminAction(BaseLogicAction):
                         ]
                     },
                 )
+            queryset = model_admin.get_queryset(action_request)
+            # The admin silently skips pks it can't find; an agent should know.
+            pk_field = model_admin.model._meta.pk
+            found = set(queryset.filter(pk__in=pks).values_list("pk", flat=True))
+            missing = [pk for pk in pks if pk_field.to_python(pk) not in found]
+            if missing:
+                return ActionResult(
+                    success=False,
+                    errors={
+                        "pks": [
+                            {
+                                "message": f"No {model_admin.opts.verbose_name} found with "
+                                f"pk(s): {', '.join(missing)}.",
+                                "code": "not_found",
+                            }
+                        ]
+                    },
+                )
             if not form.is_valid():
                 return ActionResult(
                     success=False, errors=form.errors.get_json_data(escape_html=True)
                 )
-            queryset = model_admin.get_queryset(action_request)
+            if dry_run:
+                return None
             response = model_admin.response_action(action_request, queryset)
         else:
             if action.scope == "instance":
@@ -113,6 +135,8 @@ class RunAdminAction(BaseLogicAction):
                     return ActionResult(
                         success=False, errors=form.errors.get_json_data(escape_html=True)
                     )
+            if dry_run:
+                return None
             kwargs = {"object_id": pk} if action.scope == "instance" else {}
             response = unfold_action.method(action_request, **kwargs)
 

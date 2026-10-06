@@ -30,6 +30,9 @@ class Settings(enum.StrEnum):
     #: Lifetime of an MCP OAuth access token; once it expires the client
     #: re-runs the browser login flow (no refresh tokens are issued).
     SESSION_TTL = "SESSION_TTL"
+    #: Alias in ``CACHES`` that remembers already-answered confirmation rounds
+    #: (replay protection). Must be shared by every worker process.
+    CONFIRMATION_CACHE = "CONFIRMATION_CACHE"
 
 
 class SettingsDict(TypedDict, total=False):
@@ -37,6 +40,7 @@ class SettingsDict(TypedDict, total=False):
 
     PORTAL_TITLE: str
     SESSION_TTL: timedelta
+    CONFIRMATION_CACHE: str
 
 
 assert SettingsDict.__optional_keys__ == set(Settings), (
@@ -47,6 +51,7 @@ assert SettingsDict.__optional_keys__ == set(Settings), (
 DEFAULTS: Final[Mapping[Settings, Any]] = {
     Settings.PORTAL_TITLE: "Agentic Layer",
     Settings.SESSION_TTL: timedelta(days=1),
+    Settings.CONFIRMATION_CACHE: "default",
 }
 
 assert all(setting_key in DEFAULTS for setting_key in Settings), (

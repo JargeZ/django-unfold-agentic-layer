@@ -160,6 +160,10 @@ from datetime import timedelta
 
 UNFOLD_AGENTIC_LAYER = {
     "SESSION_TTL": timedelta(hours=8),  # время жизни MCP-логина, по умолчанию 1 день
+    # Алиас из CACHES, где хранятся уже принятые подтверждения опасных инструментов, —
+    # чтобы одно подтверждение нельзя было переиграть в несколько запусков. По умолчанию
+    # "default"; при нескольких воркерах нужен общий бэкенд (Redis, БД, Memcached), не LocMem.
+    "CONFIRMATION_CACHE": "default",
 }
 ```
 
