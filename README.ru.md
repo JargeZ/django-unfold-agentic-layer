@@ -184,6 +184,7 @@ UNFOLD_AGENTIC_LAYER = {
 
 ```bash
 uv sync
+uvx pre-commit install   # проверка секретов (gitleaks, trufflehog) + ruff на каждый коммит
 cd packages/django-unfold-agentic-layer
 uv run pytest
 ```
