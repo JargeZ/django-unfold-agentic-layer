@@ -35,7 +35,7 @@ from mcp.server.auth.provider import (
     TokenError,
     construct_redirect_uri,
 )
-from mcp.server.auth.routes import create_auth_routes
+from mcp.server.auth.routes import create_auth_routes, validate_issuer_url
 from mcp.server.auth.settings import ClientRegistrationOptions, RevocationOptions
 from mcp.shared.auth import OAuthClientInformationFull
 from mcp.shared.auth import OAuthToken as TokenResponse
@@ -60,6 +60,27 @@ def issuer_url(request: HttpRequest) -> str:
     """``<mcp>/o`` — has a path, so clients discover the metadata at
     ``<issuer>/.well-known/openid-configuration``, inside our own URLs."""
     return resource_url(request) + "/o"
+
+
+def issuer_error(request: HttpRequest) -> str | None:
+    """Why the MCP SDK would refuse this request's issuer, if it would.
+
+    The SDK only accepts an ``https`` issuer (plain ``http`` for loopback
+    hosts only) and raises deep inside ``create_auth_routes`` otherwise —
+    an opaque 500. The usual cause is a TLS-terminating proxy Django wasn't
+    told about, so the message says how to fix exactly that.
+    """
+    issuer = issuer_url(request)
+    try:
+        validate_issuer_url(AnyHttpUrl(issuer))
+    except ValueError:
+        return (
+            f"MCP OAuth requires https, but Django sees this request as {issuer}. "
+            "Behind a TLS-terminating proxy, set SECURE_PROXY_SSL_HEADER (and "
+            "USE_X_FORWARDED_HOST if the proxy rewrites Host); for local development "
+            "use http://localhost or http://127.0.0.1."
+        )
+    return None
 
 
 def _hash(token: str) -> str:

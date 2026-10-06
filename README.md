@@ -128,9 +128,21 @@ npx @modelcontextprotocol/inspector
 >
 > Requests without a token act as the first active superuser; permission filtering still applies.
 
-> [!IMPORTANT]
-> The issuer must be `https` (or `localhost`). Behind a proxy, set `SECURE_PROXY_SSL_HEADER` /
-> `USE_X_FORWARDED_HOST` so Django builds correct absolute URLs.
+### 🌐 HTTPS and reverse proxies
+
+MCP OAuth requires `https` (plain `http` works only on `localhost`/`127.0.0.1`). All OAuth URLs are
+built from the incoming request with Django's standard `request.build_absolute_uri()`, so behind a
+TLS-terminating proxy (nginx, Traefik, a PaaS load balancer) tell Django the original scheme — the
+same setting the admin and CSRF already rely on:
+
+```python
+# settings.py — only if your proxy sets this header and strips it from client requests
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True  # only if the proxy rewrites Host
+```
+
+Without it, the OAuth endpoints answer `500` with `"error": "server_error"` and a description of
+exactly this fix instead of advertising unusable `http://` URLs.
 
 ## 🧰 What the agent gets
 
@@ -141,15 +153,18 @@ npx @modelcontextprotocol/inspector
 | 📋 List resource | `dj-admin://blog/blogpost/{?params}` | Your `list_filter`/search params, `limit`/`offset`/`order_by` |
 | ✏️ Tools | `create_blog_blogpost`, `update_blog_blogpost` | Through the admin form; errors come back per field |
 | 🗑️ Tool | `delete_blog_blogpost` | Asks for confirmation before deleting |
+| ⚡ Action tools | `run_blog_blogpost_publish_posts` | Every admin/Unfold action (bulk, list, row, detail) with its form; `DANGER` ones ask for confirmation |
 
-Everything is filtered per request by `has_*_permission` — the agent never sees what its user can't do in the admin.
+Everything goes through the admin's own `has_*_permission` checks, re-run on every request — the agent never sees
+or does what its user can't do in the admin right now; granting or revoking a permission applies to the very next call.
 
 ## 🔐 Access and sessions
 
 - Only active **staff** users can log in; `is_active`/`is_staff` is re-checked on every request — un-staffing someone cuts off their tokens immediately.
 - The Django session cookie does **not** authenticate `/mcp` — only the `Bearer` token does.
 - A login lasts `SESSION_TTL` (default 1 day), no refresh tokens.
-- Clients and tokens are visible in the admin — deleting one revokes it.
+- Clients and tokens are visible in the admin — deleting one revokes it. A deleted client gets a page asking the person to
+  clear the saved authentication in their MCP client (Claude Code: `/mcp` → server → Clear authentication) and reconnect.
 
 ## ⚙️ Settings
 
@@ -171,7 +186,8 @@ The full list is in [`conf.py`](packages/django-unfold-agentic-layer/src/django_
 
 ## 🗺️ Roadmap
 
-- [ ] Admin actions (`@action`) as MCP tools
+- [x] Admin actions (`@action`) as MCP tools
+- [ ] Submit-line actions (`actions_submit_line`)
 - [ ] Stateful mode / SSE for server-initiated notifications
 - [ ] `allowed_hosts`/`allowed_origins` configuration via settings
 - [ ] Custom field rendering

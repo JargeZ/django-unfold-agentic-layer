@@ -1,5 +1,7 @@
 """Django side of the MCP OAuth flow — see ``oauth.py`` for the design."""
 
+import logging
+from functools import wraps
 from typing import Any
 from urllib.parse import urlparse
 
@@ -13,7 +15,8 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.views import View
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.clickjacking import xframe_options_deny
+from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from mcp.server.auth.routes import build_metadata
 from mcp.server.auth.settings import ClientRegistrationOptions, RevocationOptions
 from mcp.shared.auth import ProtectedResourceMetadata
@@ -21,13 +24,32 @@ from mcp.shared.auth import ProtectedResourceMetadata
 from django_unfold_agentic_layer import oauth
 from django_unfold_agentic_layer.conf import Settings, get_config
 from django_unfold_agentic_layer.mcp_server import bridge
+from django_unfold_agentic_layer.models import OAuthClient
+
+logger = logging.getLogger(__name__)
 
 
-def _cors_json(data: dict[str, Any]) -> JsonResponse:
+def _cors_json(data: dict[str, Any], status: int = 200) -> JsonResponse:
     # Browser-based clients (e.g. MCP Inspector) fetch discovery documents cross-origin.
-    return JsonResponse(data, headers={"Access-Control-Allow-Origin": "*"})
+    return JsonResponse(data, status=status, headers={"Access-Control-Allow-Origin": "*"})
 
 
+def _requires_https_issuer(view):
+    """Answers with an explanatory OAuth ``server_error`` instead of
+    advertising (or crashing on) an issuer the SDK won't accept."""
+
+    @wraps(view)
+    def wrapped(request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        error = oauth.issuer_error(request)
+        if error is not None:
+            logger.error(error)
+            return _cors_json({"error": "server_error", "error_description": error}, status=500)
+        return view(request, *args, **kwargs)
+
+    return wrapped
+
+
+@_requires_https_issuer
 def protected_resource_metadata(request: HttpRequest) -> JsonResponse:
     """RFC 9728 — where the 401's ``WWW-Authenticate`` header points clients."""
     metadata = ProtectedResourceMetadata(
@@ -37,6 +59,7 @@ def protected_resource_metadata(request: HttpRequest) -> JsonResponse:
     return _cors_json(metadata.model_dump(mode="json", exclude_none=True))
 
 
+@_requires_https_issuer
 def authorization_server_metadata(request: HttpRequest) -> JsonResponse:
     """RFC 8414 metadata, served at the OIDC path-appended location
     (``<issuer>/.well-known/openid-configuration``) — the only discovery URL
@@ -64,18 +87,42 @@ def jwks(request: HttpRequest) -> JsonResponse:
 
 
 @method_decorator(csrf_exempt, name="dispatch")
+@method_decorator(_requires_https_issuer, name="dispatch")
 class OAuthEndpointView(View):
     """Hands ``/authorize``, ``/token``, ``/register`` and ``/revoke`` to the MCP SDK's handlers."""
 
     def dispatch(
         self, request: HttpRequest, *args: Any, endpoint: str, **kwargs: Any
     ) -> HttpResponse:
+        if endpoint == "authorize":
+            client_id = request.GET.get("client_id") or request.POST.get("client_id")
+            if client_id and not OAuthClient.objects.filter(pk=client_id).exists():
+                return _unknown_client(request, client_id)
         return async_to_sync(bridge.call_asgi)(
             oauth.auth_app(request), request, path=f"/{endpoint}"
         )
 
 
+def _unknown_client(request: HttpRequest, client_id: str) -> HttpResponse:
+    """A person-readable page instead of the SDK's JSON error: /authorize is
+    opened in a browser, and MCP clients cache their registration, so once
+    it's deleted in the admin (or the database is reset) the person is the
+    one who has to clear it in their client."""
+    return render(
+        request,
+        "django_unfold_agentic_layer/unknown_client.html",
+        {
+            **admin.site.each_context(request),
+            "title": _("MCP client not recognized"),
+            "client_id": client_id,
+        },
+        status=400,
+    )
+
+
 @method_decorator(staff_member_required, name="dispatch")
+@method_decorator(csrf_protect, name="dispatch")
+@method_decorator(xframe_options_deny, name="dispatch")
 class ConsentView(View):
     """The staff user approves (or denies) the MCP client the SDK sent here.
 

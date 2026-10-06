@@ -50,13 +50,21 @@ class BuildAdminMCPInstance(BaseLogicAction):
     """
 
     def execute(self, request: HttpRequest, admin_site: AdminSite = default_admin_site) -> FastMCP:
-        return _build_admin_mcp_instance(request.user, admin_site)
+        user = request.user
+        permissions = (user.is_superuser, frozenset(user.get_all_permissions()))
+        return _build_admin_mcp_instance(user, admin_site, permissions)
 
 
 @lru_cache
-def _build_admin_mcp_instance(user: AbstractBaseUser, admin_site: AdminSite) -> FastMCP:
-    """Built once per ``(user, admin_site)`` and cached for the life of the
-    process (spec §1.1 — a worker-local cache is accepted as "build once").
+def _build_admin_mcp_instance(
+    user: AbstractBaseUser, admin_site: AdminSite, permissions: tuple[bool, frozenset[str]]
+) -> FastMCP:
+    """Built once per ``(user, admin_site, permissions)`` and cached for the
+    life of the process (spec §1.1 — a worker-local cache is accepted as
+    "build once"). ``permissions`` is only a cache key: the build itself asks
+    the admin (``get_app_list``/``has_*_permission``), and every handler
+    re-checks against the live request, since a ``ModelAdmin`` may override
+    ``has_*_permission`` with logic no permission set captures.
 
     Keyed on the ``user`` model instance itself, not ``user.pk``: Django's own
     ``Model.__eq__``/``__hash__`` already compare/hash by (concrete model,

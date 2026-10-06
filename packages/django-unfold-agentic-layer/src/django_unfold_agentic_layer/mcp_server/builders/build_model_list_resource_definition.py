@@ -3,6 +3,7 @@ from typing import Annotated, Any, Literal
 
 from asgiref.sync import sync_to_async
 from django.contrib.admin import ModelAdmin
+from django.core.exceptions import PermissionDenied
 from fastmcp import FastMCP
 from fastmcp.resources import ResourceResult
 from pydantic import Field
@@ -50,6 +51,12 @@ class BuildModelListResourceDefinition(BaseLogicAction):
 
         def run(**kwargs: Any) -> ResourceResult:
             request = get_django_request()
+            # The admin's changelist_view check — the cached server only
+            # proves the user could view this model when it was built.
+            if not model_admin.has_view_permission(request):
+                raise PermissionDenied(
+                    f"You do not have permission to view {model_resource.verbose_name_plural}."
+                )
             limit = kwargs.get("limit", model_resource.list_per_page)
             offset = kwargs.get("offset", 0)
 

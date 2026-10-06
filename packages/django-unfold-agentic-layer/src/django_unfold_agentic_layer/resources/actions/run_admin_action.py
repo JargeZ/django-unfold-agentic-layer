@@ -3,7 +3,7 @@ from typing import Any
 
 from django.contrib.admin import ModelAdmin, helpers
 from django.contrib.messages.storage.base import BaseStorage
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.http import HttpRequest, HttpResponse, QueryDict
 from django.utils.datastructures import MultiValueDict
 from django.utils.http import parse_header_parameters
@@ -68,6 +68,8 @@ class RunAdminAction(BaseLogicAction):
         pks: list[str] | None = None,
         dry_run: bool = False,
     ) -> ActionResult | None:
+        if action.scope != "instance" and not model_admin.has_view_permission(request):
+            raise PermissionDenied("You do not have permission to view this model.")
         post = self._form_data(data)
         action_request = copy.copy(request)
         action_request.method = "POST"

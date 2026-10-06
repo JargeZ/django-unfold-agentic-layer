@@ -1,0 +1,32 @@
+{% extends "unfold/layouts/unauthenticated.html" %}
+
+{% load i18n %}
+
+{% block content %}
+    {% include "unfold/helpers/unauthenticated_title.html" with title=site_title|default:_("Django site admin") subtitle=_("MCP client not recognized") %}
+
+    <div class="flex flex-col gap-6">
+        <div class="flex items-center gap-4">
+            <div class="flex items-center justify-center rounded-default bg-red-100 text-red-600 h-10 w-10 shrink-0 dark:bg-red-500/20 dark:text-red-500">
+                <span class="material-symbols-outlined">link_off</span>
+            </div>
+
+            <p class="min-w-0">
+                {% blocktranslate trimmed %}
+                    This server doesn't know the MCP client that sent you here. Its registration
+                    was deleted in the admin, or the server's database was reset.
+                {% endblocktranslate %}
+            </p>
+        </div>
+
+        <div class="flex flex-col gap-3 border border-base-200 rounded-default p-4 shadow-xs dark:border-base-800">
+            <p class="font-semibold text-font-important-light dark:text-font-important-dark">{% translate "To reconnect" %}</p>
+            <ol class="flex flex-col gap-2 list-decimal list-inside">
+                <li>{% translate "Clear the saved authentication for this server in your MCP client (in Claude Code: /mcp → the server → Clear authentication)." %}</li>
+                <li>{% translate "Authenticate again — the client registers itself anew." %}</li>
+            </ol>
+        </div>
+
+        <p class="text-sm">{% blocktranslate with client_id=client_id %}Client ID: <code>{{ client_id }}</code>{% endblocktranslate %}</p>
+    </div>
+{% endblock %}
