@@ -99,13 +99,15 @@ def test_danger_action_asks_for_confirmation(client, bearer_login, staff_user):
     post.refresh_from_db()
     assert post.status == "draft"
 
+    # Each confirmation round's state is single-use, so accepting needs a fresh one.
+    second = _modern_rpc(client, "tools/call", call)
     accepted = _modern_rpc(
         client,
         "tools/call",
         {
             **call,
             "inputResponses": {"confirm": {"action": "accept", "content": {"confirmed": True}}},
-            "requestState": first["requestState"],
+            "requestState": second["requestState"],
         },
     )
     assert accepted["structuredContent"]["messages"] == [

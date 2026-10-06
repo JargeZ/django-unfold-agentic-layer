@@ -11,6 +11,7 @@ from mcp.server.request_state import RequestStateSecurity
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
 from django_unfold_agentic_layer.apps import DjangoUnfoldAgenticLayerConfig
+from django_unfold_agentic_layer.mcp_server.builders._shared import REQUEST_STATE_TTL
 from django_unfold_agentic_layer.mcp_server.builders.build_model_action_tool_definition import (
     BuildModelActionToolDefinition,
 )
@@ -83,7 +84,9 @@ def _build_admin_mcp_instance(user: AbstractBaseUser, admin_site: AdminSite) -> 
     request_state_key = salted_hmac("django_unfold_agentic_layer.request_state", "").hexdigest()
     admin_mcp = FastMCP(
         "django_unfold_agentic_layer",
-        request_state_security=RequestStateSecurity(keys=[request_state_key]),
+        request_state_security=RequestStateSecurity(
+            keys=[request_state_key], ttl=REQUEST_STATE_TTL,
+        ),
     )
     admin_mcp.mount(docs_mcp)
 

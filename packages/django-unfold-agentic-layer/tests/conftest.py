@@ -69,6 +69,15 @@ def blog_editor(db) -> User:
 
 
 @pytest.fixture
+def blog_viewer(db) -> User:
+    """Staff with only ``view_blogpost`` — sees the changelist but may not
+    change posts through the regular change form."""
+    user = User.objects.create_user(username="blog-viewer", password="s3cret", is_staff=True)  # noqa: S106
+    user.user_permissions.set(Permission.objects.filter(codename="view_blogpost"))
+    return user
+
+
+@pytest.fixture
 def bearer_login(db):
     """``bearer_login(client, user)`` — the MCP equivalent of ``client.force_login``:
     issues ``user`` a live OAuth access token (skipping the browser flow

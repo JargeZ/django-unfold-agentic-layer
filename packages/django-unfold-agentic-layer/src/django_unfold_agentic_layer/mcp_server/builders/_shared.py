@@ -1,8 +1,10 @@
 """Small helpers shared by the resource/tool builders in this package."""
 
 import inspect
+import uuid
 from typing import Annotated, Literal
 
+from django.core.cache import cache
 from django.http import HttpRequest
 from fastmcp import Context
 from fastmcp.server.dependencies import get_http_request
@@ -15,6 +17,12 @@ from django_unfold_agentic_layer.resources.schemas import EditableFieldInfo
 #: under (see mcp_server/bridge.py) — namespaced to avoid colliding with any
 #: key the MCP SDK's own transport might use.
 REQUEST_SCOPE_KEY = "django_unfold_agentic_layer.request"
+
+#: Lifetime of a confirmation round's sealed ``requestState`` — also how long
+#: an answered one is remembered as consumed (see :func:`is_confirmed`).
+REQUEST_STATE_TTL = 600
+
+_CONSUMED_STATE_CACHE_PREFIX = "django_unfold_agentic_layer.consumed_request_state:"
 
 #: python_type -> the Python type an editable field's value is accepted as.
 #: Deliberately coarse — Django's own form validation does the real parsing
@@ -89,6 +97,9 @@ def confirmation_request(message: str, title: str, request_state: str) -> InputR
     (see bridge.py's session manager). ``InputRequiredResult`` instead
     *returns* a description of the needed input and lets the client
     re-invoke the tool with the answer. Pair with :func:`is_confirmed`.
+
+    ``request_state`` gets a random nonce appended, so every round is unique
+    and :func:`is_confirmed` can accept each answer only once.
     """
     return InputRequiredResult(
         result_type="input_required",
@@ -110,15 +121,27 @@ def confirmation_request(message: str, title: str, request_state: str) -> InputR
                 ),
             )
         },
-        request_state=request_state,
+        request_state=f"{request_state}:{uuid.uuid4().hex}",
     )
 
 
 def is_confirmed(ctx: Context) -> bool | None:
     """``None`` before :func:`confirmation_request` was answered, else whether
     the user accepted. decline/cancel (or a missing answer) carry no
-    ``content``; an accept counts unless ``confirmed`` was explicitly unticked."""
-    if ctx.input_responses is None:
+    ``content``; an accept counts unless ``confirmed`` was explicitly unticked.
+
+    An answer only counts when it echoes the ``requestState`` this server
+    minted (sealed, so unforgeable) and only the first time: otherwise a
+    client could skip the prompt by sending ``inputResponses`` straight away,
+    or replay one confirmation into many runs. Either way it's asked again.
+    """
+    if ctx.input_responses is None or ctx.request_state is None:
+        return None
+    # ponytail: Django's default LocMemCache is per-process; multi-worker
+    # deployments need a shared CACHES backend for replay protection to hold.
+    if not cache.add(
+        _CONSUMED_STATE_CACHE_PREFIX + ctx.request_state, True, timeout=REQUEST_STATE_TTL
+    ):
         return None
     confirm = ctx.input_responses.get("confirm")
     return (

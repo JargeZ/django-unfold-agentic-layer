@@ -3,6 +3,7 @@ from typing import Any
 
 from django.contrib.admin import ModelAdmin, helpers
 from django.contrib.messages.storage.base import BaseStorage
+from django.core.exceptions import ValidationError
 from django.http import HttpRequest, HttpResponse, QueryDict
 from django.utils.datastructures import MultiValueDict
 from django.utils.http import parse_header_parameters
@@ -81,6 +82,19 @@ class RunAdminAction(BaseLogicAction):
                     success=False,
                     errors={"pks": [{"message": "Select at least one item.", "code": "required"}]},
                 )
+            invalid_pks = [pk for pk in pks if not self._is_valid_pk(model_admin, pk)]
+            if invalid_pks:
+                return ActionResult(
+                    success=False,
+                    errors={
+                        "pks": [
+                            {
+                                "message": f"Invalid primary key(s): {', '.join(invalid_pks)}.",
+                                "code": "invalid",
+                            }
+                        ]
+                    },
+                )
             if not form.is_valid():
                 return ActionResult(
                     success=False, errors=form.errors.get_json_data(escape_html=True)
@@ -107,6 +121,15 @@ class RunAdminAction(BaseLogicAction):
         if response is not None and response.get("Location") == action_request.get_full_path():
             response = None
         return self._result(response, messages)
+
+    def _is_valid_pk(self, model_admin: ModelAdmin, pk: str) -> bool:
+        # Without this a malformed pk reaches the ORM's pk__in lookup and
+        # surfaces as a raw ValueError instead of a structured error.
+        try:
+            model_admin.model._meta.pk.to_python(pk)
+        except ValidationError:
+            return False
+        return True
 
     def _form_data(self, data: dict[str, Any]) -> QueryDict:
         post = QueryDict(mutable=True)
