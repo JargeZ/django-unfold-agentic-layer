@@ -192,6 +192,11 @@ uv run pytest
 Тесты поднимают одноразовый Django-проект (`django_test_app/`) и гоняют реальные MCP-запросы через `/mcp`.
 Архитектура и соглашения — в [CLAUDE.md](CLAUDE.md).
 
+> [!TIP]
+> **Ведёте разработку с агентами?** Дайте каждому агенту свою изолированную одноразовую среду —
+> посмотрите [**orca-recipes**](https://github.com/JargeZ/orca-recipes): Docker-окружения на каждый
+> workspace для next-gen сред разработки (Claude Code, Cursor, OpenCode). Здесь уже настроено: `orca.yaml` + `dev.Dockerfile`.
+
 ## 🤝 Участие
 
 Issues и pull requests приветствуются!

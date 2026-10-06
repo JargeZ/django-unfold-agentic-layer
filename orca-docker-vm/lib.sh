@@ -1,0 +1,117 @@
+# shellcheck shell=bash
+# Sourced by the recipe scripts. stdout is reserved for each script's final JSON.
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=config.sh
+source "$here/config.sh"
+
+# Where the git token lives, picked per host (ORCA_SECRET_STORE forces one):
+#   keychain        macOS Keychain (`security`)
+#   secret-service  Linux desktop keyring over D-Bus: GNOME Keyring, KWallet, KeePassXC (`secret-tool`)
+#   file            no keyring (headless/SSH host): a 0600 file under ~/.config/orca-docker-vm
+secret_store() {
+  if [ -n "${ORCA_SECRET_STORE:-}" ]; then echo "$ORCA_SECRET_STORE"
+  elif [ "$(uname)" = Darwin ]; then echo keychain
+  elif command -v secret-tool >/dev/null && [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then echo secret-service
+  else echo file
+  fi
+}
+secret_file() { printf '%s/orca-docker-vm/%s' "${XDG_CONFIG_HOME:-$HOME/.config}" "$1"; }
+
+secret_where() {  # secret_where <name>: human-readable location, for messages
+  case "$(secret_store)" in
+    keychain) echo "macOS Keychain as '$1'" ;;
+    secret-service) echo "the desktop keyring (secret-tool) as service '$1'" ;;
+    file) echo "file $(secret_file "$1")" ;;
+  esac
+}
+
+secret_get() {  # secret_get <name>: prints the token, or nothing
+  case "$(secret_store)" in
+    keychain) security find-generic-password -s "$1" -w 2>/dev/null ;;
+    secret-service) secret-tool lookup service "$1" 2>/dev/null ;;
+    file) cat "$(secret_file "$1")" 2>/dev/null ;;
+    *) echo "Unknown ORCA_SECRET_STORE '$ORCA_SECRET_STORE'" >&2; return 1 ;;
+  esac || true
+}
+
+secret_set() {  # secret_set <name> <label> <comment> <token>
+  case "$(secret_store)" in
+    # -l shows in the macOS access prompt; -j in Keychain Access.
+    keychain) security add-generic-password -U -s "$1" -a "$USER" -l "$2" -D "Orca token" -j "$3" -w "$4" ;;
+    secret-service) printf '%s' "$4" | secret-tool store --label="$2" service "$1" account "$USER" ;;
+    file)
+      (umask 077 && mkdir -p "$(dirname "$(secret_file "$1")")" && printf '%s' "$4" > "$(secret_file "$1")")
+      echo "No keyring on this host: the token is stored in plain text, readable only by $USER." >&2 ;;
+    *) echo "Unknown ORCA_SECRET_STORE '$ORCA_SECRET_STORE'" >&2; return 1 ;;
+  esac
+  echo "Saved to $(secret_where "$1")." >&2
+}
+
+# Coding agents. Each one logs in once (orca-docker-vm/<id>-login.sh, a step of prepare.sh) into its own
+# Docker volume shared by every workspace; docker-create.sh mounts and checks the agents whose volume
+# exists. Per agent: <id>_volume (copier.yml + config.sh.jinja), <id>_label, <id>_mount, <id>_check (a
+# login check run over SSH), <id>_run. Adding one = an entry here, <id>-login.sh, install in infra.Dockerfile.
+# Fields are read through agent_var; checks expand remotely.
+# shellcheck disable=SC2034,SC2016
+{
+  agents=(claude cursor opencode)
+  agent_var() { local v="${1}_$2"; printf '%s' "${!v}"; }  # agent_var <id> <field>
+
+  # Claude Code's login and state live in a named volume shared by every workspace container, mounted at
+  # CLAUDE_CONFIG_DIR (set in infra.Dockerfile), as in Anthropic's dev container guide.
+  claude_label="Claude Code"
+  claude_mount="$claude_volume:/home/dev/.claude"
+  claude_check='claude --version && claude auth status >/dev/null'
+  claude_run() { docker run --rm -u dev --entrypoint claude -v "$claude_mount" "$@"; }  # claude_run [-it] <image> <args>
+
+  # Cursor Agent login lives in a separate named volume (host Cursor login is never used). AUTH is a file
+  # under CURSOR_CONFIG_DIR because AGENT_CLI_CREDENTIAL_STORE=file (set in infra.Dockerfile).
+  cursor_label="Cursor Agent"
+  cursor_mount="$cursor_volume:/home/dev/.config/cursor"
+  cursor_check='agent --version && agent status >/dev/null'
+  cursor_run() { docker run --rm -u dev --entrypoint agent -v "$cursor_mount" "$@"; }  # cursor_run [-it] <image> <args>
+
+  # OpenCode v2 keeps credentials (and sessions) in a SQLite db under its data dir, not in auth.json:
+  # the whole data dir is a named volume shared by every workspace. No saved integration prints [].
+  opencode_label="OpenCode"
+  opencode_mount="$opencode_volume:/home/dev/.local/share/opencode"
+  opencode_check='opencode --version && [ "$(opencode auth list --format json)" != "[]" ]'
+  opencode_run() { docker run --rm -u dev --entrypoint opencode -v "$opencode_mount" "$@"; }  # opencode_run [-it] <image> <args>
+}
+
+# Token scoped to this repo only; never the host's broad `gh auth token`.
+git_token() { printf '%s' "${ORCA_GIT_TOKEN:-$(secret_get "$git_token_keychain_service")}"; }
+
+require_git_token() {
+  token="$(git_token)"
+  [ -n "$token" ] || { echo "No git token: run orca-docker-vm/git-token-setup.sh (or set ORCA_GIT_TOKEN)" >&2; exit 1; }
+  export "$git_token_env=$token"
+}
+
+# Script for `docker exec bash -s` inside a workspace container as `dev`: checks out the workspace
+# branch through the image's credential helper, then reruns the project's sync command. The token
+# travels over stdin, so it stays out of `docker inspect`.
+# provisioned-root (see docker-create.sh): Orca passes the workspace branch and the exact commit to
+# start it at; without them (orca doctor, e2e) the checkout is repo_ref.
+sync_script() {
+  local v
+  for v in "$git_token_env" repo_url repo_ref project_root sync_command; do printf 'export %s=%q\n' "$v" "${!v}"; done
+  printf 'export ref_head=%q branch=%q\n' "${ORCA_REPO_REF_HEAD:-}" "${ORCA_REPO_BRANCH:-$repo_ref}"
+  printf '%s' "$remote_sync_script"
+}
+
+# shellcheck disable=SC2016
+remote_sync_script='set -euo pipefail
+export GIT_TERMINAL_PROMPT=0
+cd "$project_root"
+if [ -n "$ref_head" ]; then
+  # The pinned commit, not the ref: re-resolving the ref could race an upstream push.
+  git fetch origin "$ref_head" 2>/dev/null || git fetch origin
+  git cat-file -e "$ref_head^{commit}"
+  git checkout -B "$branch" "$ref_head"
+else
+  git fetch origin "$repo_ref"
+  git checkout -B "$branch" FETCH_HEAD
+fi
+bash -lc "$sync_command"
+'

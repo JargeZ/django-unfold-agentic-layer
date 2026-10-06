@@ -192,6 +192,11 @@ uv run pytest
 The tests boot a throwaway Django project (`django_test_app/`) and drive real MCP requests through `/mcp`.
 Architecture and conventions are in [CLAUDE.md](CLAUDE.md).
 
+> [!TIP]
+> **Developing with AI agents?** Give each agent its own isolated, disposable workspace — check out
+> [**orca-recipes**](https://github.com/JargeZ/orca-recipes): per-workspace Docker environments for
+> next-gen dev setups (Claude Code, Cursor, OpenCode). This repo ships one: `orca.yaml` + `dev.Dockerfile`.
+
 ## 🤝 Contributing
 
 Issues and pull requests are welcome!
