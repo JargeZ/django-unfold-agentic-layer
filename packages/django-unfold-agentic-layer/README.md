@@ -24,9 +24,9 @@ INSTALLED_APPS = [
     # Unfold must come before django.contrib.admin.
     "unfold",
     "django.contrib.admin",
-    "django.contrib.auth",          # required: /mcp/ authenticates staff users
+    "django.contrib.auth",  # required: /mcp/ authenticates staff users
     "django.contrib.contenttypes",
-    "django.contrib.sessions",      # required for the admin login in the OAuth flow
+    "django.contrib.sessions",  # required for the admin login in the OAuth flow
     "django.contrib.messages",
     "django.contrib.staticfiles",
     # ...
@@ -86,10 +86,11 @@ The OAuth server itself is the MCP SDK's (`mcp.server.auth`); this app only stor
 - A `dj-admin://{app_label}/{model_name}/{?params}` resource per model for lists — the model's real `list_filter`/search GET parameters (verbatim, e.g. `author__id__exact`), plus `limit`/`offset`/`order_by`.
 - `create_{app_label}_{model_name}` / `update_{app_label}_{model_name}` tools, backed by the model's own admin form — Django's `form.is_valid()` does the validation, errors come back structured per field.
 - A `delete_{app_label}_{model_name}` tool that asks for confirmation (via the MCP "input required" round-trip) before deleting.
+- A `run_{app_label}_{model_name}_{action}` tool per admin action — Django bulk `actions` (take `pks`), Unfold `actions_list` (whole model), `actions_row`/`actions_detail` (take `pk`). The action's form becomes the tool's parameters: an Unfold `dialog` `form_class`, or for bulk actions your `ModelAdmin.action_form` extras. Results report the action's messages, its redirect, and any returned file (e.g. a CSV export) inline. Actions with `variant=ActionVariant.DANGER` ask for confirmation first.
 
 Everything above is permission-filtered per request using Django's/Unfold's own permission checks (`has_*_permission`, `get_actions`, …) — a user only ever sees resources and tools for what they could actually do in the admin.
 
-Not yet covered: bulk/row/detail admin *actions* (e.g. a custom `@action` on a `ModelAdmin`) aren't invokable as MCP tools yet, and there's no stateful/SSE mode for server-initiated pushes — see the roadmap note in the repository's `CLAUDE.md` and `docs/specs/dynamic-admin-mcp-primitives.md` for what's planned next.
+Not yet covered: `actions_submit_line` actions (they run while saving a changeform), Django's built-in bulk `delete_selected` (use the delete tool), and there's no stateful/SSE mode for server-initiated pushes — see the roadmap note in the repository's `CLAUDE.md` and `docs/specs/dynamic-admin-mcp-primitives.md` for what's planned next.
 
 ## Settings
 

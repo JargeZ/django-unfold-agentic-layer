@@ -36,12 +36,11 @@
           'requestedSchema': dict({
             'properties': dict({
               'confirmed': dict({
+                'default': True,
+                'title': 'Confirm deletion',
                 'type': 'boolean',
               }),
             }),
-            'required': list([
-              'confirmed',
-            ]),
             'type': 'object',
           }),
         }),
@@ -368,7 +367,7 @@
         'description': 'Adds support for various ModelAdmin actions (list, detail, row, submit line)',
         'mimeType': 'application/json',
         'name': 'users (list)',
-        'uriTemplate': 'dj-admin://auth/user/{?q,limit,offset,order_by}',
+        'uriTemplate': 'dj-admin://auth/user/{?q,is_staff__exact,is_staff__isnull,is_superuser__exact,is_superuser__isnull,is_active__exact,is_active__isnull,limit,offset,order_by}',
       }),
       dict({
         '_meta': dict({
@@ -544,118 +543,7 @@
         'inputSchema': dict({
           'additionalProperties': False,
           'properties': dict({
-            'date_joined': dict({
-              'anyOf': list([
-                dict({
-                  'type': 'string',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'Date joined (required)',
-            }),
-            'email': dict({
-              'anyOf': list([
-                dict({
-                  'type': 'string',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'Email address',
-            }),
-            'first_name': dict({
-              'anyOf': list([
-                dict({
-                  'type': 'string',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'First name',
-            }),
-            'groups': dict({
-              'anyOf': list([
-                dict({
-                  'items': dict({
-                    'type': 'string',
-                  }),
-                  'type': 'array',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'Groups — The groups this user belongs to. A user will get all permissions granted to each of their groups. Hold down “Control”, or “Command” on a Mac, to select more than one.. Browse valid values at dj-admin://auth/group/',
-            }),
-            'is_active': dict({
-              'anyOf': list([
-                dict({
-                  'type': 'boolean',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'Active — Designates whether this user should be treated as active. Unselect this instead of deleting accounts.',
-            }),
-            'is_staff': dict({
-              'anyOf': list([
-                dict({
-                  'type': 'boolean',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'Staff status — Designates whether the user can log into this admin site.',
-            }),
-            'is_superuser': dict({
-              'anyOf': list([
-                dict({
-                  'type': 'boolean',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'Superuser status — Designates that this user has all permissions without explicitly assigning them.',
-            }),
-            'last_login': dict({
-              'anyOf': list([
-                dict({
-                  'type': 'string',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'Last login',
-            }),
-            'last_name': dict({
-              'anyOf': list([
-                dict({
-                  'type': 'string',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'Last name',
-            }),
-            'password': dict({
+            'password1': dict({
               'anyOf': list([
                 dict({
                   'type': 'string',
@@ -667,20 +555,33 @@
               'default': None,
               'description': 'Password (required)',
             }),
-            'user_permissions': dict({
+            'password2': dict({
               'anyOf': list([
                 dict({
-                  'items': dict({
-                    'type': 'string',
-                  }),
-                  'type': 'array',
+                  'type': 'string',
                 }),
                 dict({
                   'type': 'null',
                 }),
               ]),
               'default': None,
-              'description': 'User permissions — Specific permissions for this user. Hold down “Control”, or “Command” on a Mac, to select more than one.. Browse valid values at dj-admin://auth/permission/',
+              'description': 'Password confirmation — Enter the same password as before, for verification. (required)',
+            }),
+            'usable_password': dict({
+              'anyOf': list([
+                dict({
+                  'enum': list([
+                    'true',
+                    'false',
+                  ]),
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Password-based authentication — Whether the user will be able to authenticate using a password or not. If disabled, they may still be able to authenticate using other backends, such as Single Sign-On or LDAP.',
             }),
             'username': dict({
               'anyOf': list([
@@ -821,18 +722,6 @@
               ]),
               'default': None,
               'description': 'Last name',
-            }),
-            'password': dict({
-              'anyOf': list([
-                dict({
-                  'type': 'string',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'Password (required)',
             }),
             'pk': dict({
               'description': 'Primary key of the instance to update.',
@@ -1168,6 +1057,297 @@
           'x-fastmcp-wrap-result': True,
         }),
         'title': 'Delete Blog Blogpost',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Publish selected blog posts. Runs on the selected blog posts (pass their pks).',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'editor': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'editor. Browse valid values at dj-admin://auth/user/',
+            }),
+            'pks': dict({
+              'description': 'Primary keys of the instances to run the action on.',
+              'items': dict({
+                'type': 'string',
+              }),
+              'type': 'array',
+            }),
+          }),
+          'required': list([
+            'pks',
+          ]),
+          'type': 'object',
+        }),
+        'name': 'run_blog_blogpost_publish_posts',
+        'title': 'Run Blog Blogpost Publish Posts',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Assign editor to selected posts. Runs on the selected blog posts (pass their pks).',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'editor': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'editor. Browse valid values at dj-admin://auth/user/',
+            }),
+            'pks': dict({
+              'description': 'Primary keys of the instances to run the action on.',
+              'items': dict({
+                'type': 'string',
+              }),
+              'type': 'array',
+            }),
+          }),
+          'required': list([
+            'pks',
+          ]),
+          'type': 'object',
+        }),
+        'name': 'run_blog_blogpost_assign_editor',
+        'title': 'Run Blog Blogpost Assign Editor',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'annotations': dict({
+          'destructiveHint': True,
+        }),
+        'description': 'Archive selected posts. Runs on the selected blog posts (pass their pks). Asks for confirmation before running.',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'editor': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'editor. Browse valid values at dj-admin://auth/user/',
+            }),
+            'pks': dict({
+              'description': 'Primary keys of the instances to run the action on.',
+              'items': dict({
+                'type': 'string',
+              }),
+              'type': 'array',
+            }),
+          }),
+          'required': list([
+            'pks',
+          ]),
+          'type': 'object',
+        }),
+        'name': 'run_blog_blogpost_archive_selected',
+        'title': 'Run Blog Blogpost Archive Selected',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Export all posts. Runs on blog posts as a whole, without selecting any.',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+          }),
+          'type': 'object',
+        }),
+        'name': 'run_blog_blogpost_export_all_posts',
+        'title': 'Run Blog Blogpost Export All Posts',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Create draft. New draft. Creates an empty draft authored by you. Runs on blog posts as a whole, without selecting any.',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'title': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'title (required)',
+            }),
+          }),
+          'type': 'object',
+        }),
+        'name': 'run_blog_blogpost_create_draft',
+        'title': 'Run Blog Blogpost Create Draft',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Feature this post. Runs on one blog post (pass its pk).',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'pk': dict({
+              'description': 'Primary key of the instance to run the action on.',
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'pk',
+          ]),
+          'type': 'object',
+        }),
+        'name': 'run_blog_blogpost_feature_post',
+        'title': 'Run Blog Blogpost Feature Post',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Set status. Change status. Runs on one blog post (pass its pk).',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'pk': dict({
+              'description': 'Primary key of the instance to run the action on.',
+              'type': 'string',
+            }),
+            'status': dict({
+              'anyOf': list([
+                dict({
+                  'enum': list([
+                    'draft',
+                    'published',
+                    'archived',
+                  ]),
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'status (required)',
+            }),
+          }),
+          'required': list([
+            'pk',
+          ]),
+          'type': 'object',
+        }),
+        'name': 'run_blog_blogpost_set_status',
+        'title': 'Run Blog Blogpost Set Status',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Publish this post. Runs on one blog post (pass its pk).',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'pk': dict({
+              'description': 'Primary key of the instance to run the action on.',
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'pk',
+          ]),
+          'type': 'object',
+        }),
+        'name': 'run_blog_blogpost_publish_post',
+        'title': 'Run Blog Blogpost Publish Post',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Append note. Runs on one blog post (pass its pk).',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'note': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'note — Appended to the end of the post body. (required)',
+            }),
+            'pk': dict({
+              'description': 'Primary key of the instance to run the action on.',
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'pk',
+          ]),
+          'type': 'object',
+        }),
+        'name': 'run_blog_blogpost_append_note',
+        'title': 'Run Blog Blogpost Append Note',
       }),
       dict({
         '_meta': dict({

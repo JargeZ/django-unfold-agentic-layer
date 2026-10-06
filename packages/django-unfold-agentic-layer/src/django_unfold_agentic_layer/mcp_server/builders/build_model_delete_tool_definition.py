@@ -1,34 +1,26 @@
 from asgiref.sync import sync_to_async
 from django.contrib.admin import ModelAdmin
 from fastmcp import Context, FastMCP
-from mcp.types import ElicitRequest, ElicitRequestFormParams, InputRequiredResult
+from mcp.types import InputRequiredResult
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
-from django_unfold_agentic_layer.mcp_server.builders._shared import get_django_request
+from django_unfold_agentic_layer.mcp_server.builders._shared import (
+    confirmation_request,
+    get_django_request,
+    is_confirmed,
+)
 from django_unfold_agentic_layer.resources.actions.delete_model_instance import DeleteModelInstance
 from django_unfold_agentic_layer.resources.actions.get_admin_model_instance import (
     GetAdminModelInstance,
 )
 from django_unfold_agentic_layer.resources.schemas import AdminModelResource
 
-_CONFIRMATION_SCHEMA = {
-    "type": "object",
-    "properties": {"confirmed": {"type": "boolean"}},
-    "required": ["confirmed"],
-}
-
 
 class BuildModelDeleteToolDefinition(BaseLogicAction):
     """Registers a ``delete_{app_label}_{model_name}`` tool on ``mcp`` (spec §9.1).
 
-    Confirmation goes through the modern-protocol ``InputRequiredResult``
-    (SEP-2322), not ``ctx.elicit()``: the latter suspends the tool call
-    mid-flight waiting on a server-initiated request the client answers over
-    the *same* connection, which stateless mode's single-shot POST has no
-    channel for (see bridge.py's session manager). ``InputRequiredResult``
-    instead *returns* a description of the needed input and lets the client
-    re-invoke the tool with the answer — no long-lived connection required,
-    proven end-to-end in this session against ``fastmcp.Client``.
+    Confirmation goes through ``_shared.confirmation_request`` (SEP-2322
+    ``InputRequiredResult`` — see there for why not ``ctx.elicit()``).
 
     Unlike a resource template, fastmcp *does* offload a plain sync tool
     function to a worker thread automatically — but via a generic
@@ -50,25 +42,15 @@ class BuildModelDeleteToolDefinition(BaseLogicAction):
             request = get_django_request()
             instance = GetAdminModelInstance().execute(model_admin, request, pk)
 
-            if ctx.input_responses is None:
-                return InputRequiredResult(
-                    result_type="input_required",
-                    input_requests={
-                        "confirm": ElicitRequest(
-                            method="elicitation/create",
-                            params=ElicitRequestFormParams(
-                                message=(
-                                    f"Delete {model_resource.verbose_name} "
-                                    f"{instance!s} (pk={pk})? This cannot be undone."
-                                ),
-                                requestedSchema=_CONFIRMATION_SCHEMA,
-                            ),
-                        )
-                    },
+            confirmed = is_confirmed(ctx)
+            if confirmed is None:
+                return confirmation_request(
+                    f"Delete {model_resource.verbose_name} {instance!s} (pk={pk})? "
+                    "This cannot be undone.",
+                    title="Confirm deletion",
                     request_state=f"pk={pk}",
                 )
-
-            if not ctx.input_responses["confirm"].content.get("confirmed"):
+            if not confirmed:
                 return "Deletion cancelled."
 
             DeleteModelInstance().execute(model_admin, request, instance)

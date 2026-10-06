@@ -10,16 +10,36 @@
       'title': 'Publish selected blog posts',
     }),
     dict({
+      'key': 'assign_editor',
+      'title': 'Assign editor to selected posts',
+    }),
+    dict({
+      'key': 'archive_selected',
+      'title': 'Archive selected posts',
+    }),
+    dict({
       'key': 'blog_blogpost_feature_post',
       'title': 'Feature this post',
     }),
     dict({
-      'key': 'blog_blogpost_archive_post',
-      'title': 'Archive this post',
+      'key': 'blog_blogpost_set_status',
+      'title': 'Set status',
+    }),
+    dict({
+      'key': 'blog_blogpost_feature_post',
+      'title': 'Feature this post',
+    }),
+    dict({
+      'key': 'blog_blogpost_publish_post',
+      'title': 'Publish this post',
+    }),
+    dict({
+      'key': 'blog_blogpost_append_note',
+      'title': 'Append note',
     }),
     dict({
       'key': 'blog_blogpost_notify_author_on_save',
-      'title': 'Notify author on save',
+      'title': 'Save and notify author',
     }),
   ])
 # ---

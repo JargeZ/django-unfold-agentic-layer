@@ -13,6 +13,9 @@ only needed here because these tests speak raw JSON-RPC.
 import json
 
 import pytest
+from django_unfold_agentic_layer.mcp_server.builders.build_admin_mcp_instance import (
+    _build_admin_mcp_instance,
+)
 from server.apps.blog.models import BlogPost
 
 MCP_URL = "/mcp/"
@@ -132,6 +135,9 @@ def test_delete_tool_requires_confirmation_then_deletes(client, bearer_login, st
     assert "inputRequests" in first
     assert BlogPost.objects.filter(pk=post.pk).exists()
 
+    # A fresh instance (runserver reload, another worker) must still accept the state.
+    _build_admin_mcp_instance.cache_clear()
+
     second = _modern_rpc(
         client,
         "tools/call",
@@ -147,7 +153,14 @@ def test_delete_tool_requires_confirmation_then_deletes(client, bearer_login, st
 
 
 @pytest.mark.django_db
-def test_delete_tool_cancelled_keeps_instance(client, bearer_login, staff_user):
+@pytest.mark.parametrize(
+    "confirm_response",
+    [
+        {"action": "accept", "content": {"confirmed": False}},
+        {"action": "decline"},
+    ],
+)
+def test_delete_tool_cancelled_keeps_instance(client, bearer_login, staff_user, confirm_response):
     post = BlogPost.objects.create(title="KeepMe", author=staff_user)
     bearer_login(client, staff_user)
 
@@ -161,7 +174,7 @@ def test_delete_tool_cancelled_keeps_instance(client, bearer_login, staff_user):
         {
             "name": "delete_blog_blogpost",
             "arguments": {"pk": str(post.pk)},
-            "inputResponses": {"confirm": {"action": "accept", "content": {"confirmed": False}}},
+            "inputResponses": {"confirm": confirm_response},
             "requestState": first["requestState"],
         },
     )

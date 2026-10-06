@@ -1,69 +1,200 @@
-<p align="center">
-  <img src="https://img.shields.io/pypi/v/django-unfold-agentic-layer?color=6366f1&style=for-the-badge" alt="PyPI version" />
-  <img src="https://img.shields.io/pypi/pyversions/django-unfold-agentic-layer?color=818cf8&style=for-the-badge" alt="Python versions" />
-  <img src="https://img.shields.io/badge/MCP-Compatible-4f46e5?style=for-the-badge" alt="MCP Compatible" />
-  <img src="https://img.shields.io/badge/License-MIT-059669?style=for-the-badge" alt="License" />
-</p>
+<div align="center">
 
-# 🔮 Django Unfold Agentic Layer
+# 🔮 django-unfold-agentic-layer
 
-> **An installable Django app that turns your project into an MCP server for the [Django Unfold](https://unfoldadmin.com) admin theme.**
+**Turn your Django Unfold admin into an MCP server — AI agents get docs and your live admin, with your permissions**
 
-Install it, add it to `INSTALLED_APPS`, include its `urls.py` — your project now serves an MCP (Model Context Protocol) endpoint at `/mcp/` that AI agents can talk to over Streamable HTTP. No separate process, no extra deployment step.
+[![PyPI](https://img.shields.io/pypi/v/django-unfold-agentic-layer?style=flat-square)](https://pypi.org/project/django-unfold-agentic-layer/)
+[![Python](https://img.shields.io/pypi/pyversions/django-unfold-agentic-layer?style=flat-square)](https://pypi.org/project/django-unfold-agentic-layer/)
+[![Last commit](https://img.shields.io/github/last-commit/JargeZ/django-unfold-agentic-layer?style=flat-square)](https://github.com/JargeZ/django-unfold-agentic-layer/commits/main)
+[![Stars](https://img.shields.io/github/stars/JargeZ/django-unfold-agentic-layer?style=flat-square)](https://github.com/JargeZ/django-unfold-agentic-layer/stargazers)
+[![Issues](https://img.shields.io/github/issues/JargeZ/django-unfold-agentic-layer?style=flat-square)](https://github.com/JargeZ/django-unfold-agentic-layer/issues)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](https://github.com/JargeZ/django-unfold-agentic-layer/pulls)
+<br>
+[![Django](https://img.shields.io/badge/Django-5.0+-092E20?style=flat-square&logo=django&logoColor=white)](https://www.djangoproject.com/)
+[![Unfold](https://img.shields.io/badge/Unfold-0.91+-6366f1?style=flat-square)](https://unfoldadmin.com)
+[![MCP](https://img.shields.io/badge/MCP-Streamable_HTTP-4f46e5?style=flat-square)](https://modelcontextprotocol.io)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-ready-D97757?style=flat-square&logo=anthropic&logoColor=white)](https://code.claude.com)
 
-This repository is a [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/); `django-unfold-agentic-layer` (in `packages/django-unfold-agentic-layer/`) is currently its only member. See [`packages/django-unfold-agentic-layer/README.md`](packages/django-unfold-agentic-layer/README.md) for install/usage instructions, and [CLAUDE.md](CLAUDE.md) for architecture and conventions.
+**English** · [Русский](README.ru.md)
 
-## Quick start
+</div>
+
+---
+
+> [!WARNING]
+> **The project is under active development.** APIs and behavior may change. Testing and feedback are very welcome — please [open an issue](https://github.com/JargeZ/django-unfold-agentic-layer/issues) if something breaks!
+
+## ✨ What it is
+
+A regular Django app. Add it to `INSTALLED_APPS`, include its `urls.py` — and your project serves an
+MCP endpoint at `/mcp`. No separate process, works under both WSGI and ASGI.
+
+- 📚 **Unfold docs for agents** — 25 tools with the official Django Unfold docs, so agents stop hallucinating settings and imports
+- 🗂️ **Your admin, live** — every registered model as MCP resources (detail + list with your `list_filter`/search) and `create`/`update`/`delete` tools
+- 🛡️ **Admin permissions apply** — an agent sees and does exactly what its user can do in the admin; validation goes through the model's admin form
+- 🔐 **Standard MCP OAuth** — clients log in through your admin login + consent page, only active staff users
+
+## 🚀 Installation
+
+**Requirements:** Python 3.11+, Django 5.0+, `django-unfold` 0.91+.
+
+**1. Install the package** from git:
 
 ```bash
-pip install django-unfold-agentic-layer
+# uv
+uv add "django-unfold-agentic-layer @ git+https://github.com/JargeZ/django-unfold-agentic-layer.git#subdirectory=packages/django-unfold-agentic-layer"
+
+# poetry
+poetry add "git+https://github.com/JargeZ/django-unfold-agentic-layer.git#subdirectory=packages/django-unfold-agentic-layer"
 ```
 
+Pin a branch, tag or commit with `.git@<ref>#subdirectory=…`.
+
+**2. Add it to `settings.py`:**
+
 ```python
-# settings.py
 INSTALLED_APPS = [
-    "unfold",                        # before django.contrib.admin
+    "unfold",  # before django.contrib.admin
     "django.contrib.admin",
-    "django.contrib.auth",
+    "django.contrib.auth",  # required: /mcp authenticates staff users
     "django.contrib.contenttypes",
-    "django.contrib.sessions",
+    "django.contrib.sessions",  # required: admin login in the OAuth flow
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "django_unfold_agentic_layer",
+    "django_unfold_agentic_layer",  # exactly this string
+    # your apps
 ]
 ```
 
+`SessionMiddleware` and `AuthenticationMiddleware` must be in `MIDDLEWARE` (they are in any project with the admin).
+
+**3. Include the URLs** in the project's root `urls.py`:
+
 ```python
-# urls.py (project root)
 from django.contrib import admin
 from django.urls import include, path
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("", include("django_unfold_agentic_layer.urls")),  # → POST /mcp/
+    path("", include("django_unfold_agentic_layer.urls")),  # → /mcp, /mcp/o/…
 ]
 ```
 
-Full details (middleware, URL prefix, editable/path install, access rules) in the [package README](packages/django-unfold-agentic-layer/README.md#install).
+> [!NOTE]
+> Every route of the app lives under `mcp/`, so it won't collide with yours (e.g. django-oauth-toolkit at `/o/`).
+> Need a prefix? `path("agent/", include(...))` gives `/agent/mcp`.
 
----
-
-## Why this exists
-
-AI coding agents frequently hallucinate when generating Django Unfold code — inventing non-existent settings, wrong import paths, or missing `INSTALLED_APPS` ordering requirements. `/mcp/` currently exposes 25 documentation tools sourced directly from the official Django Unfold docs, so an agent can look up the real answer instead of guessing. A follow-up phase adds tools that introspect and act on *your* admin (registered models, actions, data) — see the roadmap note in `CLAUDE.md`.
-
-## How it works
-
-`FastMCP` (the [`fastmcp`](https://gofastmcp.com) package) owns tool registration and the MCP protocol itself; a small Django view (`django_unfold_agentic_layer.mcp_server.bridge`) delegates each `/mcp/` request into it directly — no ASGI-level route mounting required in your project, and no dependency on your project running under ASGI specifically. See `packages/django-unfold-agentic-layer/README.md` and `CLAUDE.md` for the technical detail.
-
-## Development
+**4. Apply migrations** (OAuth clients and hashed tokens live in the app's own tables):
 
 ```bash
-uv sync                                          # from repo root
+python manage.py migrate
+```
+
+## 🔌 Connecting clients
+
+Clients log in on their own via standard MCP OAuth: the browser opens your admin login, then a consent page.
+
+**Claude Code**
+
+```bash
+claude mcp add --transport http unfold https://your-project.example/mcp
+# then in Claude Code: /mcp → unfold → Authenticate
+```
+
+**Cursor** — `.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "unfold": { "url": "https://your-project.example/mcp" }
+  }
+}
+```
+
+**MCP Inspector** — for debugging:
+
+```bash
+npx @modelcontextprotocol/inspector
+# Transport: Streamable HTTP, URL: http://localhost:8000/mcp
+```
+
+> [!TIP]
+> Local development without OAuth — only honored when `DEBUG = True`:
+>
+> ```python
+> UNFOLD_AGENTIC_LAYER_UNAUTHORIZED = True
+> ```
+>
+> Requests without a token act as the first active superuser; permission filtering still applies.
+
+> [!IMPORTANT]
+> The issuer must be `https` (or `localhost`). Behind a proxy, set `SECURE_PROXY_SSL_HEADER` /
+> `USE_X_FORWARDED_HOST` so Django builds correct absolute URLs.
+
+## 🧰 What the agent gets
+
+| Primitive | Example | What it does |
+|---|---|---|
+| 📚 Doc tools | `unfold_filters`, `unfold_search_docs` | Django Unfold docs, including all third-party integrations |
+| 📄 Detail resource | `dj-admin://blog/blogpost/42/` | One object's fields as JSON + Markdown; FK/M2M as links |
+| 📋 List resource | `dj-admin://blog/blogpost/{?params}` | Your `list_filter`/search params, `limit`/`offset`/`order_by` |
+| ✏️ Tools | `create_blog_blogpost`, `update_blog_blogpost` | Through the admin form; errors come back per field |
+| 🗑️ Tool | `delete_blog_blogpost` | Asks for confirmation before deleting |
+
+Everything is filtered per request by `has_*_permission` — the agent never sees what its user can't do in the admin.
+
+## 🔐 Access and sessions
+
+- Only active **staff** users can log in; `is_active`/`is_staff` is re-checked on every request — un-staffing someone cuts off their tokens immediately.
+- The Django session cookie does **not** authenticate `/mcp` — only the `Bearer` token does.
+- A login lasts `SESSION_TTL` (default 1 day), no refresh tokens.
+- Clients and tokens are visible in the admin — deleting one revokes it.
+
+## ⚙️ Settings
+
+All optional — an `UNFOLD_AGENTIC_LAYER` dict, the same override pattern as Unfold's `UNFOLD`:
+
+```python
+from datetime import timedelta
+
+UNFOLD_AGENTIC_LAYER = {
+    "SESSION_TTL": timedelta(hours=8),  # MCP login lifetime, default 1 day
+}
+```
+
+The full list is in [`conf.py`](packages/django-unfold-agentic-layer/src/django_unfold_agentic_layer/conf.py).
+
+## 🗺️ Roadmap
+
+- [ ] Admin actions (`@action`) as MCP tools
+- [ ] Stateful mode / SSE for server-initiated notifications
+- [ ] `allowed_hosts`/`allowed_origins` configuration via settings
+- [ ] Custom field rendering
+
+Details in [CLAUDE.md](CLAUDE.md) and [docs/specs](docs/specs/dynamic-admin-mcp-primitives.md).
+
+## 🛠️ Development
+
+The repo is a [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/); the package lives in `packages/django-unfold-agentic-layer/`.
+
+```bash
+uv sync
 cd packages/django-unfold-agentic-layer
 uv run pytest
 ```
 
-## License
+The tests boot a throwaway Django project (`django_test_app/`) and drive real MCP requests through `/mcp`.
+Architecture and conventions are in [CLAUDE.md](CLAUDE.md).
 
-MIT — see [LICENSE](LICENSE) for details.
+## 🤝 Contributing
+
+Issues and pull requests are welcome!
+
+## 🙏 Credits
+
+Inspired by [rissets/mcp-django-unfold](https://github.com/rissets/mcp-django-unfold) — the project that sparked the idea of building a full MCP compatibility layer for Django Unfold. The Unfold documentation skills are taken from that repository; everything else is a completely new implementation.
+
+## 📄 License
+
+[MIT](LICENSE)

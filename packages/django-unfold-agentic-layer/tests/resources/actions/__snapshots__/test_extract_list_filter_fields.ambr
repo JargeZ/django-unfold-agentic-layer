@@ -8,12 +8,12 @@
           'query_string': '?',
         }),
         dict({
-          'display': 'staff',
-          'query_string': '?author__id__exact=1',
-        }),
-        dict({
           'display': 'regular',
           'query_string': '?author__id__exact=2',
+        }),
+        dict({
+          'display': 'staff',
+          'query_string': '?author__id__exact=1',
         }),
       ]),
       'format': 'RelatedFieldListFilter',
@@ -28,12 +28,12 @@
           'query_string': '?',
         }),
         dict({
-          'display': 'staff',
-          'query_string': '?author__id__exact=1',
-        }),
-        dict({
           'display': 'regular',
           'query_string': '?author__id__exact=2',
+        }),
+        dict({
+          'display': 'staff',
+          'query_string': '?author__id__exact=1',
         }),
       ]),
       'format': 'RelatedFieldListFilter',
@@ -230,12 +230,12 @@
           'query_string': '?',
         }),
         dict({
-          'display': 'staff',
-          'query_string': '?author__id__exact=1',
-        }),
-        dict({
           'display': 'regular',
           'query_string': '?author__id__exact=2',
+        }),
+        dict({
+          'display': 'staff',
+          'query_string': '?author__id__exact=1',
         }),
       ]),
       'format': 'RelatedFieldListFilter',
@@ -250,12 +250,12 @@
           'query_string': '?',
         }),
         dict({
-          'display': 'staff',
-          'query_string': '?author__id__exact=1',
-        }),
-        dict({
           'display': 'regular',
           'query_string': '?author__id__exact=2',
+        }),
+        dict({
+          'display': 'staff',
+          'query_string': '?author__id__exact=1',
         }),
       ]),
       'format': 'RelatedFieldListFilter',

@@ -92,6 +92,18 @@ def test_read_detail_resource_returns_json_and_markdown(client, bearer_login, st
 
 
 @pytest.mark.django_db
+def test_read_detail_resource_omits_fields_the_admin_hides(client, bearer_login, staff_user):
+    # UserAdmin renders the password hash masked, so MCP must not leak it.
+    bearer_login(client, staff_user)
+
+    result = _read_resource(client, f"dj-admin://auth/user/{staff_user.pk}/")
+
+    for content in result["contents"]:
+        assert "password" not in content["text"]
+        assert staff_user.password not in content["text"]
+
+
+@pytest.mark.django_db
 def test_read_detail_resource_for_missing_pk_is_an_mcp_error(client, bearer_login, staff_user):
     bearer_login(client, staff_user)
 

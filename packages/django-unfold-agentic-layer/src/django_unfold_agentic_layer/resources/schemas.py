@@ -61,6 +61,60 @@ class EditableFieldInfo(BaseModel):
     related_resource_uri: str | None = None
 
 
+class ActionToolInfo(BaseModel):
+    """One admin action an agent can invoke as its own MCP tool.
+
+    ``scope`` says what the action runs on, which decides the tool's
+    leading parameter(s): ``bulk`` (Django's changelist ``actions``) takes
+    ``pks``; ``instance`` (Unfold ``actions_row``/``actions_detail``) takes
+    ``pk``; ``model`` (Unfold ``actions_list``) takes neither. ``fields`` are
+    the action's form — an Unfold dialog's ``form_class``, or for bulk
+    actions the ``ModelAdmin.action_form`` extras — as tool parameters.
+    """
+
+    tool_name: str
+    #: Django's action key (bulk) or the ModelAdmin method name (Unfold).
+    name: str
+    title: str
+    description: str
+    scope: Literal["bulk", "model", "instance"]
+    fields: list[EditableFieldInfo]
+    #: ``variant=ActionVariant.DANGER`` — the tool asks for confirmation first.
+    dangerous: bool
+
+
+class ActionMessage(BaseModel):
+    """A ``django.contrib.messages`` message the action added."""
+
+    level: str
+    message: str
+
+
+class ActionFile(BaseModel):
+    """A file the action responded with (e.g. an export). ``text`` is set for
+    textual types, ``content`` for binary ones; both stay ``None`` when the
+    file is over the inline size limit, leaving only its metadata."""
+
+    filename: str | None
+    content_type: str
+    size: int
+    text: str | None = None
+    content: bytes | None = None
+
+
+class ActionResult(BaseModel):
+    """What running an admin action produced, normalized from the
+    ``HttpResponse`` its handler returned (or ``None``)."""
+
+    success: bool
+    messages: list[ActionMessage] = []
+    errors: dict | None = None
+    redirect_url: str | None = None
+    #: The handler returned an HTML page (an intermediate step meant for a browser).
+    returned_page: bool = False
+    file: ActionFile | None = None
+
+
 class AdminModelResource(BaseModel):
     """One model registered in the admin, as exposed to an agent."""
 
@@ -71,6 +125,7 @@ class AdminModelResource(BaseModel):
     description: str | None
     each_model_actions: list[ActionInfo]
     app_level_actions: list[ActionInfo]
+    action_tools: list[ActionToolInfo]
     filter_fields: list[FilterFieldInfo]
     sortable_fields: list[str]
     list_per_page: int

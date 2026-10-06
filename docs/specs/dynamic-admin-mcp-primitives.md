@@ -61,7 +61,7 @@ Django (ModelAdmin, AdminSite, forms, ChangeList)
 class BuildAdminMCPInstance(BaseLogicAction):
     def execute(
         self,
-        request: HttpRequest,          # актор для permission-фильтрации
+        request: HttpRequest,  # актор для permission-фильтрации
         admin_site: AdminSite = default_admin_site,
     ) -> FastMCP: ...
 ```
@@ -153,8 +153,8 @@ def _build_resource_definition_for_model(mcp, model_resource: AdminModelResource
 ```python
 mcp.resource(
     uri="dj-admin://blog/blogpost/{pk}/",
-    name=...,          # verbose_name
-    description=...,   # докстринг класса ModelAdmin (через слой нормализации, не напрямую)
+    name=...,  # verbose_name
+    description=...,  # докстринг класса ModelAdmin (через слой нормализации, не напрямую)
     mime_type="application/json",
 )
 ```
@@ -215,9 +215,9 @@ created_at  → ['created_at__gte', 'created_at__lt']
 cl = model_admin.get_changelist_instance(request)
 filter_specs, has_filters, remaining, has_related, has_active = cl.get_filters(request)
 for spec in filter_specs:
-    spec.expected_parameters()   # → точные имена GET-параметров
-    spec.choices(cl)             # → допустимые значения + готовые query_string
-    spec.title                   # → человекочитаемое имя
+    spec.expected_parameters()  # → точные имена GET-параметров
+    spec.choices(cl)  # → допустимые значения + готовые query_string
+    spec.title  # → человекочитаемое имя
 ```
 
 `expected_parameters()` определён на базовом `ListFilter` и реализован **всеми** семействами
@@ -358,8 +358,8 @@ django_request = get_http_request().scope["django_unfold_agentic_layer.request"]
 ```python
 request = HttpRequest()
 request.method = "GET"
-request.user = user            # нужен get_actions() и has_*_permission()
-request.GET = QueryDict(query) # единственное, что читает сам ChangeList
+request.user = user  # нужен get_actions() и has_*_permission()
+request.GET = QueryDict(query)  # единственное, что читает сам ChangeList
 ```
 
 Этого достаточно: `get_changelist_instance()`, поиск (`q`), фильтры, сортировка и кастомные
@@ -409,7 +409,7 @@ created_at (auto_now_add) — в форме ОТСУТСТВУЕТ  ← readable
 ```python
 widget = field.widget
 if isinstance(widget, RelatedFieldWidgetWrapper):
-    widget = widget.widget      # → UnfoldAdminSelectWidget
+    widget = widget.widget  # → UnfoldAdminSelectWidget
 ```
 
 Без этого у всех FK виджет выглядит как `RelatedFieldWidgetWrapper`, и unfold-специфика теряется.
@@ -463,6 +463,7 @@ return ResourceResult(
 class GetModelJsonRepresentation(BaseLogicAction):
     def execute(self, instance, model_resource) -> ModelInstanceJson: ...
 
+
 class RenderModelInstanceMarkdown(BaseLogicAction):
     def execute(self, value: ModelInstanceJson) -> str: ...
 ```
@@ -515,19 +516,22 @@ server→client запрос (`elicitation/create`, `sampling/createMessage`) л
 ```python
 from mcp.types import ElicitRequest, ElicitRequestFormParams, InputRequiredResult
 
+
 @mcp.tool
 async def delete_blogpost(pk: int, ctx: Context) -> str | InputRequiredResult:
     responses = ctx.input_responses
     if responses is None:
         return InputRequiredResult(
             result_type="input_required",
-            input_requests={"confirm": ElicitRequest(
-                method="elicitation/create",
-                params=ElicitRequestFormParams(
-                    message=f"Delete {obj}? This cannot be undone.",
-                    requested_schema={...},
-                ),
-            )},
+            input_requests={
+                "confirm": ElicitRequest(
+                    method="elicitation/create",
+                    params=ElicitRequestFormParams(
+                        message=f"Delete {obj}? This cannot be undone.",
+                        requested_schema={...},
+                    ),
+                )
+            },
             request_state=f"pk={pk}",
         )
     ...
@@ -796,11 +800,59 @@ JSON-RPC.
 
 ---
 
+## 14. Экшены админки как тулы
+
+Каждый экшен, который пользователь видит в админке, — отдельный тул
+`run_{app_label}_{model_name}_{name}`. Его форма становится параметрами тула, а выполнение идёт тем же
+кодом Django/Unfold, что и в браузере. Нормализация — `ExtractActionTools` (→ `ActionToolInfo`),
+исполнение — `RunAdminAction` (→ `ActionResult`), регистрация — `BuildModelActionToolDefinition`.
+
+| Тип (Unfold 0.102) | Вызов | Параметры тула | `scope` |
+|---|---|---|---|
+| bulk `actions` (Django и Unfold `@action`) | `ModelAdmin.response_action()` по синтетическому POST | `pks` + поля `ModelAdmin.action_form` (без `action`/`select_across`) | `bulk` |
+| `actions_list` | `unfold_action.method(request)` | поля `dialog["form_class"]` | `model` |
+| `actions_row` / `actions_detail` | `unfold_action.method(request, object_id=pk)` | `pk` + поля `dialog["form_class"]` | `instance` |
+| dropdown-группы `{"title", "items"}` | разворачиваются геттерами Unfold | — | — |
+| `actions_submit_line` | внутри `save_model()` | **не поддерживается** | — |
+
+- **Права** — те же вызовы, что рендерят админку: `get_actions(request)`, `get_actions_list/row(request)`,
+  `get_actions_detail(request, None)`. При выполнении декоратор Unfold повторно проверяет
+  `permissions` (для instance — объектно, с `object_id`), а `response_action` — допустимые choices.
+- **Формы** валидируются в `RunAdminAction` до вызова: на невалидный ввод Django/Unfold отдают только
+  HTML, а тул возвращает `errors` в формате create/update. Поля dialog-формы берутся с *экземпляра*
+  (`form_class(request=…, object_id=None).fields`), поскольку такие формы часто достраиваются в
+  `__init__`. Скрытые поля (`_form_submitted`) и `disabled` пропускаются (`ExtractFormFields`, общий с
+  create/update).
+- **Результат** — `ToolResult`: `structured_content` = `{success, messages, errors?, redirect_url?,
+  returned_page, file?}` и тот же JSON текстом. Сообщения `django.contrib.messages` собираются во
+  временное хранилище в памяти и не пишутся в сессию/cookie ответа MCP. Файл (вложение или не-HTML
+  ответ) до 1 MB встраивается как `EmbeddedResource`: текстовые типы — текстом, остальные — blob.
+  Редирект `response_action` на собственный путь запроса (стандартное «вернуться в changelist») отбрасывается.
+- **Подтверждение** — только для `variant=ActionVariant.DANGER`, тем же `InputRequiredResult`-циклом,
+  что у delete (`builders/_shared.confirmation_request`/`is_confirmed`).
+- **Не отдаём `delete_selected`**: без `post=yes` он лишь рендерит страницу подтверждения, а удаление
+  уже покрывает `delete_*`.
+- Метод, указанный и в `actions_row`, и в `actions_detail`, — один тул.
+
+### 14.1 Submit-line — отложено
+
+`actions_submit_line` выполняются внутри `ModelAdmin.save_model()` Unfold, когда changeform сохраняют
+кнопкой экшена (`action_name in request.POST`), — отдельного вызова у них нет. Варианты на будущее:
+
+1. **Флаги в `update_*`** — опциональные `bool`-параметры, по одному на экшен; включённый флаг кладёт
+   `action_name` в синтетический `request.POST`, и `UpdateModelInstance` → `save_model()` запускает
+   экшен сам. Ближе всего к браузеру, без дублирования.
+2. **Отдельный тул** `run_…(pk, …поля формы)` — сохраняет объект через change-форму и запускает
+   экшен. Заметнее агенту, но дублирует update-тул.
+
+---
+
 ## Приложение: Field / Annotated
 
 ```python
 from typing import Annotated
 from pydantic import Field
+
 
 @mcp.tool
 def process_image(

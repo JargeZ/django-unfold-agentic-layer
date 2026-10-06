@@ -4,7 +4,9 @@ import inspect
 from typing import Annotated, Literal
 
 from django.http import HttpRequest
+from fastmcp import Context
 from fastmcp.server.dependencies import get_http_request
+from mcp.types import ElicitRequest, ElicitRequestFormParams, InputRequiredResult
 from pydantic import Field
 
 from django_unfold_agentic_layer.resources.schemas import EditableFieldInfo
@@ -75,3 +77,52 @@ def build_editable_field_parameter(field: EditableFieldInfo) -> inspect.Paramete
 def _choice_literal(field: EditableFieldInfo) -> type:
     values = [value for value, _label in (field.choices or []) if value]
     return Literal[tuple(values)] if values else str
+
+
+def confirmation_request(message: str, title: str, request_state: str) -> InputRequiredResult:
+    """Ask the client to confirm before a destructive tool runs.
+
+    Goes through the modern-protocol ``InputRequiredResult`` (SEP-2322), not
+    ``ctx.elicit()``: the latter suspends the tool call mid-flight waiting on
+    a server-initiated request the client answers over the *same*
+    connection, which stateless mode's single-shot POST has no channel for
+    (see bridge.py's session manager). ``InputRequiredResult`` instead
+    *returns* a description of the needed input and lets the client
+    re-invoke the tool with the answer. Pair with :func:`is_confirmed`.
+    """
+    return InputRequiredResult(
+        result_type="input_required",
+        input_requests={
+            "confirm": ElicitRequest(
+                method="elicitation/create",
+                params=ElicitRequestFormParams(
+                    message=message,
+                    requestedSchema={
+                        "type": "object",
+                        # A default lets form-rendering clients (Claude Code)
+                        # submit an untouched checkbox; without one they treat
+                        # the required field as unfilled and silently refuse
+                        # to submit on "accept".
+                        "properties": {
+                            "confirmed": {"type": "boolean", "title": title, "default": True}
+                        },
+                    },
+                ),
+            )
+        },
+        request_state=request_state,
+    )
+
+
+def is_confirmed(ctx: Context) -> bool | None:
+    """``None`` before :func:`confirmation_request` was answered, else whether
+    the user accepted. decline/cancel (or a missing answer) carry no
+    ``content``; an accept counts unless ``confirmed`` was explicitly unticked."""
+    if ctx.input_responses is None:
+        return None
+    confirm = ctx.input_responses.get("confirm")
+    return (
+        confirm is not None
+        and confirm.action == "accept"
+        and (confirm.content or {}).get("confirmed") is not False
+    )

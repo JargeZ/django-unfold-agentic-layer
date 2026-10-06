@@ -1,26 +1,43 @@
-from django.contrib import admin
+import csv
+
+from django.contrib import admin, messages
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from unfold.admin import ModelAdmin
 from unfold.contrib.filters.admin import AutocompleteSelectFilter
 from unfold.decorators import action
+from unfold.enums import ActionVariant
+from unfold.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationForm
 
+from .forms import AppendNoteDialogForm, BlogPostActionForm, DraftDialogForm, SetStatusDialogForm
 from .models import BlogPost
 
 admin.site.unregister(User)
 
 
 @admin.register(User)
-class UnfoldUserAdmin(ModelAdmin):
-    # Required for AutocompleteSelectFilter (used below on BlogPostAdmin) —
-    # it drives its AJAX widget through this admin's own search_results.
-    search_fields = ("username", "email")
+class UnfoldUserAdmin(BaseUserAdmin, ModelAdmin):
+    # https://unfoldadmin.com/docs/installation/auth/ — Django's own UserAdmin
+    # (fieldsets, masked password hash, add_form) on Unfold's forms. Its
+    # search_fields also drive AutocompleteSelectFilter on BlogPostAdmin below.
+    form = UserChangeForm
+    add_form = UserCreationForm
+    change_password_form = AdminPasswordChangeForm
 
 
 @admin.action(description="Publish selected blog posts")
 def publish_posts(model_admin, request, queryset):
-    pass
+    count = queryset.update(status=BlogPost.Status.PUBLISHED)
+    model_admin.message_user(request, f"Published {count} post(s).", messages.SUCCESS)
+
+
+@admin.action(description="Assign editor to selected posts")
+def assign_editor(model_admin, request, queryset):
+    # Reads BlogPostActionForm's extra field, the classic Django way.
+    queryset.update(editor_id=request.POST.get("editor") or None)
+    model_admin.message_user(request, f"Updated {queryset.count()} post(s).")
 
 
 class HasEditorFilter(admin.SimpleListFilter):
@@ -54,27 +71,91 @@ class BlogPostAdmin(ModelAdmin):
         "created_at",
     )
     search_fields = ("title", "body")
-    actions = (publish_posts,)
-
-    # Unfold's own action placements — one of each supported kind, per
-    # https://unfoldadmin.com/docs/actions/changelist/
-    actions_list = ("export_all_posts",)
-    actions_row = ("feature_post",)
-    actions_detail = ("archive_post",)
+    # Every action kind Unfold supports — https://unfoldadmin.com/docs/actions/
+    # Bulk (changelist select box): plain Django actions, one reading the
+    # extra action_form field, and an Unfold @action with a variant.
+    action_form = BlogPostActionForm
+    actions = (publish_posts, assign_editor, "archive_selected")
+    # Changelist top, incl. a dropdown group.
+    actions_list = ("export_all_posts", {"title": "More", "items": ("create_draft",)})
+    # Each changelist row; feature_post is also a detail action (one tool).
+    actions_row = ("feature_post", "set_status")
+    # Changeform top, incl. a dropdown group.
+    actions_detail = (
+        "feature_post",
+        "publish_post",
+        {"title": "More", "items": ("append_note",)},
+    )
+    # Runs while saving the changeform — not exposed over MCP yet.
     actions_submit_line = ("notify_author_on_save",)
 
-    @action(description="Export all posts")
+    @action(
+        description="Archive selected posts",
+        permissions=["change"],
+        variant=ActionVariant.DANGER,
+        icon="archive",
+    )
+    def archive_selected(self, request, queryset):
+        count = queryset.update(status=BlogPost.Status.ARCHIVED)
+        self.message_user(request, f"Archived {count} post(s).", messages.WARNING)
+
+    @action(description="Export all posts", icon="download")
     def export_all_posts(self, request):
-        return HttpResponseRedirect(reverse("admin:blog_blogpost_changelist"))
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="posts.csv"'
+        writer = csv.writer(response)
+        writer.writerow(["id", "title", "status"])
+        for post in self.get_queryset(request).order_by("pk"):
+            writer.writerow([post.pk, post.title, post.status])
+        return response
 
-    @action(description="Feature this post")
+    @action(
+        description="Create draft",
+        icon="add",
+        dialog={
+            "title": "New draft",
+            "description": "Creates an empty draft authored by you.",
+            "form_class": DraftDialogForm,
+        },
+    )
+    def create_draft(self, request, form):
+        post = BlogPost.objects.create(title=form.cleaned_data["title"], author=request.user)
+        self.message_user(request, f"Created draft {post.title!r}.", messages.SUCCESS)
+        return HttpResponseRedirect(reverse("admin:blog_blogpost_change", args=[post.pk]))
+
+    @action(description="Feature this post", icon="star")
     def feature_post(self, request, object_id):
+        BlogPost.objects.filter(pk=object_id).update(is_featured=True)
+        self.message_user(request, "Post featured.", messages.SUCCESS)
         return HttpResponseRedirect(reverse("admin:blog_blogpost_changelist"))
 
-    @action(description="Archive this post")
-    def archive_post(self, request, object_id):
+    @action(
+        description="Set status",
+        dialog={"title": "Change status", "form_class": SetStatusDialogForm},
+    )
+    def set_status(self, request, form, object_id):
+        BlogPost.objects.filter(pk=object_id).update(status=form.cleaned_data["status"])
+        return HttpResponseRedirect(reverse("admin:blog_blogpost_changelist"))
+
+    @action(description="Publish this post", permissions=["publish"], variant=ActionVariant.PRIMARY)
+    def publish_post(self, request, object_id):
+        BlogPost.objects.filter(pk=object_id).update(status=BlogPost.Status.PUBLISHED)
         return HttpResponseRedirect(reverse("admin:blog_blogpost_change", args=[object_id]))
 
-    @action(description="Notify author on save")
+    def has_publish_permission(self, request, obj=None):
+        # Custom permission method — only superusers may publish directly.
+        return request.user.is_superuser
+
+    @action(
+        description="Append note",
+        dialog={"title": "Append note", "form_class": AppendNoteDialogForm},
+    )
+    def append_note(self, request, form, object_id):
+        post = BlogPost.objects.get(pk=object_id)
+        post.body = f"{post.body}\n\n{form.cleaned_data['note']}".strip()
+        post.save(update_fields=["body"])
+        return HttpResponseRedirect(reverse("admin:blog_blogpost_change", args=[object_id]))
+
+    @action(description="Save and notify author", icon="send")
     def notify_author_on_save(self, request, obj):
-        pass
+        self.message_user(request, f"Author {obj.author} notified.")

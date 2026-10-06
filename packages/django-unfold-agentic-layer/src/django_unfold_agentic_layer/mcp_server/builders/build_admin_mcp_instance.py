@@ -5,10 +5,15 @@ from django.contrib.admin import AdminSite
 from django.contrib.admin import site as default_admin_site
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.http import HttpRequest, QueryDict
+from django.utils.crypto import salted_hmac
 from fastmcp import FastMCP
+from mcp.server.request_state import RequestStateSecurity
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
 from django_unfold_agentic_layer.apps import DjangoUnfoldAgenticLayerConfig
+from django_unfold_agentic_layer.mcp_server.builders.build_model_action_tool_definition import (
+    BuildModelActionToolDefinition,
+)
 from django_unfold_agentic_layer.mcp_server.builders.build_model_create_tool_definition import (
     BuildModelCreateToolDefinition,
 )
@@ -71,7 +76,15 @@ def _build_admin_mcp_instance(user: AbstractBaseUser, admin_site: AdminSite) -> 
     """
     request = _build_schema_request(user)
 
-    admin_mcp = FastMCP("django_unfold_agentic_layer")
+    # Seal multi-round-trip ``requestState`` (delete confirmation) under a key
+    # derived from SECRET_KEY, not fastmcp's per-instance ephemeral default:
+    # that one rotates on every runserver reload / differs per worker, so the
+    # confirmation round fails with "Invalid or expired requestState".
+    request_state_key = salted_hmac("django_unfold_agentic_layer.request_state", "").hexdigest()
+    admin_mcp = FastMCP(
+        "django_unfold_agentic_layer",
+        request_state_security=RequestStateSecurity(keys=[request_state_key]),
+    )
     admin_mcp.mount(docs_mcp)
 
     build_model_resource = BuildAdminModelResource()
@@ -80,6 +93,7 @@ def _build_admin_mcp_instance(user: AbstractBaseUser, admin_site: AdminSite) -> 
     build_create_tool = BuildModelCreateToolDefinition()
     build_update_tool = BuildModelUpdateToolDefinition()
     build_delete_tool = BuildModelDeleteToolDefinition()
+    build_action_tool = BuildModelActionToolDefinition()
 
     for app in admin_site.get_app_list(request):
         # Our own OAuth clients/tokens: an agent must never be able to read
@@ -101,6 +115,8 @@ def _build_admin_mcp_instance(user: AbstractBaseUser, admin_site: AdminSite) -> 
             build_create_tool.execute(admin_mcp, model_admin, model_resource)
             build_update_tool.execute(admin_mcp, model_admin, model_resource)
             build_delete_tool.execute(admin_mcp, model_admin, model_resource)
+            for action in model_resource.action_tools:
+                build_action_tool.execute(admin_mcp, model_admin, action, model_resource)
 
     return admin_mcp
 

@@ -9,7 +9,7 @@ import secrets
 from datetime import timedelta
 
 import pytest
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Permission, User
 from django.utils import timezone
 from django_unfold_agentic_layer.models import OAuthClient, OAuthToken
 
@@ -57,6 +57,15 @@ def staff_user_without_permissions(db) -> User:
         password="s3cret",  # noqa: S106
         is_staff=True,
     )
+
+
+@pytest.fixture
+def blog_editor(db) -> User:
+    """Staff with every ``blog`` model permission but not a superuser — sees
+    all permission-gated admin actions except superuser-only ones."""
+    user = User.objects.create_user(username="blog-editor", password="s3cret", is_staff=True)  # noqa: S106
+    user.user_permissions.set(Permission.objects.filter(content_type__app_label="blog"))
+    return user
 
 
 @pytest.fixture

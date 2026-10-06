@@ -1,0 +1,200 @@
+<div align="center">
+
+# 🔮 django-unfold-agentic-layer
+
+**Превращает вашу админку Django Unfold в MCP-сервер — AI-агенты получают документацию и живую админку с вашими правами**
+
+[![PyPI](https://img.shields.io/pypi/v/django-unfold-agentic-layer?style=flat-square)](https://pypi.org/project/django-unfold-agentic-layer/)
+[![Python](https://img.shields.io/pypi/pyversions/django-unfold-agentic-layer?style=flat-square)](https://pypi.org/project/django-unfold-agentic-layer/)
+[![Last commit](https://img.shields.io/github/last-commit/JargeZ/django-unfold-agentic-layer?style=flat-square)](https://github.com/JargeZ/django-unfold-agentic-layer/commits/main)
+[![Stars](https://img.shields.io/github/stars/JargeZ/django-unfold-agentic-layer?style=flat-square)](https://github.com/JargeZ/django-unfold-agentic-layer/stargazers)
+[![Issues](https://img.shields.io/github/issues/JargeZ/django-unfold-agentic-layer?style=flat-square)](https://github.com/JargeZ/django-unfold-agentic-layer/issues)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](https://github.com/JargeZ/django-unfold-agentic-layer/pulls)
+<br>
+[![Django](https://img.shields.io/badge/Django-5.0+-092E20?style=flat-square&logo=django&logoColor=white)](https://www.djangoproject.com/)
+[![Unfold](https://img.shields.io/badge/Unfold-0.91+-6366f1?style=flat-square)](https://unfoldadmin.com)
+[![MCP](https://img.shields.io/badge/MCP-Streamable_HTTP-4f46e5?style=flat-square)](https://modelcontextprotocol.io)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-ready-D97757?style=flat-square&logo=anthropic&logoColor=white)](https://code.claude.com)
+
+[English](README.md) · **Русский**
+
+</div>
+
+---
+
+> [!WARNING]
+> **Проект в активной разработке.** API и поведение могут меняться. Тестирование и обратная связь очень приветствуются — если что-то сломалось, [заведите issue](https://github.com/JargeZ/django-unfold-agentic-layer/issues)!
+
+## ✨ Что это
+
+Обычное Django-приложение. Добавляете в `INSTALLED_APPS`, подключаете `urls.py` — и ваш проект отдаёт
+MCP-эндпоинт `/mcp`. Без отдельного процесса, работает и под WSGI, и под ASGI.
+
+- 📚 **Документация Unfold для агентов** — 25 инструментов с официальной документацией Django Unfold, агенты перестают выдумывать настройки и импорты
+- 🗂️ **Ваша админка вживую** — каждая зарегистрированная модель как MCP-ресурсы (объект + список с вашими `list_filter`/поиском) и инструменты `create`/`update`/`delete`
+- 🛡️ **Права из админки** — агент видит и делает ровно то, что может его пользователь в админке; валидация идёт через форму модели
+- 🔐 **Стандартный MCP OAuth** — клиенты логинятся через ваш вход в админку + страницу подтверждения, только активные staff-пользователи
+
+## 🚀 Установка
+
+**Требования:** Python 3.11+, Django 5.0+, `django-unfold` 0.91+.
+
+**1. Установите пакет** из git:
+
+```bash
+# uv
+uv add "django-unfold-agentic-layer @ git+https://github.com/JargeZ/django-unfold-agentic-layer.git#subdirectory=packages/django-unfold-agentic-layer"
+
+# poetry
+poetry add "git+https://github.com/JargeZ/django-unfold-agentic-layer.git#subdirectory=packages/django-unfold-agentic-layer"
+```
+
+Зафиксировать ветку, тег или коммит: `.git@<ref>#subdirectory=…`.
+
+**2. Добавьте в `settings.py`:**
+
+```python
+INSTALLED_APPS = [
+    "unfold",  # до django.contrib.admin
+    "django.contrib.admin",
+    "django.contrib.auth",  # обязательно: /mcp аутентифицирует staff-пользователей
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",  # обязательно: вход в админку в OAuth-флоу
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "django_unfold_agentic_layer",  # именно эта строка
+    # ваши приложения
+]
+```
+
+В `MIDDLEWARE` должны быть `SessionMiddleware` и `AuthenticationMiddleware` (в любом проекте с админкой они уже есть).
+
+**3. Подключите URL** в корневом `urls.py` проекта:
+
+```python
+from django.contrib import admin
+from django.urls import include, path
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("", include("django_unfold_agentic_layer.urls")),  # → /mcp, /mcp/o/…
+]
+```
+
+> [!NOTE]
+> Все маршруты приложения живут под `mcp/` и не пересекаются с вашими (например, django-oauth-toolkit на `/o/`).
+> Нужен префикс? `path("agent/", include(...))` даст `/agent/mcp`.
+
+**4. Примените миграции** (OAuth-клиенты и хэши токенов хранятся в собственных таблицах приложения):
+
+```bash
+python manage.py migrate
+```
+
+## 🔌 Подключение клиентов
+
+Клиенты логинятся сами через стандартный MCP OAuth: в браузере открывается вход в вашу админку, затем страница подтверждения.
+
+**Claude Code**
+
+```bash
+claude mcp add --transport http unfold https://your-project.example/mcp
+# затем в Claude Code: /mcp → unfold → Authenticate
+```
+
+**Cursor** — `.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "unfold": { "url": "https://your-project.example/mcp" }
+  }
+}
+```
+
+**MCP Inspector** — для отладки:
+
+```bash
+npx @modelcontextprotocol/inspector
+# Transport: Streamable HTTP, URL: http://localhost:8000/mcp
+```
+
+> [!TIP]
+> Локальная разработка без OAuth — работает только при `DEBUG = True`:
+>
+> ```python
+> UNFOLD_AGENTIC_LAYER_UNAUTHORIZED = True
+> ```
+>
+> Запросы без токена выполняются от первого активного суперпользователя; фильтрация по правам при этом сохраняется.
+
+> [!IMPORTANT]
+> Issuer должен быть `https` (или `localhost`). За прокси настройте `SECURE_PROXY_SSL_HEADER` /
+> `USE_X_FORWARDED_HOST`, чтобы Django строил правильные абсолютные URL.
+
+## 🧰 Что получает агент
+
+| Примитив | Пример | Что делает |
+|---|---|---|
+| 📚 Инструменты документации | `unfold_filters`, `unfold_search_docs` | Документация Django Unfold, включая все сторонние интеграции |
+| 📄 Ресурс объекта | `dj-admin://blog/blogpost/42/` | Поля объекта в JSON + Markdown; FK/M2M — ссылками |
+| 📋 Ресурс списка | `dj-admin://blog/blogpost/{?params}` | Ваши параметры `list_filter`/поиска, `limit`/`offset`/`order_by` |
+| ✏️ Инструменты | `create_blog_blogpost`, `update_blog_blogpost` | Через форму админки; ошибки возвращаются по полям |
+| 🗑️ Инструмент | `delete_blog_blogpost` | Запрашивает подтверждение перед удалением |
+
+Всё фильтруется на каждый запрос через `has_*_permission` — агент никогда не видит того, чего его пользователь не может сделать в админке.
+
+## 🔐 Доступ и сессии
+
+- Войти могут только активные **staff**-пользователи; `is_active`/`is_staff` перепроверяется на каждом запросе — снятие staff сразу отзывает токены.
+- Сессионная cookie Django **не** аутентифицирует `/mcp` — только `Bearer`-токен.
+- Логин живёт `SESSION_TTL` (по умолчанию 1 день), refresh-токенов нет.
+- Клиенты и токены видны в админке — удаление = отзыв.
+
+## ⚙️ Настройки
+
+Все необязательные — словарь `UNFOLD_AGENTIC_LAYER`, тот же паттерн переопределения, что у `UNFOLD` в самом Unfold:
+
+```python
+from datetime import timedelta
+
+UNFOLD_AGENTIC_LAYER = {
+    "SESSION_TTL": timedelta(hours=8),  # время жизни MCP-логина, по умолчанию 1 день
+}
+```
+
+Полный список — в [`conf.py`](packages/django-unfold-agentic-layer/src/django_unfold_agentic_layer/conf.py).
+
+## 🗺️ Планы
+
+- [ ] Admin actions (`@action`) как MCP-инструменты
+- [ ] Stateful-режим / SSE для уведомлений от сервера
+- [ ] Настройка `allowed_hosts`/`allowed_origins` через settings
+- [ ] Кастомный рендеринг полей
+
+Подробнее — в [CLAUDE.md](CLAUDE.md) и [docs/specs](docs/specs/dynamic-admin-mcp-primitives.md).
+
+## 🛠️ Разработка
+
+Репозиторий — [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/), пакет лежит в `packages/django-unfold-agentic-layer/`.
+
+```bash
+uv sync
+cd packages/django-unfold-agentic-layer
+uv run pytest
+```
+
+Тесты поднимают одноразовый Django-проект (`django_test_app/`) и гоняют реальные MCP-запросы через `/mcp`.
+Архитектура и соглашения — в [CLAUDE.md](CLAUDE.md).
+
+## 🤝 Участие
+
+Issues и pull requests приветствуются!
+
+## 🙏 Благодарности
+
+Вдохновлено проектом [rissets/mcp-django-unfold](https://github.com/rissets/mcp-django-unfold) — именно он подал идею сделать полноценный слой совместимости MCP для Django Unfold. Скиллы по работе с Unfold взяты из оригинального репозитория, вся остальная реализация полностью новая.
+
+## 📄 Лицензия
+
+[MIT](LICENSE)

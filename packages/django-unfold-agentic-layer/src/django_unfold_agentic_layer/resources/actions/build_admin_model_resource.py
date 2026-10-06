@@ -4,6 +4,7 @@ from django.contrib.admin import ModelAdmin
 from django.http import HttpRequest
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
+from django_unfold_agentic_layer.resources.actions.extract_action_tools import ExtractActionTools
 from django_unfold_agentic_layer.resources.actions.extract_app_level_actions import (
     ExtractAppLevelActions,
 )
@@ -51,6 +52,7 @@ class BuildAdminModelResource(BaseLogicAction):
             description=inspect.getdoc(type(model_admin)),
             each_model_actions=ExtractEachModelActions().execute(model_admin, request),
             app_level_actions=ExtractAppLevelActions().execute(model_admin, request),
+            action_tools=ExtractActionTools().execute(model_admin, request),
             filter_fields=filter_fields,
             sortable_fields=ExtractSortableFields().execute(model_admin, request),
             list_per_page=model_admin.list_per_page,
