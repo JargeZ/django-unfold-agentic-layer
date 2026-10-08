@@ -40,3 +40,15 @@ class BlogPost(models.Model):
 
     def __str__(self) -> str:
         return self.title
+
+
+class Comment(models.Model):
+    """Not in the admin: only here so deleting a post can hit ``PROTECT``,
+    with a ``__str__`` that follows the FK — formatting it from async
+    context trips ``SynchronousOnlyOperation``."""
+
+    post = models.ForeignKey(BlogPost, on_delete=models.PROTECT, related_name="comments")
+    text = models.TextField()
+
+    def __str__(self) -> str:
+        return f"{self.post.title}: {self.text}"

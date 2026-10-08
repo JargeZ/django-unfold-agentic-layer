@@ -3,7 +3,6 @@ import inspect
 import json
 from typing import Annotated, Any
 
-from asgiref.sync import sync_to_async
 from django.contrib.admin import ModelAdmin
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
@@ -23,6 +22,7 @@ from django_unfold_agentic_layer.mcp_server.builders._shared import (
     confirmation_request,
     get_django_request,
     is_confirmed,
+    run_in_django,
 )
 from django_unfold_agentic_layer.resources.actions.run_admin_action import RunAdminAction
 from django_unfold_agentic_layer.resources.schemas import (
@@ -105,7 +105,7 @@ class BuildModelActionToolDefinition(BaseLogicAction):
             return _tool_result(result)
 
         async def run(*, ctx: Context, **kwargs: Any) -> ToolResult | InputRequiredResult:
-            return await sync_to_async(run_body, thread_sensitive=True)(ctx, kwargs)
+            return await run_in_django(action.tool_name, run_body, ctx, kwargs)
 
         run.__name__ = action.tool_name
         run.__doc__ = action.description

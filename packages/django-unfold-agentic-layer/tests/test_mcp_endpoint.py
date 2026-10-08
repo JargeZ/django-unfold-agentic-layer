@@ -41,10 +41,14 @@ def test_tools_list_returns_all_docs_tools_for_staff_user(client, bearer_login, 
 
 
 @pytest.mark.django_db
-def test_anonymous_request_is_rejected_before_reaching_mcp(client):
+def test_anonymous_request_is_rejected_before_reaching_mcp(client, caplog):
     response = _rpc(client, {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}})
 
     assert response.status_code == 401
+    # Every rejected call leaves a trace: clients only show "Error POSTing".
+    assert [r.getMessage() for r in caplog.records if r.name.endswith("views.mcp")] == [
+        'MCP tools/list -> 401: {"error": "authentication required"}'
+    ]
 
 
 @pytest.mark.django_db

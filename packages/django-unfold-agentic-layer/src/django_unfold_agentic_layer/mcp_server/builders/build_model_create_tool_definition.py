@@ -1,7 +1,6 @@
 import inspect
 from typing import Any
 
-from asgiref.sync import sync_to_async
 from django.contrib.admin import ModelAdmin
 from fastmcp import FastMCP
 
@@ -9,6 +8,7 @@ from django_unfold_agentic_layer.actions.base import BaseLogicAction
 from django_unfold_agentic_layer.mcp_server.builders._shared import (
     build_editable_field_parameter,
     get_django_request,
+    run_in_django,
 )
 from django_unfold_agentic_layer.resources.actions.create_model_instance import CreateModelInstance
 from django_unfold_agentic_layer.resources.schemas import AdminModelResource
@@ -49,7 +49,7 @@ class BuildModelCreateToolDefinition(BaseLogicAction):
             }
 
         async def run(**kwargs: Any) -> dict[str, Any]:
-            return await sync_to_async(run_body, thread_sensitive=True)(kwargs)
+            return await run_in_django(run.__name__, run_body, kwargs)
 
         run.__name__ = f"create_{model_resource.app_label}_{model_resource.model_name}"
         run.__doc__ = f"Create a new {model_resource.verbose_name}."

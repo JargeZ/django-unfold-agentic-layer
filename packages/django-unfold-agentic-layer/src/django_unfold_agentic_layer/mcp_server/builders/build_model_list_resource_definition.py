@@ -1,15 +1,18 @@
 import inspect
 from typing import Annotated, Any, Literal
 
-from asgiref.sync import sync_to_async
 from django.contrib.admin import ModelAdmin
 from django.core.exceptions import PermissionDenied
 from fastmcp import FastMCP
+from fastmcp.exceptions import ResourceError
 from fastmcp.resources import ResourceResult
 from pydantic import Field
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
-from django_unfold_agentic_layer.mcp_server.builders._shared import get_django_request
+from django_unfold_agentic_layer.mcp_server.builders._shared import (
+    get_django_request,
+    run_in_django,
+)
 from django_unfold_agentic_layer.resources.actions.apply_mcp_filters_to_request import (
     ApplyMCPFiltersToRequest,
 )
@@ -49,7 +52,7 @@ class BuildModelListResourceDefinition(BaseLogicAction):
             *self._order_by_parameter(model_resource.sortable_fields),
         ]
 
-        def run(**kwargs: Any) -> ResourceResult:
+        def run(kwargs: dict[str, Any]) -> ResourceResult:
             request = get_django_request()
             # The admin's changelist_view check — the cached server only
             # proves the user could view this model when it was built.
@@ -73,7 +76,7 @@ class BuildModelListResourceDefinition(BaseLogicAction):
         # the Django-touching body must be explicitly moved to a worker
         # thread via sync_to_async rather than relying on fastmcp to do it.
         async def handler(**kwargs: Any) -> ResourceResult:
-            return await sync_to_async(run, thread_sensitive=True)(**kwargs)
+            return await run_in_django(base_uri, run, kwargs, error=ResourceError)
 
         handler.__name__ = f"list_{model_resource.app_label}_{model_resource.model_name}"
         handler.__signature__ = inspect.Signature(parameters)

@@ -16,7 +16,7 @@ import pytest
 from django_unfold_agentic_layer.mcp_server.builders.build_admin_mcp_instance import (
     _build_admin_mcp_instance,
 )
-from server.apps.blog.models import BlogPost
+from server.apps.blog.models import BlogPost, Comment
 
 MCP_URL = "/mcp/"
 PROTOCOL_VERSION = "2026-07-28"
@@ -166,6 +166,34 @@ def test_delete_tool_requires_confirmation_then_deletes(client, bearer_login, st
     )
     assert second["content"][0]["text"] == f"Deleted blog post (pk={post.pk})."
     assert not BlogPost.objects.filter(pk=post.pk).exists()
+
+
+@pytest.mark.django_db
+def test_delete_tool_reports_protected_references(client, bearer_login, staff_user):
+    # Comment.__str__ follows its FK: formatting the ProtectedError outside
+    # sync context used to trip SynchronousOnlyOperation -> bare 500.
+    post = BlogPost.objects.create(title="Referenced", author=staff_user)
+    comment = Comment.objects.create(post=post, text="hi")
+    bearer_login(client, staff_user)
+    call = {"name": "delete_blog_blogpost", "arguments": {"pk": str(post.pk)}}
+
+    first = _modern_rpc(client, "tools/call", call)
+    second = _modern_rpc(
+        client,
+        "tools/call",
+        {
+            **call,
+            "inputResponses": {"confirm": {"action": "accept", "content": {"confirmed": True}}},
+            "requestState": first["requestState"],
+        },
+    )
+
+    assert second["isError"] is True
+    assert second["content"][0]["text"] == (
+        f"Cannot delete blog post Referenced (pk={post.pk}): still referenced by "
+        f"comment Referenced: hi (pk={comment.pk}). Delete or reassign those first."
+    )
+    assert BlogPost.objects.filter(pk=post.pk).exists()
 
 
 @pytest.mark.django_db

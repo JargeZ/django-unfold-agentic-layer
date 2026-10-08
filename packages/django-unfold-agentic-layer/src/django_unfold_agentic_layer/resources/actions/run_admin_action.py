@@ -5,6 +5,7 @@ from django.contrib.admin import ModelAdmin, helpers
 from django.contrib.messages.storage.base import BaseStorage
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.http import HttpRequest, HttpResponse, QueryDict
+from django.urls import NoReverseMatch, reverse
 from django.utils.datastructures import MultiValueDict
 from django.utils.http import parse_header_parameters
 from unfold.forms import BaseDialogForm
@@ -76,6 +77,9 @@ class RunAdminAction(BaseLogicAction):
         action_request.POST = post
         action_request._files = MultiValueDict()  # FILES is a read-only property over this
         action_request._messages = messages = _CollectedMessages(action_request)
+        referer = self._referer(model_admin, request, pk)
+        action_request.META = {**request.META, "HTTP_REFERER": referer}
+        action_request.__dict__.pop("headers", None)  # cached_property over META
 
         if action.scope == "bulk":
             post.update({"action": action.name, "index": "0"})
@@ -147,6 +151,21 @@ class RunAdminAction(BaseLogicAction):
         if response is not None and response.get("Location") == action_request.get_full_path():
             response = None
         return self._result(response, messages)
+
+    def _referer(self, model_admin: ModelAdmin, request: HttpRequest, pk: str | None) -> str:
+        """The page a browser would run this action from — admin code often
+        does ``redirect(request.headers["referer"])``. The change page for an
+        instance action, the changelist otherwise."""
+        opts = model_admin.opts
+        view = "change" if pk is not None else "changelist"
+        try:
+            url = reverse(
+                f"{model_admin.admin_site.name}:{opts.app_label}_{opts.model_name}_{view}",
+                args=[pk] if pk is not None else [],
+            )
+        except NoReverseMatch:
+            url = reverse(f"{model_admin.admin_site.name}:index")
+        return request.build_absolute_uri(url)
 
     def _is_valid_pk(self, model_admin: ModelAdmin, pk: str) -> bool:
         # Without this a malformed pk reaches the ORM's pk__in lookup and

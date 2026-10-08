@@ -78,7 +78,8 @@ def test_feature_post_is_idempotent(logged_in, post):
         assert result == {
             "success": True,
             "messages": [{"level": "success", "message": "Post featured."}],
-            "redirect_url": "/admin/blog/blogpost/",
+            # feature_post redirects to request.headers["referer"]: the change page.
+            "redirect_url": f"http://testserver/admin/blog/blogpost/{post.pk}/change/",
             "returned_page": False,
         }
     post.refresh_from_db()
@@ -480,3 +481,5 @@ def test_non_model_admin_exposes_only_its_list_actions(client, bearer_login, sta
 
     result = _call_tool(client, "run_blog_sitesettings_clear_cache", {})
     assert result["messages"] == [{"level": "success", "message": "Cache cleared."}]
+    # clear_cache redirects to request.headers["referer"]: the changelist.
+    assert result["redirect_url"] == "http://testserver/admin/blog/sitesettings/"

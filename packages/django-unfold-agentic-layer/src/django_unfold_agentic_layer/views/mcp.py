@@ -1,3 +1,5 @@
+import json
+import logging
 from typing import Any
 
 from django.conf import settings
@@ -11,6 +13,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django_unfold_agentic_layer import oauth
 from django_unfold_agentic_layer.mcp_server import bridge
 from django_unfold_agentic_layer.views import login_not_required
+
+logger = logging.getLogger(__name__)
 
 
 # MCP clients send a Bearer token, never a session cookie: a host's
@@ -29,6 +33,22 @@ class MCPView(View):
     """
 
     def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        response = self._post(request)
+        if response.status_code >= 400:
+            # An MCP client shows an empty body as a bare "Error POSTing to
+            # endpoint", so always say why — and leave a trace server-side.
+            if not response.content:
+                response.content = json.dumps({"error": response.reason_phrase})
+                response["Content-Type"] = "application/json"
+            logger.warning(
+                "MCP %s -> %s: %s",
+                _rpc_method(request),
+                response.status_code,
+                response.content[:500].decode(errors="replace"),
+            )
+        return response
+
+    def _post(self, request: HttpRequest) -> HttpResponse:
         user = oauth.authenticate_bearer(request)
         # Dev-only escape hatch: with UNFOLD_AGENTIC_LAYER_UNAUTHORIZED = True
         # (and DEBUG), a request without a token acts as the first active
@@ -68,3 +88,13 @@ class MCPView(View):
 
     def delete(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseNotAllowed:
         return HttpResponseNotAllowed(["POST"])
+
+
+def _rpc_method(request: HttpRequest) -> str:
+    try:
+        payload = json.loads(request.body)
+    except ValueError:
+        return "<invalid JSON>"
+    if isinstance(payload, list):
+        return ",".join(str(m.get("method")) for m in payload if isinstance(m, dict))
+    return str(payload.get("method")) if isinstance(payload, dict) else "<unknown>"

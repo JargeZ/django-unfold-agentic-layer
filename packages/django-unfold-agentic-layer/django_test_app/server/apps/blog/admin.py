@@ -4,6 +4,7 @@ from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 from django.http import HttpResponse, HttpResponseRedirect
+from django.shortcuts import redirect
 from django.urls import path, reverse
 from unfold.admin import ModelAdmin
 from unfold.contrib.filters.admin import AutocompleteSelectFilter
@@ -128,7 +129,8 @@ class BlogPostAdmin(ModelAdmin):
     def feature_post(self, request, object_id):
         BlogPost.objects.filter(pk=object_id).update(is_featured=True)
         self.message_user(request, "Post featured.", messages.SUCCESS)
-        return HttpResponseRedirect(reverse("admin:blog_blogpost_changelist"))
+        # Like Unfold's docs: assumes a browser, which always sends a Referer.
+        return redirect(request.headers["referer"])
 
     @action(
         description="Set status",
@@ -207,4 +209,4 @@ class SiteSettingsAdmin(ModelAdmin):
     @action(description="Clear cache")
     def clear_cache(self, request):
         self.message_user(request, "Cache cleared.", messages.SUCCESS)
-        return HttpResponseRedirect(reverse("admin:index"))
+        return redirect(request.headers["referer"])

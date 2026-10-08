@@ -1,10 +1,13 @@
-from asgiref.sync import sync_to_async
 from django.contrib.admin import ModelAdmin
 from fastmcp import FastMCP
+from fastmcp.exceptions import ResourceError
 from fastmcp.resources import ResourceResult
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
-from django_unfold_agentic_layer.mcp_server.builders._shared import get_django_request
+from django_unfold_agentic_layer.mcp_server.builders._shared import (
+    get_django_request,
+    run_in_django,
+)
 from django_unfold_agentic_layer.resources.actions.build_list_resource_result import (
     BuildListResourceResult,
 )
@@ -40,7 +43,7 @@ class BuildModelDetailResourceDefinition(BaseLogicAction):
         # `async def` + explicit sync_to_async is what actually moves the
         # Django-touching body onto a worker thread.
         async def handler(pk: str) -> ResourceResult:
-            return await sync_to_async(run, thread_sensitive=True)(pk)
+            return await run_in_django(uri_template, run, pk, error=ResourceError)
 
         handler.__name__ = f"get_{model_resource.app_label}_{model_resource.model_name}"
 

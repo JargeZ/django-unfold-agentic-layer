@@ -1,6 +1,9 @@
-from asgiref.sync import sync_to_async
+from itertools import islice
+
 from django.contrib.admin import ModelAdmin
+from django.db.models import ProtectedError, RestrictedError
 from fastmcp import Context, FastMCP
+from fastmcp.exceptions import ToolError
 from mcp.types import InputRequiredResult
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
@@ -9,6 +12,7 @@ from django_unfold_agentic_layer.mcp_server.builders._shared import (
     confirmation_request,
     get_django_request,
     is_confirmed,
+    run_in_django,
 )
 from django_unfold_agentic_layer.resources.actions.delete_model_instance import DeleteModelInstance
 from django_unfold_agentic_layer.resources.actions.get_admin_model_instance import (
@@ -54,11 +58,21 @@ class BuildModelDeleteToolDefinition(BaseLogicAction):
             if not confirmed:
                 return "Deletion cancelled."
 
-            DeleteModelInstance().execute(model_admin, request, instance)
+            try:
+                DeleteModelInstance().execute(model_admin, request, instance)
+            except (ProtectedError, RestrictedError) as e:
+                blockers = getattr(e, "protected_objects", None) or e.restricted_objects
+                listed = ", ".join(
+                    f"{obj._meta.verbose_name} {obj} (pk={obj.pk})" for obj in islice(blockers, 10)
+                )
+                raise ToolError(
+                    f"Cannot delete {model_resource.verbose_name} {instance} (pk={pk}): "
+                    f"still referenced by {listed}. Delete or reassign those first."
+                ) from None
             return f"Deleted {model_resource.verbose_name} (pk={pk})."
 
         async def run(pk: PK, ctx: Context) -> str | InputRequiredResult:
-            return await sync_to_async(run_body, thread_sensitive=True)(pk, ctx)
+            return await run_in_django(run.__name__, run_body, pk, ctx)
 
         run.__name__ = f"delete_{model_resource.app_label}_{model_resource.model_name}"
         run.__doc__ = (

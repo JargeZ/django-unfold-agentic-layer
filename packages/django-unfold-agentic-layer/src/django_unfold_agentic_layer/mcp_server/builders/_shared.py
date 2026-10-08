@@ -2,18 +2,26 @@
 
 import hashlib
 import inspect
+import logging
 import uuid
-from typing import Annotated, Literal
+from collections.abc import Callable
+from typing import Annotated, Any, Literal, TypeVar
 
+from asgiref.sync import sync_to_async
 from django.core.cache import caches
 from django.http import HttpRequest
 from fastmcp import Context
+from fastmcp.exceptions import FastMCPError, ToolError
 from fastmcp.server.dependencies import get_http_request
 from mcp.types import ElicitRequest, ElicitRequestFormParams, InputRequiredResult
 from pydantic import AfterValidator, Field
 
 from django_unfold_agentic_layer.conf import Settings, get_config
 from django_unfold_agentic_layer.resources.schemas import EditableFieldInfo
+
+logger = logging.getLogger(__name__)
+
+_T = TypeVar("_T")
 
 #: A primary key as a tool argument: agents send ``1`` as often as ``"1"``,
 #: so accept both and hand handlers a ``str`` either way.
@@ -58,6 +66,33 @@ def get_django_request() -> HttpRequest:
     end-to-end against a real HTTP POST through ``/mcp/``.
     """
     return get_http_request().scope[REQUEST_SCOPE_KEY]
+
+
+async def run_in_django(
+    label: str, fn: Callable[..., _T], *args: Any, error: type[FastMCPError] = ToolError
+) -> _T:
+    """Run the Django-touching ``fn(*args)`` on Django's thread-sensitive
+    worker (see CLAUDE.md for why not fastmcp's own offload), and turn any
+    exception into ``error`` *there*, still in sync context.
+
+    fastmcp formats an escaping exception (``f"{e}"``) on the event loop. A
+    message that lazily touches the ORM — e.g. a ``ProtectedError`` listing
+    instances whose ``__str__`` follows a FK — then trips
+    ``SynchronousOnlyOperation`` inside fastmcp's error handler, and the
+    client gets a bare 500 instead of the error. ``from None`` drops the
+    chain for the same reason: fastmcp logs it on the event loop too.
+    """
+
+    def guarded() -> _T:
+        try:
+            return fn(*args)
+        except FastMCPError:
+            raise
+        except Exception as e:
+            logger.exception("Error in %s", label)
+            raise error(f"{type(e).__name__} in {label}: {e}") from None
+
+    return await sync_to_async(guarded, thread_sensitive=True)()
 
 
 def build_editable_field_parameter(field: EditableFieldInfo) -> inspect.Parameter:
