@@ -79,15 +79,31 @@ class BuildModelListResourceDefinition(BaseLogicAction):
         handler.__signature__ = inspect.Signature(parameters)
         handler.__annotations__ = {p.name: p.annotation for p in parameters}
 
+        base_uri = f"dj-admin://{model_resource.app_label}/{model_resource.model_name}/"
         query_param_names = ",".join(p.name for p in parameters)
-        uri_template = f"dj-admin://{model_resource.app_label}/{model_resource.model_name}/{{?{query_param_names}}}"
+        uri_template = f"{base_uri}{{?{query_param_names}}}"
+        name = f"{model_resource.verbose_name_plural} (list)"
+        description = (
+            f"First page of {model_resource.verbose_name_plural}. "
+            f"Filter, sort and paginate via {uri_template}; one record via {base_uri}{{pk}}/."
+        )
+        if model_resource.description:
+            description = f"{model_resource.description}\n\n{description}"
 
         mcp.resource(
-            uri=uri_template,
-            name=f"{model_resource.verbose_name_plural} (list)",
-            description=model_resource.description,
-            mime_type="application/json",
+            uri=uri_template, name=name, description=description, mime_type="application/json"
         )(handler)
+
+        # resources/list returns only concrete resources, and some clients
+        # (Claude Code's ListMcpResourcesTool) never call
+        # resources/templates/list — without this, nothing looks readable.
+        async def first_page() -> ResourceResult:
+            return await handler()
+
+        first_page.__name__ = f"{handler.__name__}_first_page"
+        mcp.resource(
+            uri=base_uri, name=name, description=description, mime_type="application/json"
+        )(first_page)
 
     def _filter_parameters(self, filter_fields: list[FilterFieldInfo]) -> list[inspect.Parameter]:
         return [

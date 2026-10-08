@@ -108,6 +108,9 @@ def test_full_mcp_contract_lifecycle(client, bearer_login, staff_user, snapshot,
     tools = _rpc(client, "tools/list").json()
     assert tools["result"] == snapshot(name="tools-list")
 
+    resources = _rpc(client, "resources/list").json()
+    assert _normalize_contract(resources["result"]) == snapshot(name="resources-list")
+
     templates = _rpc(client, "resources/templates/list").json()
     assert _normalize_contract(templates["result"]) == snapshot(name="resource-templates-list")
 

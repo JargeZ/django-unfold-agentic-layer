@@ -262,7 +262,7 @@
         'title': 'Metadata',
       }),
     ]),
-    'description': 'Adds support for various ModelAdmin actions (list, detail, row, submit line)',
+    'description': None,
     'each_model_actions': list([
       dict({
         'key': 'delete_selected',

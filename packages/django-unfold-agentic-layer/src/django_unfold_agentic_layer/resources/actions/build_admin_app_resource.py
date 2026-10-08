@@ -45,6 +45,6 @@ class BuildAdminAppResource(BaseLogicAction):
 
         return AdminAppResource(
             title=str(app_config.verbose_name),
-            description=inspect.getdoc(type(app_config)),
+            description=inspect.cleandoc(type(app_config).__dict__.get("__doc__") or "") or None,
             models=models,
         )

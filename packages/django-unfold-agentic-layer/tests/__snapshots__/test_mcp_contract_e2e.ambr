@@ -328,7 +328,6 @@
             ]),
           }),
         }),
-        'description': 'Encapsulate all admin options and functionality for a given model.',
         'mimeType': 'application/json',
         'name': 'group',
         'uriTemplate': 'dj-admin://auth/group/{pk}/',
@@ -340,7 +339,7 @@
             ]),
           }),
         }),
-        'description': 'Encapsulate all admin options and functionality for a given model.',
+        'description': 'First page of groups. Filter, sort and paginate via dj-admin://auth/group/{?q,limit,offset,order_by}; one record via dj-admin://auth/group/{pk}/.',
         'mimeType': 'application/json',
         'name': 'groups (list)',
         'uriTemplate': 'dj-admin://auth/group/{?q,limit,offset,order_by}',
@@ -352,7 +351,6 @@
             ]),
           }),
         }),
-        'description': 'Adds support for various ModelAdmin actions (list, detail, row, submit line)',
         'mimeType': 'application/json',
         'name': 'user',
         'uriTemplate': 'dj-admin://auth/user/{pk}/',
@@ -364,7 +362,7 @@
             ]),
           }),
         }),
-        'description': 'Adds support for various ModelAdmin actions (list, detail, row, submit line)',
+        'description': 'First page of users. Filter, sort and paginate via dj-admin://auth/user/{?q,is_staff__exact,is_staff__isnull,is_superuser__exact,is_superuser__isnull,is_active__exact,is_active__isnull,limit,offset,order_by}; one record via dj-admin://auth/user/{pk}/.',
         'mimeType': 'application/json',
         'name': 'users (list)',
         'uriTemplate': 'dj-admin://auth/user/{?q,is_staff__exact,is_staff__isnull,is_superuser__exact,is_superuser__isnull,is_active__exact,is_active__isnull,limit,offset,order_by}',
@@ -376,7 +374,6 @@
             ]),
           }),
         }),
-        'description': 'Adds support for various ModelAdmin actions (list, detail, row, submit line)',
         'mimeType': 'application/json',
         'name': 'blog post',
         'uriTemplate': 'dj-admin://blog/blogpost/{pk}/',
@@ -388,10 +385,52 @@
             ]),
           }),
         }),
-        'description': 'Adds support for various ModelAdmin actions (list, detail, row, submit line)',
+        'description': 'First page of blog posts. Filter, sort and paginate via dj-admin://blog/blogpost/{?q,editor__id__exact,editor__isnull,has_editor,status__exact,status__isnull,is_featured__exact,is_featured__isnull,created_at__gte,created_at__lt,limit,offset,order_by}; one record via dj-admin://blog/blogpost/{pk}/.',
         'mimeType': 'application/json',
         'name': 'blog posts (list)',
         'uriTemplate': 'dj-admin://blog/blogpost/{?q,editor__id__exact,editor__isnull,has_editor,status__exact,status__isnull,is_featured__exact,is_featured__isnull,created_at__gte,created_at__lt,limit,offset,order_by}',
+      }),
+    ]),
+  })
+# ---
+# name: test_full_mcp_contract_lifecycle[resources-list]
+  dict({
+    'resources': list([
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'First page of groups. Filter, sort and paginate via dj-admin://auth/group/{?q,limit,offset,order_by}; one record via dj-admin://auth/group/{pk}/.',
+        'mimeType': 'application/json',
+        'name': 'groups (list)',
+        'uri': 'dj-admin://auth/group/',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'First page of users. Filter, sort and paginate via dj-admin://auth/user/{?q,is_staff__exact,is_staff__isnull,is_superuser__exact,is_superuser__isnull,is_active__exact,is_active__isnull,limit,offset,order_by}; one record via dj-admin://auth/user/{pk}/.',
+        'mimeType': 'application/json',
+        'name': 'users (list)',
+        'uri': 'dj-admin://auth/user/',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'First page of blog posts. Filter, sort and paginate via dj-admin://blog/blogpost/{?q,editor__id__exact,editor__isnull,has_editor,status__exact,status__isnull,is_featured__exact,is_featured__isnull,created_at__gte,created_at__lt,limit,offset,order_by}; one record via dj-admin://blog/blogpost/{pk}/.',
+        'mimeType': 'application/json',
+        'name': 'blog posts (list)',
+        'uri': 'dj-admin://blog/blogpost/',
       }),
     ]),
   })
@@ -450,7 +489,7 @@
             ]),
           }),
         }),
-        'description': 'Update an existing group. Only send the fields you want to change.',
+        'description': 'Update an existing group. Only send the fields you want to change; omitted fields keep their current values. A required field that is empty on the record must be sent too.',
         'inputSchema': dict({
           'additionalProperties': False,
           'properties': dict({
@@ -622,7 +661,7 @@
             ]),
           }),
         }),
-        'description': 'Update an existing user. Only send the fields you want to change.',
+        'description': 'Update an existing user. Only send the fields you want to change; omitted fields keep their current values. A required field that is empty on the record must be sent too.',
         'inputSchema': dict({
           'additionalProperties': False,
           'properties': dict({
@@ -942,7 +981,7 @@
             ]),
           }),
         }),
-        'description': 'Update an existing blog post. Only send the fields you want to change.',
+        'description': 'Update an existing blog post. Only send the fields you want to change; omitted fields keep their current values. A required field that is empty on the record must be sent too.',
         'inputSchema': dict({
           'additionalProperties': False,
           'properties': dict({

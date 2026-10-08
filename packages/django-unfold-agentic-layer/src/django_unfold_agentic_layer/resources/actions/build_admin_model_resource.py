@@ -49,7 +49,7 @@ class BuildAdminModelResource(BaseLogicAction):
             model_name=opts.model_name,
             verbose_name=str(opts.verbose_name),
             verbose_name_plural=str(opts.verbose_name_plural),
-            description=inspect.getdoc(type(model_admin)),
+            description=inspect.cleandoc(type(model_admin).__dict__.get("__doc__") or "") or None,
             each_model_actions=ExtractEachModelActions().execute(model_admin, request),
             app_level_actions=ExtractAppLevelActions().execute(model_admin, request),
             action_tools=ExtractActionTools().execute(model_admin, request),

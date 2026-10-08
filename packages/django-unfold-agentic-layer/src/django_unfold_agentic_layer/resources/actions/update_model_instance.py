@@ -33,7 +33,19 @@ class UpdateModelInstance(BaseLogicAction):
         provided = {key: value for key, value in data.items() if value is not None}
         form = form_class(data={**current, **provided}, instance=instance)
         if not form.is_valid():
-            return None, form.errors.get_json_data(escape_html=True)
+            errors = form.errors.get_json_data(escape_html=True)
+            # Omitted fields keep their current values — but a required one
+            # that is already empty on the record (e.g. a modeltranslation
+            # field for a language nobody filled in) has nothing to keep.
+            for name, field_errors in errors.items():
+                if name not in provided:
+                    for error in field_errors:
+                        if error["code"] == "required":
+                            error["message"] = (
+                                "This field is required and is empty on the current record, "
+                                "so it must be provided."
+                            )
+            return None, errors
 
         obj = form.save(commit=False)
         model_admin.save_model(request, obj, form, change=True)

@@ -125,6 +125,22 @@ def test_update_tool_applies_partial_update(client, bearer_login, staff_user):
 
 
 @pytest.mark.django_db
+def test_update_tool_names_required_fields_empty_on_the_record(client, bearer_login, staff_user):
+    # Data written past the form (fixtures, a newly added modeltranslation
+    # language) can leave a required field empty — there's nothing to keep,
+    # so the error must say the agent has to send it.
+    post = BlogPost.objects.create(title="", author=staff_user)
+    bearer_login(client, staff_user)
+
+    result = _call_tool(client, "update_blog_blogpost", {"pk": str(post.pk), "body": "New"})
+
+    assert result["success"] is False
+    assert result["errors"]["title"][0]["message"] == (
+        "This field is required and is empty on the current record, so it must be provided."
+    )
+
+
+@pytest.mark.django_db
 def test_delete_tool_requires_confirmation_then_deletes(client, bearer_login, staff_user):
     post = BlogPost.objects.create(title="ToDelete", author=staff_user)
     bearer_login(client, staff_user)

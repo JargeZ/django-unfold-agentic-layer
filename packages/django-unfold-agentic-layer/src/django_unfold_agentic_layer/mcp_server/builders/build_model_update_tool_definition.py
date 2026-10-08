@@ -63,7 +63,8 @@ class BuildModelUpdateToolDefinition(BaseLogicAction):
         run.__name__ = f"update_{model_resource.app_label}_{model_resource.model_name}"
         run.__doc__ = (
             f"Update an existing {model_resource.verbose_name}. "
-            "Only send the fields you want to change."
+            "Only send the fields you want to change; omitted fields keep their current "
+            "values. A required field that is empty on the record must be sent too."
         )
         run.__signature__ = inspect.Signature(parameters)
         run.__annotations__ = {p.name: p.annotation for p in parameters} | {
