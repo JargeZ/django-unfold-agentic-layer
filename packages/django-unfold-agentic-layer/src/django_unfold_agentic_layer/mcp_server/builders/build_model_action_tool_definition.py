@@ -18,6 +18,7 @@ from pydantic import Field
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
 from django_unfold_agentic_layer.mcp_server.builders._shared import (
+    PK,
     build_editable_field_parameter,
     confirmation_request,
     get_django_request,
@@ -34,14 +35,14 @@ _PK_PARAMETER = inspect.Parameter(
     "pk",
     kind=inspect.Parameter.KEYWORD_ONLY,
     annotation=Annotated[
-        str, Field(description="Primary key of the instance to run the action on.")
+        PK, Field(description="Primary key of the instance to run the action on.")
     ],
 )
 _PKS_PARAMETER = inspect.Parameter(
     "pks",
     kind=inspect.Parameter.KEYWORD_ONLY,
     annotation=Annotated[
-        list[str], Field(description="Primary keys of the instances to run the action on.")
+        list[PK], Field(description="Primary keys of the instances to run the action on.")
     ],
 )
 _CTX_PARAMETER = inspect.Parameter("ctx", kind=inspect.Parameter.KEYWORD_ONLY, annotation=Context)

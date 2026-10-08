@@ -47,7 +47,7 @@ def test_bulk_actions_run_on_selected_pks_with_action_form_fields(client, bearer
     other = BlogPost.objects.create(title="Other", author=staff_user)
     bearer_login(client, staff_user)
 
-    result = _call_tool(client, "run_blog_blogpost_publish_posts", {"pks": [str(selected.pk)]})
+    result = _call_tool(client, "run_blog_blogpost_publish_posts", {"pks": [selected.pk]})
 
     assert result == {
         "success": True,
@@ -156,7 +156,8 @@ def test_row_and_detail_actions_run_on_one_instance(client, bearer_login, staff_
         == "Post featured."
     )
     _call_tool(client, "run_blog_blogpost_set_status", {"pk": pk, "status": "archived"})
-    _call_tool(client, "run_blog_blogpost_append_note", {"pk": pk, "note": "Reviewed."})
+    # Agents often send an int pk; it must work like the str one.
+    _call_tool(client, "run_blog_blogpost_append_note", {"pk": post.pk, "note": "Reviewed."})
     post.refresh_from_db()
     assert (post.is_featured, post.status, post.body) == (True, "archived", "Body\n\nReviewed.")
 

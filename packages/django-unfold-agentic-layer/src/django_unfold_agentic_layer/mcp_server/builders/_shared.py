@@ -10,10 +10,14 @@ from django.http import HttpRequest
 from fastmcp import Context
 from fastmcp.server.dependencies import get_http_request
 from mcp.types import ElicitRequest, ElicitRequestFormParams, InputRequiredResult
-from pydantic import Field
+from pydantic import AfterValidator, Field
 
 from django_unfold_agentic_layer.conf import Settings, get_config
 from django_unfold_agentic_layer.resources.schemas import EditableFieldInfo
+
+#: A primary key as a tool argument: agents send ``1`` as often as ``"1"``,
+#: so accept both and hand handlers a ``str`` either way.
+PK = Annotated[str | int, AfterValidator(str)]
 
 #: The ASGI scope key bridge.py stashes the originating Django HttpRequest
 #: under (see mcp_server/bridge.py) — namespaced to avoid colliding with any

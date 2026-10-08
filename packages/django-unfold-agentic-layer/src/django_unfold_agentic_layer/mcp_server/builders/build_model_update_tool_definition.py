@@ -8,6 +8,7 @@ from pydantic import Field
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
 from django_unfold_agentic_layer.mcp_server.builders._shared import (
+    PK,
     build_editable_field_parameter,
     get_django_request,
 )
@@ -20,7 +21,7 @@ from django_unfold_agentic_layer.resources.schemas import AdminModelResource
 _PK_PARAMETER = inspect.Parameter(
     "pk",
     kind=inspect.Parameter.KEYWORD_ONLY,
-    annotation=Annotated[str, Field(description="Primary key of the instance to update.")],
+    annotation=Annotated[PK, Field(description="Primary key of the instance to update.")],
 )
 
 

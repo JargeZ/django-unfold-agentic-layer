@@ -155,7 +155,6 @@ def test_dialog_form_errors_are_structured(logged_in, post, tool, arguments, fie
         ("run_blog_blogpost_set_status", {"status": "deleted"}),
         ("run_blog_blogpost_set_status", {"status": "Published"}),  # enum is case-sensitive
         ("run_blog_blogpost_set_status", {"status": "draft", "bogus": 1}),
-        ("run_blog_blogpost_feature_post", {"pk": 1}),  # pk must be a string
     ],
 )
 def test_arguments_outside_the_schema_are_rejected(logged_in, post, tool, arguments):

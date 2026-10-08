@@ -5,6 +5,7 @@ from mcp.types import InputRequiredResult
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
 from django_unfold_agentic_layer.mcp_server.builders._shared import (
+    PK,
     confirmation_request,
     get_django_request,
     is_confirmed,
@@ -56,7 +57,7 @@ class BuildModelDeleteToolDefinition(BaseLogicAction):
             DeleteModelInstance().execute(model_admin, request, instance)
             return f"Deleted {model_resource.verbose_name} (pk={pk})."
 
-        async def run(pk: str, ctx: Context) -> str | InputRequiredResult:
+        async def run(pk: PK, ctx: Context) -> str | InputRequiredResult:
             return await sync_to_async(run_body, thread_sensitive=True)(pk, ctx)
 
         run.__name__ = f"delete_{model_resource.app_label}_{model_resource.model_name}"

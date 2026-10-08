@@ -21,7 +21,14 @@
           'pks': dict({
             'description': 'Primary keys of the instances to run the action on.',
             'items': dict({
-              'type': 'string',
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'integer',
+                }),
+              ]),
             }),
             'type': 'array',
           }),
@@ -53,7 +60,14 @@
           'pks': dict({
             'description': 'Primary keys of the instances to run the action on.',
             'items': dict({
-              'type': 'string',
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'integer',
+                }),
+              ]),
             }),
             'type': 'array',
           }),
@@ -85,7 +99,14 @@
           'pks': dict({
             'description': 'Primary keys of the instances to run the action on.',
             'items': dict({
-              'type': 'string',
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'integer',
+                }),
+              ]),
             }),
             'type': 'array',
           }),
@@ -135,8 +156,15 @@
         'additionalProperties': False,
         'properties': dict({
           'pk': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'integer',
+              }),
+            ]),
             'description': 'Primary key of the instance to run the action on.',
-            'type': 'string',
           }),
         }),
         'required': list([
@@ -152,8 +180,15 @@
         'additionalProperties': False,
         'properties': dict({
           'pk': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'integer',
+              }),
+            ]),
             'description': 'Primary key of the instance to run the action on.',
-            'type': 'string',
           }),
           'status': dict({
             'anyOf': list([
@@ -186,8 +221,15 @@
         'additionalProperties': False,
         'properties': dict({
           'pk': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'integer',
+              }),
+            ]),
             'description': 'Primary key of the instance to run the action on.',
-            'type': 'string',
           }),
         }),
         'required': list([
@@ -215,8 +257,15 @@
             'description': 'note — Appended to the end of the post body. (required)',
           }),
           'pk': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'integer',
+              }),
+            ]),
             'description': 'Primary key of the instance to run the action on.',
-            'type': 'string',
           }),
         }),
         'required': list([
