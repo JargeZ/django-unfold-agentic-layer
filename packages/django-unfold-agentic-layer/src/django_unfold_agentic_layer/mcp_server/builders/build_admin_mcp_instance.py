@@ -1,7 +1,7 @@
 import logging
 from functools import lru_cache
 
-from django.contrib.admin import AdminSite
+from django.contrib.admin import AdminSite, ModelAdmin
 from django.contrib.admin import site as default_admin_site
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.http import HttpRequest, QueryDict
@@ -31,9 +31,11 @@ from django_unfold_agentic_layer.mcp_server.builders.build_model_update_tool_def
     BuildModelUpdateToolDefinition,
 )
 from django_unfold_agentic_layer.mcp_server.tools import mcp as docs_mcp
+from django_unfold_agentic_layer.resources.actions._shared import is_django_model
 from django_unfold_agentic_layer.resources.actions.build_admin_model_resource import (
     BuildAdminModelResource,
 )
+from django_unfold_agentic_layer.resources.actions.extract_action_tools import ExtractActionTools
 
 logger = logging.getLogger(__name__)
 
@@ -113,7 +115,11 @@ def _build_admin_mcp_instance(
         if app["app_label"] == DjangoUnfoldAgenticLayerConfig.label:
             continue
         for model_dict in app["models"]:
-            model_admin = admin_site._registry[model_dict["model"]]
+            model = model_dict["model"]
+            model_admin = admin_site._registry[model]
+            if not is_django_model(model):
+                _register_non_model_actions(admin_mcp, model_admin, request, build_action_tool)
+                continue
             # One misconfigured ModelAdmin (e.g. add_fieldsets naming fields
             # its form doesn't have) must not take the whole endpoint down —
             # skip that model, keep the rest.
@@ -128,9 +134,27 @@ def _build_admin_mcp_instance(
             build_update_tool.execute(admin_mcp, model_admin, model_resource)
             build_delete_tool.execute(admin_mcp, model_admin, model_resource)
             for action in model_resource.action_tools:
-                build_action_tool.execute(admin_mcp, model_admin, action, model_resource)
+                build_action_tool.execute(admin_mcp, model_admin, action)
 
     return admin_mcp
+
+
+def _register_non_model_actions(
+    admin_mcp: FastMCP,
+    model_admin: ModelAdmin,
+    request: HttpRequest,
+    build_action_tool: BuildModelActionToolDefinition,
+) -> None:
+    """An admin registered for a stand-in class rather than a Django model
+    (e.g. django-constance's ``Config``) has no queryset, so no resources,
+    CRUD tools, or bulk/instance actions — only its ``actions_list``, which
+    need no instance."""
+    actions = ExtractActionTools().execute(model_admin, request, model_scope_only=True)
+    logger.warning(
+        "%s: not a Django model, exposing only its %d list action(s)", model_admin, len(actions)
+    )
+    for action in actions:
+        build_action_tool.execute(admin_mcp, model_admin, action)
 
 
 def _build_schema_request(user: AbstractBaseUser) -> HttpRequest:

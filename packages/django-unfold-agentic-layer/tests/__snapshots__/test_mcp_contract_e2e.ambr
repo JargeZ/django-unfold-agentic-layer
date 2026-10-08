@@ -1447,6 +1447,54 @@
             ]),
           }),
         }),
+        'description': 'Pin this post. Runs on one blog post (pass its pk).',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'pk': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'integer',
+                }),
+              ]),
+              'description': 'Primary key of the instance to run the action on.',
+            }),
+          }),
+          'required': list([
+            'pk',
+          ]),
+          'type': 'object',
+        }),
+        'name': 'run_blog_blogpost_pin_post',
+        'title': 'Run Blog Blogpost Pin Post',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Clear cache. Runs on site settings as a whole, without selecting any.',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+          }),
+          'type': 'object',
+        }),
+        'name': 'run_blog_sitesettings_clear_cache',
+        'title': 'Run Blog Sitesettings Clear Cache',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
         'description': '''
           Get Django Unfold installation instructions and quickstart guide.
           

@@ -28,7 +28,6 @@ from django_unfold_agentic_layer.resources.actions.run_admin_action import RunAd
 from django_unfold_agentic_layer.resources.schemas import (
     ActionResult,
     ActionToolInfo,
-    AdminModelResource,
 )
 
 _PK_PARAMETER = inspect.Parameter(
@@ -64,7 +63,6 @@ class BuildModelActionToolDefinition(BaseLogicAction):
         mcp: FastMCP,
         model_admin: ModelAdmin,
         action: ActionToolInfo,
-        model_resource: AdminModelResource,
     ) -> None:
         target = {"instance": [_PK_PARAMETER], "bulk": [_PKS_PARAMETER]}.get(action.scope, [])
         parameters = [

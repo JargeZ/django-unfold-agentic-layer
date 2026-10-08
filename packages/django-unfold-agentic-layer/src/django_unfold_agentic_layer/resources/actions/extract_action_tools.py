@@ -48,7 +48,13 @@ class ExtractActionTools(BaseLogicAction):
        but duplicates the update tool.
     """
 
-    def execute(self, model_admin: ModelAdmin, request: HttpRequest) -> list[ActionToolInfo]:
+    def execute(
+        self, model_admin: ModelAdmin, request: HttpRequest, *, model_scope_only: bool = False
+    ) -> list[ActionToolInfo]:
+        """``model_scope_only``: just ``actions_list`` — the only kind that
+        works for an admin of a stand-in class with no queryset."""
+        if model_scope_only:
+            return self._unfold_actions(model_admin, request, "get_actions_list", "model")
         tools: dict[str, ActionToolInfo] = {}
         for tool in [
             *self._bulk_actions(model_admin, request),
@@ -120,7 +126,9 @@ class ExtractActionTools(BaseLogicAction):
     ) -> ActionToolInfo:
         opts = model_admin.model._meta
         dangerous = variant == ActionVariant.DANGER
-        hint = _SCOPE_HINTS[scope].format(name=opts.verbose_name, plural=opts.verbose_name_plural)
+        hint = _SCOPE_HINTS[scope].format(
+            name=getattr(opts, "verbose_name", opts.model_name), plural=opts.verbose_name_plural
+        )
         texts = [title, *(str(text) for text in dialog_text or [] if text and str(text) != title)]
         parts = [f"{text.rstrip('.')}." for text in texts] + [hint]
         if dangerous:

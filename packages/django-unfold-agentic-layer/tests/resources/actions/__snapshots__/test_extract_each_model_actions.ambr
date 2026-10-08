@@ -38,6 +38,10 @@
       'title': 'Append note',
     }),
     dict({
+      'key': 'blog_blogpost_pin_post',
+      'title': 'Pin this post',
+    }),
+    dict({
       'key': 'blog_blogpost_notify_author_on_save',
       'title': 'Save and notify author',
     }),

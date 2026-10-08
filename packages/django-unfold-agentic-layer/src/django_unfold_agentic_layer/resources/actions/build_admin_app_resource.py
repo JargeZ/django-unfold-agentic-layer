@@ -6,6 +6,7 @@ from django.contrib.admin import site as default_admin_site
 from django.http import HttpRequest
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
+from django_unfold_agentic_layer.resources.actions._shared import is_django_model
 from django_unfold_agentic_layer.resources.actions.build_admin_model_resource import (
     BuildAdminModelResource,
 )
@@ -39,6 +40,7 @@ class BuildAdminAppResource(BaseLogicAction):
         models = [
             build_model_resource.execute(admin_site._registry[model_dict["model"]], request)
             for model_dict in model_dicts
+            if is_django_model(model_dict["model"])
         ]
 
         return AdminAppResource(

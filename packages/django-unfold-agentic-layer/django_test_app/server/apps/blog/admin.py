@@ -4,7 +4,7 @@ from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 from django.http import HttpResponse, HttpResponseRedirect
-from django.urls import reverse
+from django.urls import path, reverse
 from unfold.admin import ModelAdmin
 from unfold.contrib.filters.admin import AutocompleteSelectFilter
 from unfold.decorators import action
@@ -85,6 +85,7 @@ class BlogPostAdmin(ModelAdmin):
         "feature_post",
         "publish_post",
         {"title": "More", "items": ("append_note",)},
+        "pin_post",
     )
     # Runs while saving the changeform — not exposed over MCP yet.
     actions_submit_line = ("notify_author_on_save",)
@@ -159,3 +160,51 @@ class BlogPostAdmin(ModelAdmin):
     @action(description="Save and notify author", icon="send")
     def notify_author_on_save(self, request, obj):
         self.message_user(request, f"Author {obj.author} notified.")
+
+    # Like django-unfold's own docs, a detail action whose permission method
+    # *requires* object_id — undecidable without an instance, so it must not
+    # take the whole admin out of MCP.
+    @action(description="Pin this post", permissions=["pin"])
+    def pin_post(self, request, object_id):
+        BlogPost.objects.filter(pk=object_id).update(is_featured=True)
+        return HttpResponseRedirect(reverse("admin:blog_blogpost_change", args=[object_id]))
+
+    def has_pin_permission(self, request, object_id):
+        return BlogPost.objects.filter(pk=object_id, author=request.user).exists()
+
+
+class SiteSettings:
+    """Not a Django model: a stand-in class an admin registers for a custom
+    settings page, the way django-constance registers its ``Config``."""
+
+    class Meta:
+        app_label = "blog"
+        object_name = "SiteSettings"
+        model_name = "sitesettings"
+        verbose_name_plural = "site settings"
+        abstract = False
+        swapped = False
+        is_composite_pk = False
+        concrete_model = None
+
+        @property
+        def app_config(self):
+            from django.apps import apps
+
+            return apps.get_app_config(self.app_label)
+
+    _meta = Meta()
+
+
+@admin.register(SiteSettings)
+class SiteSettingsAdmin(ModelAdmin):
+    actions_list = ("clear_cache",)
+
+    def get_urls(self):
+        view = self.admin_site.admin_view(self.changelist_view)
+        return [path("", view, name="blog_sitesettings_changelist")]
+
+    @action(description="Clear cache")
+    def clear_cache(self, request):
+        self.message_user(request, "Cache cleared.", messages.SUCCESS)
+        return HttpResponseRedirect(reverse("admin:index"))

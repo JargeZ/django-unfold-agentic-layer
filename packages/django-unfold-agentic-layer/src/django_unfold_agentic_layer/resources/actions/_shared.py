@@ -10,12 +10,19 @@ from typing import Any
 
 from django.contrib.admin import ModelAdmin
 from django.contrib.admin.utils import model_format_dict
+from django.db.models import Model
 from django.http import HttpRequest
 
 from django_unfold_agentic_layer.resources.schemas import ActionInfo
 
 #: What ``ModelAdmin.get_action()`` returns: (callable, name, description).
 ResolvedDjangoAction = tuple[Callable, str, str]
+
+
+def is_django_model(model: Any) -> bool:
+    """Admins may register a stand-in class instead of a model (e.g.
+    django-constance's ``Config``): it has ``_meta`` but no queryset."""
+    return isinstance(model, type) and issubclass(model, Model)
 
 
 def django_action_to_info(model_admin: ModelAdmin, resolved: ResolvedDjangoAction) -> ActionInfo:
@@ -34,25 +41,27 @@ def unfold_action_to_info(action: Any) -> ActionInfo:
 
 
 def get_filtered_unfold_actions(
-    model_admin: ModelAdmin,
-    request: HttpRequest,
-    getter_name: str,
-    object_id: int | str | None = None,
+    model_admin: ModelAdmin, request: HttpRequest, getter_name: str
 ) -> list[Any]:
-    """Call one of django-unfold's permission-filtered ``get_actions_*`` methods.
+    """The actions of one of django-unfold's ``get_actions_*`` getters that
+    ``request.user`` may run, decided without a specific instance.
 
-    ``get_actions_detail``/``get_actions_submit_line`` are instance-scoped
-    (their object-level permission checks need an ``object_id``); at the
-    model-description level there is no specific instance yet, so
-    ``object_id=None`` is passed through — django-unfold's own
-    ``_filter_unfold_actions_by_permissions`` treats a missing ``object_id``
-    as "check the non-object form of the permission", which is exactly the
-    best-effort answer a model-level (not instance-level) description can give.
+    Each action goes through django-unfold's own
+    ``_filter_unfold_actions_by_permissions`` on its own: with no
+    ``object_id`` it calls ``has_<perm>_permission(request)``, so a check
+    that *requires* ``object_id`` raises ``TypeError``. Such an action stays
+    listed — it can't be decided at model level, and the action's
+    ``@action(permissions=…)`` decorator re-checks it on the real instance at
+    run time. One such check never hides the rest of the admin.
     Returns ``[]`` for a plain ``ModelAdmin`` that isn't django-unfold's.
     """
-    getter = getattr(model_admin, getter_name, None)
-    if getter is None:
+    base_getter = getattr(model_admin, getter_name.replace("get_", "_get_base_", 1), None)
+    if base_getter is None:
         return []
-    if getter_name in ("get_actions_detail", "get_actions_submit_line"):
-        return list(getter(request, object_id))
-    return list(getter(request))
+    allowed = []
+    for action in base_getter():
+        try:
+            allowed += model_admin._filter_unfold_actions_by_permissions(request, [action])
+        except TypeError:
+            allowed.append(action)
+    return allowed

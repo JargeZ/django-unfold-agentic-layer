@@ -159,6 +159,16 @@
         'title': 'Append note',
         'tool_name': 'run_blog_blogpost_append_note',
       }),
+      dict({
+        'dangerous': False,
+        'description': 'Pin this post. Runs on one blog post (pass its pk).',
+        'fields': list([
+        ]),
+        'name': 'pin_post',
+        'scope': 'instance',
+        'title': 'Pin this post',
+        'tool_name': 'run_blog_blogpost_pin_post',
+      }),
     ]),
     'app_label': 'blog',
     'app_level_actions': list([
@@ -289,6 +299,10 @@
       dict({
         'key': 'blog_blogpost_append_note',
         'title': 'Append note',
+      }),
+      dict({
+        'key': 'blog_blogpost_pin_post',
+        'title': 'Pin this post',
       }),
       dict({
         'key': 'blog_blogpost_notify_author_on_save',

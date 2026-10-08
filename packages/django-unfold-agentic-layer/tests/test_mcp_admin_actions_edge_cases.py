@@ -10,7 +10,7 @@ import pytest
 from django.core.cache import caches
 from server.apps.blog.models import BlogPost
 
-from tests.test_mcp_admin_actions import _call, _run_tools
+from tests.test_mcp_admin_actions import _call, _rpc, _run_tools
 from tests.test_mcp_admin_tools import PROTOCOL_VERSION, _call_tool, _modern_rpc
 
 MISSING_PK = "99999"
@@ -282,9 +282,13 @@ def test_view_only_staff_gets_exactly_the_unrestricted_actions(
         "run_blog_blogpost_create_draft",
         "run_blog_blogpost_export_all_posts",
         "run_blog_blogpost_feature_post",
+        # has_pin_permission(request, object_id) can't be decided without an
+        # instance, so it's listed — and checked on the real one when run.
+        "run_blog_blogpost_pin_post",
         "run_blog_blogpost_publish_posts",
         "run_blog_blogpost_set_status",
     ]
+    assert _call(client, "run_blog_blogpost_pin_post", {"pk": str(post.pk)})["isError"]
     _call_tool(client, "run_blog_blogpost_feature_post", {"pk": str(post.pk)})
     post.refresh_from_db()
     assert post.is_featured is True
@@ -453,3 +457,26 @@ def test_danger_action_validates_before_asking_for_confirmation(logged_in):
     assert result["structuredContent"]["errors"] == {
         "pks": [{"message": "Select at least one item.", "code": "required"}]
     }
+
+
+# --- Admin of a stand-in class, not a model -----------------------------------
+
+
+@pytest.mark.django_db
+def test_non_model_admin_exposes_only_its_list_actions(client, bearer_login, staff_user, caplog):
+    # SiteSettings has no queryset (like django-constance's Config): no
+    # resources or CRUD tools, but actions_list still works — and the skip is
+    # one warning line, not a traceback.
+    bearer_login(client, staff_user)
+
+    tools = [t["name"] for t in _rpc(client, "tools/list")["tools"] if "sitesettings" in t["name"]]
+    templates = _rpc(client, "resources/templates/list")["resourceTemplates"]
+    assert tools == ["run_blog_sitesettings_clear_cache"]
+    assert not [t for t in templates if "sitesettings" in t["uriTemplate"]]
+    assert [r.getMessage() for r in caplog.records if "SiteSettings" in r.getMessage()] == [
+        "blog.SiteSettingsAdmin: not a Django model, exposing only its 1 list action(s)"
+    ]
+    assert not [r for r in caplog.records if r.exc_info]
+
+    result = _call_tool(client, "run_blog_sitesettings_clear_cache", {})
+    assert result["messages"] == [{"level": "success", "message": "Cache cleared."}]
