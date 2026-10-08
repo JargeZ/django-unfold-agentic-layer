@@ -73,6 +73,14 @@ claude mcp add --transport http unfold https://your-project.example/mcp
 - Only active **staff** users can log in and approve a client; `is_active`/`is_staff` is re-checked on every request (`403` otherwise), so un-staffing someone cuts off their tokens immediately.
 - A login lasts `SESSION_TTL` (default 1 day); no refresh tokens are issued, so the client re-runs the browser login after that.
 - The Django session cookie does **not** authenticate `/mcp/` — only the token does.
+- The consent page shows the full `redirect_uri` that receives the code. If it is not on the user's computer (not a loopback address and not an app scheme such as `cursor://`), the page shows a warning.
+
+By default, any client can register itself (RFC 7591). To stop this, set `"CLOSED_CLIENT_REGISTRATION": True`. Then `/mcp/o/register` returns `403`, and an admin adds each client in **MCP clients → Add** (name + exact redirect URIs). Give the generated client ID to the user:
+
+```bash
+claude mcp add --transport http --client-id <client-id> --callback-port 33418 unfold https://your-project.example/mcp
+# redirect URI to add in the admin: http://localhost:33418/callback
+```
 
 The OAuth server itself is the MCP SDK's (`mcp.server.auth`); this app only stores its state. Discovery stays inside `/mcp/o/` (via the 401's `resource_metadata` and `<issuer>/.well-known/openid-configuration`), nothing is added at your site root. The issuer must be `https` (or `localhost`) — behind a proxy, set `SECURE_PROXY_SSL_HEADER`/`USE_X_FORWARDED_HOST` so Django builds the right absolute URLs.
 

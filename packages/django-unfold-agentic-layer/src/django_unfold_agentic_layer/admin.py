@@ -1,14 +1,21 @@
-"""Read-only admin over MCP OAuth state; deleting a row is how you revoke it.
+"""Admin over MCP OAuth state; deleting a row is how you revoke it.
 
-Both admins are view + delete only: clients register themselves (RFC 7591)
-and tokens come from the login flow, so there is nothing to add or edit by
-hand. Deleting a client cascades to (revokes) all of its tokens.
+Nothing is editable: clients register themselves (RFC 7591) and tokens come
+from the login flow. Deleting a client cascades to (revokes) all of its
+tokens. Clients can also be *added* by hand — the only way in once
+``CLOSED_CLIENT_REGISTRATION`` is on.
 """
 
+import time
+import uuid
+
+from django import forms
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Q
 from django.utils import timezone
+from mcp.shared.auth import OAuthClientInformationFull
+from pydantic import ValidationError
 from unfold.admin import ModelAdmin
 
 from django_unfold_agentic_layer.models import OAuthClient, OAuthToken
@@ -22,12 +29,65 @@ class _ViewAndDeleteOnly:
         return False
 
 
+class OAuthClientAddForm(forms.ModelForm):
+    """A public client (PKCE, no secret) — the same kind MCP clients
+    register for themselves."""
+
+    client_name = forms.CharField(max_length=255)
+    redirect_uris = forms.CharField(
+        widget=forms.Textarea(attrs={"rows": 3}),
+        help_text=(
+            "One per line, matched exactly, port included — e.g. "
+            "http://localhost:33418/callback for "
+            "`claude mcp add --client-id <id> --callback-port 33418 …`."
+        ),
+    )
+
+    class Meta:
+        model = OAuthClient
+        fields = ()
+
+    def clean(self):
+        cleaned = super().clean()
+        uris = [line.strip() for line in cleaned.get("redirect_uris", "").splitlines()]
+        try:
+            self.instance.info = OAuthClientInformationFull(
+                client_id=str(uuid.uuid4()),
+                client_id_issued_at=int(time.time()),
+                client_name=cleaned.get("client_name"),
+                redirect_uris=[uri for uri in uris if uri],
+                token_endpoint_auth_method="none",  # noqa: S106 — public client, not a password
+                grant_types=["authorization_code"],
+                response_types=["code"],
+            ).model_dump(mode="json")
+        except ValidationError as error:
+            raise forms.ValidationError(
+                {"redirect_uris": f"Invalid redirect URI: {error.errors()[0]['msg']}."}
+            ) from error
+        self.instance.client_id = self.instance.info["client_id"]
+        return cleaned
+
+
 @admin.register(OAuthClient)
 class OAuthClientAdmin(_ViewAndDeleteOnly, ModelAdmin):
     list_display = ("client_name", "client_id", "active_tokens", "created_at")
     search_fields = ("client_id", "info__client_name")
     readonly_fields = ("client_id", "info", "created_at")
     ordering = ("-created_at",)
+
+    def has_add_permission(self, request, obj=None):
+        return ModelAdmin.has_add_permission(self, request)
+
+    def get_form(self, request, obj=None, **kwargs):
+        if obj is None:
+            kwargs["form"] = OAuthClientAddForm
+        return super().get_form(request, obj, **kwargs)
+
+    def get_fields(self, request, obj=None):
+        return ("client_name", "redirect_uris") if obj is None else self.readonly_fields
+
+    def get_readonly_fields(self, request, obj=None):
+        return () if obj is None else self.readonly_fields
 
     def get_queryset(self, request):
         live = Q(oauthtoken__kind=OAuthToken.Kind.ACCESS, oauthtoken__expires_at__gt=timezone.now())

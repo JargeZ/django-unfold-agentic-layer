@@ -13,9 +13,18 @@
 
             <div class="min-w-0">
                 <p class="font-semibold text-font-important-light truncate dark:text-font-important-dark">{{ client_name }}</p>
-                <p class="text-sm truncate">{% blocktranslate with host=redirect_host %}will return to {{ host }}{% endblocktranslate %}</p>
+                <p class="text-sm">{% translate "will return to" %}</p>
+                <p class="text-sm font-mono break-words">{{ redirect_uri }}</p>
             </div>
         </div>
+
+        {% if not redirect_is_local %}
+            {% blocktranslate trimmed asvar warning %}
+                This address is not on your computer. The access code goes to that server.
+                Allow access only if you trust it and you started this login yourself.
+            {% endblocktranslate %}
+            {% include "unfold/helpers/messages/warning.html" with message=warning class="mb-0" %}
+        {% endif %}
 
         <p>
             {% blocktranslate trimmed with username=request.user.get_username %}

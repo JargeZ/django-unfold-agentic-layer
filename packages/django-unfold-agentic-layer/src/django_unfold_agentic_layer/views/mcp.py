@@ -10,8 +10,12 @@ from django.views.decorators.csrf import csrf_exempt
 
 from django_unfold_agentic_layer import oauth
 from django_unfold_agentic_layer.mcp_server import bridge
+from django_unfold_agentic_layer.views import login_not_required
 
 
+# MCP clients send a Bearer token, never a session cookie: a host's
+# LoginRequiredMiddleware must not redirect them (see views/__init__.py).
+@method_decorator(login_not_required, name="dispatch")
 @method_decorator(csrf_exempt, name="dispatch")
 class MCPView(View):
     """MCP Streamable HTTP endpoint (stateless, JSON-response mode).

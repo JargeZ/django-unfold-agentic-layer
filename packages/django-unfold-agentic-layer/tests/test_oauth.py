@@ -13,6 +13,7 @@ import json
 import secrets
 from urllib.parse import parse_qs, urlencode, urlparse
 
+import django
 import pytest
 from django.test import Client
 from django_unfold_agentic_layer.models import OAuthClient
@@ -243,3 +244,102 @@ def test_unknown_client_id_is_escaped_on_the_page(browser):
     assert response.status_code == 400
     assert payload not in response.content.decode()
     assert "&lt;script&gt;" in response.content.decode()
+
+
+@pytest.mark.skipif(django.VERSION < (5, 1), reason="LoginRequiredMiddleware is Django 5.1+")
+@pytest.mark.django_db
+def test_oauth_and_mcp_endpoints_work_under_login_required_middleware(settings, browser):
+    """Host projects that turn on LoginRequiredMiddleware must not redirect
+    MCP clients — they hold no session cookie and can't follow a login page."""
+    settings.MIDDLEWARE = [
+        *settings.MIDDLEWARE,
+        "django.contrib.auth.middleware.LoginRequiredMiddleware",
+    ]
+
+    # 401 from /mcp, discovery, registration and /authorize, all anonymous.
+    metadata, *_ = _start_authorization(browser)
+
+    jwks = browser.get(_path(metadata["jwks_uri"]))
+    assert jwks.status_code == 200
+    assert jwks.json() == {"keys": []}
+
+    token = browser.post(
+        _path(metadata["token_endpoint"]),
+        urlencode({"grant_type": "authorization_code", "code": "bogus"}),
+        content_type="application/x-www-form-urlencoded",
+    )
+    assert token.status_code in (400, 401)
+    assert "error" in token.json()
+
+
+def _authorize(browser: Client, client_id: str, redirect_uri: str):
+    challenge = base64.urlsafe_b64encode(hashlib.sha256(b"verifier").digest()).decode().rstrip("=")
+    return browser.get(
+        "/mcp/o/authorize",
+        {
+            "response_type": "code",
+            "client_id": client_id,
+            "redirect_uri": redirect_uri,
+            "code_challenge": challenge,
+            "code_challenge_method": "S256",
+        },
+    )
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("redirect_uri", "warned"),
+    [
+        ("http://localhost:33418/callback", False),
+        ("http://127.0.0.1:8080/cb", False),
+        ("http://[::1]:8080/cb", False),
+        ("cursor://anysphere.cursor-retrieval/oauth/callback", False),
+        ("https://attacker.example/callback", True),
+        ("http://192.168.1.5/cb", True),
+        ("https://localhost.attacker.example/cb", True),
+    ],
+)
+def test_consent_page_shows_redirect_uri_and_warns_when_not_local(
+    browser, staff_user, redirect_uri, warned
+):
+    OAuthClient.objects.create(
+        client_id="c1",
+        info={"client_id": "c1", "client_name": "Agent", "redirect_uris": [redirect_uri]},
+    )
+    consent_url = _path(_authorize(browser, "c1", redirect_uri)["Location"])
+    browser.force_login(staff_user)
+
+    page = browser.get(consent_url).content.decode()
+
+    assert redirect_uri.replace("&", "&amp;") in page
+    assert ("This address is not on your computer" in page) is warned
+
+
+@pytest.mark.django_db
+def test_closed_registration_requires_clients_added_in_the_admin(settings, browser, staff_user):
+    settings.UNFOLD_AGENTIC_LAYER = {"CLOSED_CLIENT_REGISTRATION": True}
+
+    metadata = browser.get("/mcp/o/.well-known/openid-configuration").json()
+    assert "registration_endpoint" not in metadata
+
+    refused = browser.post("/mcp/o/register", data="{}", content_type="application/json")
+    assert refused.status_code == 403
+    assert refused.json()["error"] == "access_denied"
+    assert "MCP clients → Add" in refused.json()["error_description"]
+    assert not OAuthClient.objects.exists()
+
+    browser.force_login(staff_user)
+    add_url = "/admin/django_unfold_agentic_layer/oauthclient/add/"
+    invalid = browser.post(add_url, {"client_name": "Claude Code", "redirect_uris": "not a url"})
+    assert "Invalid redirect URI" in invalid.content.decode()
+
+    browser.post(add_url, {"client_name": "Claude Code", "redirect_uris": f"{REDIRECT_URI}\n"})
+    client = OAuthClient.objects.get()
+    assert client.info["client_name"] == "Claude Code"
+    assert client.info["redirect_uris"] == [REDIRECT_URI]
+    assert client.info["token_endpoint_auth_method"] == "none"  # noqa: S105
+
+    # The hand-added client goes through the normal login flow.
+    authorize = _authorize(browser, client.client_id, REDIRECT_URI)
+    assert authorize.status_code == 302
+    assert "/mcp/o/consent?" in authorize["Location"]

@@ -1,9 +1,10 @@
 """Django side of the MCP OAuth flow — see ``oauth.py`` for the design."""
 
+import ipaddress
 import logging
 from functools import wraps
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import ParseResult, urlparse
 
 from asgiref.sync import async_to_sync
 from django.contrib import admin
@@ -25,6 +26,7 @@ from django_unfold_agentic_layer import oauth
 from django_unfold_agentic_layer.conf import Settings, get_config
 from django_unfold_agentic_layer.mcp_server import bridge
 from django_unfold_agentic_layer.models import OAuthClient
+from django_unfold_agentic_layer.views import login_not_required
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +34,10 @@ logger = logging.getLogger(__name__)
 def _cors_json(data: dict[str, Any], status: int = 200) -> JsonResponse:
     # Browser-based clients (e.g. MCP Inspector) fetch discovery documents cross-origin.
     return JsonResponse(data, status=status, headers={"Access-Control-Allow-Origin": "*"})
+
+
+def _registration_closed() -> bool:
+    return get_config()[Settings.CLOSED_CLIENT_REGISTRATION]
 
 
 def _requires_https_issuer(view):
@@ -49,6 +55,7 @@ def _requires_https_issuer(view):
     return wrapped
 
 
+@login_not_required
 @_requires_https_issuer
 def protected_resource_metadata(request: HttpRequest) -> JsonResponse:
     """RFC 9728 — where the 401's ``WWW-Authenticate`` header points clients."""
@@ -59,6 +66,7 @@ def protected_resource_metadata(request: HttpRequest) -> JsonResponse:
     return _cors_json(metadata.model_dump(mode="json", exclude_none=True))
 
 
+@login_not_required
 @_requires_https_issuer
 def authorization_server_metadata(request: HttpRequest) -> JsonResponse:
     """RFC 8414 metadata, served at the OIDC path-appended location
@@ -67,7 +75,8 @@ def authorization_server_metadata(request: HttpRequest) -> JsonResponse:
     metadata = build_metadata(
         oauth.issuer_url(request),
         None,
-        ClientRegistrationOptions(enabled=True),
+        # No registration_endpoint when closed, so clients don't even try.
+        ClientRegistrationOptions(enabled=not _registration_closed()),
         RevocationOptions(enabled=True),
     )
     metadata.grant_types_supported = ["authorization_code"]  # no refresh tokens
@@ -82,10 +91,12 @@ def authorization_server_metadata(request: HttpRequest) -> JsonResponse:
     return _cors_json(data)
 
 
+@login_not_required
 def jwks(request: HttpRequest) -> JsonResponse:
     return _cors_json({"keys": []})
 
 
+@method_decorator(login_not_required, name="dispatch")
 @method_decorator(csrf_exempt, name="dispatch")
 @method_decorator(_requires_https_issuer, name="dispatch")
 class OAuthEndpointView(View):
@@ -94,6 +105,18 @@ class OAuthEndpointView(View):
     def dispatch(
         self, request: HttpRequest, *args: Any, endpoint: str, **kwargs: Any
     ) -> HttpResponse:
+        if endpoint == "register" and _registration_closed():
+            return _cors_json(
+                {
+                    "error": "access_denied",
+                    "error_description": (
+                        "Client registration is closed on this server. Ask an administrator "
+                        "to add your MCP client in the admin (MCP clients → Add), then "
+                        "configure your client with the client ID they give you."
+                    ),
+                },
+                status=403,
+            )
         if endpoint == "authorize":
             client_id = request.GET.get("client_id") or request.POST.get("client_id")
             if client_id and not OAuthClient.objects.filter(pk=client_id).exists():
@@ -120,6 +143,22 @@ def _unknown_client(request: HttpRequest, client_id: str) -> HttpResponse:
     )
 
 
+def _is_local_redirect(url: ParseResult) -> bool:
+    """Whether the authorization code stays on the user's own device: a
+    loopback http(s) address, or an app's custom scheme (cursor://,
+    vscode://), which the OS hands to an app installed on that device.
+    Anything else sends the code to another host — the phishing case."""
+    if url.scheme not in ("http", "https"):
+        return True
+    host = url.hostname or ""
+    if host == "localhost" or host.endswith(".localhost"):
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
 @method_decorator(staff_member_required, name="dispatch")
 @method_decorator(csrf_protect, name="dispatch")
 @method_decorator(xframe_options_deny, name="dispatch")
@@ -136,7 +175,7 @@ class ConsentView(View):
         if consent is None:
             return HttpResponseBadRequest("Authorization request is invalid or expired.")
         client, params = consent
-        redirect = urlparse(str(params.redirect_uri))
+        redirect_uri = str(params.redirect_uri)
         now = timezone.now()
         return render(
             request,
@@ -147,7 +186,8 @@ class ConsentView(View):
                 "title": _("Authorize MCP client"),
                 "client_name": client.client_name or client.client_id,
                 # What the user can sanity-check: where the code is about to be sent.
-                "redirect_host": redirect.netloc or f"{redirect.scheme}://",
+                "redirect_uri": redirect_uri,
+                "redirect_is_local": _is_local_redirect(urlparse(redirect_uri)),
                 "now": now,
                 "expires_at": now + get_config()[Settings.SESSION_TTL],
             },

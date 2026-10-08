@@ -33,6 +33,10 @@ class Settings(enum.StrEnum):
     #: Alias in ``CACHES`` that remembers already-answered confirmation rounds
     #: (replay protection). Must be shared by every worker process.
     CONFIRMATION_CACHE = "CONFIRMATION_CACHE"
+    #: ``True`` turns off open RFC 7591 registration: ``/register`` refuses,
+    #: and an admin adds each MCP client by hand (admin → MCP clients → Add),
+    #: then gives its client ID to the person who connects.
+    CLOSED_CLIENT_REGISTRATION = "CLOSED_CLIENT_REGISTRATION"
 
 
 class SettingsDict(TypedDict, total=False):
@@ -41,6 +45,7 @@ class SettingsDict(TypedDict, total=False):
     PORTAL_TITLE: str
     SESSION_TTL: timedelta
     CONFIRMATION_CACHE: str
+    CLOSED_CLIENT_REGISTRATION: bool
 
 
 assert SettingsDict.__optional_keys__ == set(Settings), (
@@ -52,6 +57,7 @@ DEFAULTS: Final[Mapping[Settings, Any]] = {
     Settings.PORTAL_TITLE: "Agentic Layer",
     Settings.SESSION_TTL: timedelta(days=1),
     Settings.CONFIRMATION_CACHE: "default",
+    Settings.CLOSED_CLIENT_REGISTRATION: False,
 }
 
 assert all(setting_key in DEFAULTS for setting_key in Settings), (
