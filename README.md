@@ -1,8 +1,8 @@
 <div align="center">
 
-# 🔮 django-unfold-agentic-layer
+### Your Django Unfold admin is already an MCP server
 
-**Turn your Django Unfold admin into an MCP server — AI agents get docs and your live admin, with your permissions**
+**Add one Django app — and AI agents can work with all your models, actions and permissions. Out of the box.**
 
 [![PyPI](https://img.shields.io/pypi/v/django-unfold-agentic-layer?style=flat-square)](https://pypi.org/project/django-unfold-agentic-layer/)
 [![Python](https://img.shields.io/pypi/pyversions/django-unfold-agentic-layer?style=flat-square)](https://pypi.org/project/django-unfold-agentic-layer/)
@@ -23,19 +23,34 @@
 ---
 
 > [!WARNING]
-> **The project is under active development.** APIs and behavior may change. Testing and feedback are very welcome — please [open an issue](https://github.com/JargeZ/django-unfold-agentic-layer/issues) if something breaks!
+> **Experiment. Do not use in production yet.** This project is an experiment with a large share of vibe ~~coding~~ engineering. APIs and behavior can change.
+> But testing is very welcome — if something breaks, please [open an issue](https://github.com/JargeZ/django-unfold-agentic-layer/issues)!
 
-## ✨ What it is
+## Live demo
 
-A regular Django app. Add it to `INSTALLED_APPS`, include its `urls.py` — and your project serves an
-MCP endpoint at `/mcp`. No separate process, works under both WSGI and ASGI.
+Try it on a demo Unfold admin: <https://django-formula-admin-agentic.fly.dev/admin/> (login `demo` / `demo`).
 
-- 📚 **Unfold docs for agents** — 25 tools with the official Django Unfold docs, so agents stop hallucinating settings and imports
-- 🗂️ **Your admin, live** — every registered model as MCP resources (detail + list with your `list_filter`/search) and `create`/`update`/`delete` tools
-- 🛡️ **Admin permissions apply** — an agent sees and does exactly what its user can do in the admin; validation goes through the model's admin form
-- 🔐 **Standard MCP OAuth** — clients log in through your admin login + consent page, only active staff users
+```bash
+claude mcp add --transport http unfold-mcp-demo "https://django-formula-admin-agentic.fly.dev/mcp/"
+```
 
-## 🚀 Installation
+Then run `/mcp` in Claude Code, choose **Authenticate** and sign in with `demo` / `demo`. More about the demo: [JargeZ/formula](https://github.com/JargeZ/formula#readme).
+
+## What it is
+
+You already described your data in the admin: models, `list_filter`, search, forms, actions, permissions.
+This app gives all of it to Claude, Cursor or any other MCP client. You do not write tools or a separate API.
+
+Add it to `INSTALLED_APPS`, include its `urls.py` — and your project serves an MCP endpoint at `/mcp`.
+No separate process, works under both WSGI and ASGI.
+
+- **Your admin, live** — every registered model becomes MCP resources (detail + list with your `list_filter`/search) and `create`/`update`/`delete` tools
+- **All your actions** — every admin and Unfold action becomes a tool, with its form as parameters
+- **Your permissions** — an agent sees and does exactly what its user can do in the admin; validation goes through the model's admin form
+- **Standard MCP OAuth** — clients log in through your admin login + consent page, only active staff users
+- **Unfold docs for agents** — 25 tools with the official Django Unfold docs, so agents stop inventing settings and imports
+
+## Installation
 
 **Requirements:** Python 3.11+, Django 5.0+, `django-unfold` 0.91+.
 
@@ -91,7 +106,7 @@ urlpatterns = [
 python manage.py migrate
 ```
 
-## 🔌 Connecting clients
+## Connecting clients
 
 Clients log in on their own via standard MCP OAuth: the browser opens your admin login, then a consent page.
 
@@ -128,7 +143,7 @@ npx @modelcontextprotocol/inspector
 >
 > Requests without a token act as the first active superuser; permission filtering still applies.
 
-### 🌐 HTTPS and reverse proxies
+### HTTPS and reverse proxies
 
 MCP OAuth requires `https` (plain `http` works only on `localhost`/`127.0.0.1`). All OAuth URLs are
 built from the incoming request with Django's standard `request.build_absolute_uri()`, so behind a
@@ -144,21 +159,21 @@ USE_X_FORWARDED_HOST = True  # only if the proxy rewrites Host
 Without it, the OAuth endpoints answer `500` with `"error": "server_error"` and a description of
 exactly this fix instead of advertising unusable `http://` URLs.
 
-## 🧰 What the agent gets
+## What the agent gets
 
 | Primitive | Example | What it does |
 |---|---|---|
-| 📚 Doc tools | `unfold_filters`, `unfold_search_docs` | Django Unfold docs, including all third-party integrations |
-| 📄 Detail resource | `dj-admin://blog/blogpost/42/` | One object's fields as JSON + Markdown; FK/M2M as links |
-| 📋 List resource | `dj-admin://blog/blogpost/{?params}` | Your `list_filter`/search params, `limit`/`offset`/`order_by` |
-| ✏️ Tools | `create_blog_blogpost`, `update_blog_blogpost` | Through the admin form; errors come back per field |
-| 🗑️ Tool | `delete_blog_blogpost` | Asks for confirmation before deleting |
-| ⚡ Action tools | `run_blog_blogpost_publish_posts` | Every admin/Unfold action (bulk, list, row, detail) with its form; `DANGER` ones ask for confirmation |
+| Doc tools | `unfold_filters`, `unfold_search_docs` | Django Unfold docs, including all third-party integrations |
+| Detail resource | `dj-admin://blog/blogpost/42/` | One object's fields as JSON + Markdown; FK/M2M as links |
+| List resource | `dj-admin://blog/blogpost/{?params}` | Your `list_filter`/search params, `limit`/`offset`/`order_by` |
+| Tools | `create_blog_blogpost`, `update_blog_blogpost` | Through the admin form; errors come back per field |
+| Tool | `delete_blog_blogpost` | Asks for confirmation before deleting |
+| Action tools | `run_blog_blogpost_publish_posts` | Every admin/Unfold action (bulk, list, row, detail) with its form; `DANGER` ones ask for confirmation |
 
 Everything goes through the admin's own `has_*_permission` checks, re-run on every request — the agent never sees
 or does what its user can't do in the admin right now; granting or revoking a permission applies to the very next call.
 
-## 🔐 Access and sessions
+## Access and sessions
 
 - Only active **staff** users can log in; `is_active`/`is_staff` is re-checked on every request — un-staffing someone cuts off their tokens immediately.
 - The Django session cookie does **not** authenticate `/mcp` — only the `Bearer` token does.
@@ -166,7 +181,7 @@ or does what its user can't do in the admin right now; granting or revoking a pe
 - Clients and tokens are visible in the admin — deleting one revokes it. A deleted client gets a page asking the person to
   clear the saved authentication in their MCP client (Claude Code: `/mcp` → server → Clear authentication) and reconnect.
 
-## ⚙️ Settings
+## Settings
 
 All optional — an `UNFOLD_AGENTIC_LAYER` dict, the same override pattern as Unfold's `UNFOLD`:
 
@@ -184,7 +199,7 @@ UNFOLD_AGENTIC_LAYER = {
 
 The full list is in [`conf.py`](packages/django-unfold-agentic-layer/src/django_unfold_agentic_layer/conf.py).
 
-## 🗺️ Roadmap
+## Roadmap
 
 - [x] Admin actions (`@action`) as MCP tools
 - [ ] Submit-line actions (`actions_submit_line`)
@@ -194,7 +209,7 @@ The full list is in [`conf.py`](packages/django-unfold-agentic-layer/src/django_
 
 Details in [CLAUDE.md](CLAUDE.md) and [docs/specs](docs/specs/dynamic-admin-mcp-primitives.md).
 
-## 🛠️ Development
+## Development
 
 The repo is a [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/); the package lives in `packages/django-unfold-agentic-layer/`.
 
@@ -213,14 +228,14 @@ Architecture and conventions are in [CLAUDE.md](CLAUDE.md).
 > [**orca-recipes**](https://github.com/JargeZ/orca-recipes): per-workspace Docker environments for
 > next-gen dev setups (Claude Code, Cursor, OpenCode). This repo ships one: `orca.yaml` + `dev.Dockerfile`.
 
-## 🤝 Contributing
+## Contributing
 
 Issues and pull requests are welcome!
 
-## 🙏 Credits
+## Credits
 
 Inspired by [rissets/mcp-django-unfold](https://github.com/rissets/mcp-django-unfold) — the project that sparked the idea of building a full MCP compatibility layer for Django Unfold. The Unfold documentation skills are taken from that repository; everything else is a completely new implementation.
 
-## 📄 License
+## License
 
 [MIT](LICENSE)

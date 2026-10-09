@@ -1,6 +1,20 @@
-# django-unfold-agentic-layer
+**Your [Django Unfold](https://unfoldadmin.com) admin is already an MCP server.** Add one Django app — and AI agents can work with all your models, actions and permissions. Out of the box.
 
-An installable Django app (`INSTALLED_APPS`) that turns your project into an MCP (Model Context Protocol) server for the [Django Unfold](https://unfoldadmin.com) admin theme — AI clients that speak MCP over Streamable HTTP get a documentation-aware endpoint with zero extra process to run.
+You already described your data in the admin: models, `list_filter`, search, forms, actions, permissions. This app gives all of it to Claude, Cursor or any other MCP client over Streamable HTTP. You do not write tools or a separate API, and you do not run a separate process.
+
+> [!WARNING]
+> **Experiment. Do not use in production yet.** This project is an experiment with a large share of vibe ~~coding~~ engineering. APIs and behavior can change.
+> But testing is very welcome — if something breaks, please [open an issue](https://github.com/JargeZ/django-unfold-agentic-layer/issues)!
+
+## Live demo
+
+Try it on a demo Unfold admin: <https://django-formula-admin-agentic.fly.dev/admin/> (login `demo` / `demo`).
+
+```bash
+claude mcp add --transport http unfold-mcp-demo "https://django-formula-admin-agentic.fly.dev/mcp/"
+```
+
+Then run `/mcp` in Claude Code, choose **Authenticate** and sign in with `demo` / `demo`. More about the demo: [JargeZ/formula](https://github.com/JargeZ/formula#readme).
 
 ## Install
 
