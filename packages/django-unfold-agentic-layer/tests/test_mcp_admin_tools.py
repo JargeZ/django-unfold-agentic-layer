@@ -98,6 +98,34 @@ def test_create_tool_creates_instance(client, bearer_login, staff_user):
 
 
 @pytest.mark.django_db
+def test_related_fields_accept_resource_uris(client, bearer_login, staff_user, regular_user):
+    # Resources render relations as dj-admin:// URIs; agents paste them back.
+    bearer_login(client, staff_user)
+
+    result = _call_tool(
+        client,
+        "create_blog_blogpost",
+        {
+            "title": "Via URI",
+            "author": f"dj-admin://auth/user/{staff_user.pk}/",
+            "status": "draft",
+        },
+    )
+    assert result["success"] is True, result
+    post = BlogPost.objects.get(pk=result["pk"])
+    assert post.author_id == staff_user.pk
+
+    # An int pk works too; a URI of another model is still rejected by the form.
+    assert _call_tool(client, "update_blog_blogpost", {"pk": post.pk, "editor": regular_user.pk})[
+        "success"
+    ]
+    wrong = _call_tool(
+        client, "update_blog_blogpost", {"pk": post.pk, "editor": "dj-admin://blog/blogpost/1/"}
+    )
+    assert wrong["errors"]["editor"][0]["code"] == "invalid_choice"
+
+
+@pytest.mark.django_db
 def test_create_tool_reports_validation_errors(client, bearer_login, staff_user):
     bearer_login(client, staff_user)
 
@@ -194,6 +222,29 @@ def test_delete_tool_reports_protected_references(client, bearer_login, staff_us
         f"comment Referenced: hi (pk={comment.pk}). Delete or reassign those first."
     )
     assert BlogPost.objects.filter(pk=post.pk).exists()
+
+
+@pytest.mark.django_db
+def test_delete_tool_counts_unlisted_protected_references(client, bearer_login, staff_user):
+    post = BlogPost.objects.create(title="Popular", author=staff_user)
+    Comment.objects.bulk_create(Comment(post=post, text=str(i)) for i in range(12))
+    bearer_login(client, staff_user)
+    call = {"name": "delete_blog_blogpost", "arguments": {"pk": str(post.pk)}}
+
+    first = _modern_rpc(client, "tools/call", call)
+    second = _modern_rpc(
+        client,
+        "tools/call",
+        {
+            **call,
+            "inputResponses": {"confirm": {"action": "accept", "content": {"confirmed": True}}},
+            "requestState": first["requestState"],
+        },
+    )
+
+    text = second["content"][0]["text"]
+    assert text.count("comment Popular:") == 10
+    assert " and 2 more. Delete or reassign those first." in text
 
 
 @pytest.mark.django_db

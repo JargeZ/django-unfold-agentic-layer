@@ -171,6 +171,54 @@ def test_read_list_resource_applies_custom_and_autocomplete_filters(
 
 
 @pytest.mark.django_db
+def test_read_list_resource_defaults_to_a_small_page_and_orders_by_pk(
+    client, bearer_login, staff_user
+):
+    BlogPost.objects.bulk_create(BlogPost(title=str(i), author=staff_user) for i in range(25))
+    bearer_login(client, staff_user)
+
+    result = _read_resource(client, "dj-admin://blog/blogpost/")
+    assert result["_meta"] == {"total": 25, "count": 20}
+
+    result = _read_resource(client, "dj-admin://blog/blogpost/?order_by=-pk&limit=2")
+    pks = [item["pk"] for item in json.loads(result["contents"][0]["text"])]
+    assert pks == sorted(BlogPost.objects.values_list("pk", flat=True), reverse=True)[:2]
+
+
+def _read_resource_error(client, uri):
+    payload = {"jsonrpc": "2.0", "id": 1, "method": "resources/read", "params": {"uri": uri}}
+    response = client.post(
+        MCP_URL,
+        data=json.dumps(payload),
+        content_type="application/json",
+        HTTP_ACCEPT="application/json",
+    )
+    return response.json()["error"]["message"]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("query", "message"),
+    [
+        # Unfold's RelatedDropdownFilter declares __isnull but ignores it.
+        ("editor__isnull=True", "Filter ignored editor__isnull='True'"),
+        # A custom SimpleListFilter: only its declared lookups are valid.
+        ("has_editor=maybe", "Filter ignored has_editor='maybe'"),
+        ("order_by=nope", "Invalid order_by 'nope'. Allowed: pk, -pk, title, -title"),
+    ],
+)
+def test_read_list_resource_rejects_what_it_would_silently_ignore(
+    client, bearer_login, staff_user, query, message
+):
+    bearer_login(client, staff_user)
+
+    error = _read_resource_error(client, f"dj-admin://blog/blogpost/?{query}")
+
+    assert message in error
+    assert "<locals>" not in error
+
+
+@pytest.mark.django_db
 def test_staff_user_without_permissions_sees_no_admin_resources(
     client, bearer_login, staff_user_without_permissions
 ):

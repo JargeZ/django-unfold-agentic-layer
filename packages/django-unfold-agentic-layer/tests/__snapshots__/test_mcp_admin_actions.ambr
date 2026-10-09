@@ -12,11 +12,14 @@
                 'type': 'string',
               }),
               dict({
+                'type': 'integer',
+              }),
+              dict({
                 'type': 'null',
               }),
             ]),
             'default': None,
-            'description': 'editor. Browse valid values at dj-admin://auth/user/',
+            'description': 'editor. Pass a pk or its dj-admin://auth/user/{pk}/ URI; browse valid values at dj-admin://auth/user/',
           }),
           'pks': dict({
             'description': 'Primary keys of the instances to run the action on.',
@@ -51,11 +54,14 @@
                 'type': 'string',
               }),
               dict({
+                'type': 'integer',
+              }),
+              dict({
                 'type': 'null',
               }),
             ]),
             'default': None,
-            'description': 'editor. Browse valid values at dj-admin://auth/user/',
+            'description': 'editor. Pass a pk or its dj-admin://auth/user/{pk}/ URI; browse valid values at dj-admin://auth/user/',
           }),
           'pks': dict({
             'description': 'Primary keys of the instances to run the action on.',
@@ -90,11 +96,14 @@
                 'type': 'string',
               }),
               dict({
+                'type': 'integer',
+              }),
+              dict({
                 'type': 'null',
               }),
             ]),
             'default': None,
-            'description': 'editor. Browse valid values at dj-admin://auth/user/',
+            'description': 'editor. Pass a pk or its dj-admin://auth/user/{pk}/ URI; browse valid values at dj-admin://auth/user/',
           }),
           'pks': dict({
             'description': 'Primary keys of the instances to run the action on.',

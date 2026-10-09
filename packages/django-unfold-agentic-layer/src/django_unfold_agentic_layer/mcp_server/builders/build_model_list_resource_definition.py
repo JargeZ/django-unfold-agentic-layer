@@ -1,5 +1,5 @@
 import inspect
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any
 
 from django.contrib.admin import ModelAdmin
 from django.core.exceptions import PermissionDenied
@@ -29,6 +29,13 @@ from django_unfold_agentic_layer.resources.schemas import AdminModelResource, Fi
 #: can't accidentally request the entire table in one call.
 _MAX_LIMIT = 200
 
+#: Default page size: an admin's ``list_per_page`` (Unfold: 100) is sized for
+#: a browser screen, far too much for an agent's context.
+_DEFAULT_LIMIT = 20
+
+#: Always sortable, even when ``list_display`` has no sortable column.
+_PK_ORDERINGS = ["pk", "-pk"]
+
 
 class BuildModelListResourceDefinition(BaseLogicAction):
     """Registers ``dj-admin://{app_label}/{model_name}/{?params}`` on ``mcp`` (spec §3.2).
@@ -45,11 +52,16 @@ class BuildModelListResourceDefinition(BaseLogicAction):
     def execute(
         self, mcp: FastMCP, model_admin: ModelAdmin, model_resource: AdminModelResource
     ) -> None:
+        default_limit = min(model_resource.list_per_page, _DEFAULT_LIMIT)
+        orderings = [
+            *_PK_ORDERINGS,
+            *(name for field in model_resource.sortable_fields for name in (field, f"-{field}")),
+        ]
         parameters = [
             *self._filter_parameters(model_resource.filter_fields),
-            self._limit_parameter(model_resource.list_per_page),
+            self._limit_parameter(default_limit),
             self._offset_parameter(),
-            *self._order_by_parameter(model_resource.sortable_fields),
+            self._order_by_parameter(orderings),
         ]
 
         def run(kwargs: dict[str, Any]) -> ResourceResult:
@@ -60,12 +72,17 @@ class BuildModelListResourceDefinition(BaseLogicAction):
                 raise PermissionDenied(
                     f"You do not have permission to view {model_resource.verbose_name_plural}."
                 )
-            limit = kwargs.get("limit", model_resource.list_per_page)
+            limit = kwargs.get("limit", default_limit)
             offset = kwargs.get("offset", 0)
+            # Validated here, not as a Literal: pydantic's rejection would
+            # reach the agent as a raw dump naming this closure.
+            order_by = kwargs.get("order_by")
+            if order_by is not None and order_by not in orderings:
+                raise ValueError(f"Invalid order_by {order_by!r}. Allowed: {', '.join(orderings)}.")
 
             filtered_request = ApplyMCPFiltersToRequest().execute(request, model_admin, kwargs)
             instances, total = RunAdminChangelistQuery().execute(
-                model_admin, filtered_request, limit, offset
+                model_admin, filtered_request, limit, offset, order_by
             )
             return BuildListResourceResult().execute(
                 model_admin, filtered_request, model_resource, instances, total
@@ -87,8 +104,9 @@ class BuildModelListResourceDefinition(BaseLogicAction):
         uri_template = f"{base_uri}{{?{query_param_names}}}"
         name = f"{model_resource.verbose_name_plural} (list)"
         description = (
-            f"First page of {model_resource.verbose_name_plural}. "
-            f"Filter, sort and paginate via {uri_template}; one record via {base_uri}{{pk}}/."
+            f"First {default_limit} {model_resource.verbose_name_plural}. "
+            f"Filter, sort and paginate via {uri_template} (meta.total is the full count); "
+            f"one record via {base_uri}{{pk}}/."
         )
         if model_resource.description:
             description = f"{model_resource.description}\n\n{description}"
@@ -128,11 +146,11 @@ class BuildModelListResourceDefinition(BaseLogicAction):
             description = f"{description}. Example values: {examples}"
         return description
 
-    def _limit_parameter(self, list_per_page: int) -> inspect.Parameter:
+    def _limit_parameter(self, default_limit: int) -> inspect.Parameter:
         return inspect.Parameter(
             "limit",
             kind=inspect.Parameter.KEYWORD_ONLY,
-            default=list_per_page,
+            default=default_limit,
             annotation=Annotated[
                 int, Field(ge=1, le=_MAX_LIMIT, description="Max rows to return.")
             ],
@@ -146,18 +164,16 @@ class BuildModelListResourceDefinition(BaseLogicAction):
             annotation=Annotated[int, Field(ge=0, description="Rows to skip, for pagination.")],
         )
 
-    def _order_by_parameter(self, sortable_fields: list[str]) -> list[inspect.Parameter]:
-        if not sortable_fields:
-            return []
-        values = [name for field in sortable_fields for name in (field, f"-{field}")]
-        return [
-            inspect.Parameter(
-                "order_by",
-                kind=inspect.Parameter.KEYWORD_ONLY,
-                default=None,
-                annotation=Annotated[
-                    Literal[tuple(values)] | None,
-                    Field(description="Field to sort by; prefix with - for descending."),
-                ],
-            )
-        ]
+    def _order_by_parameter(self, orderings: list[str]) -> inspect.Parameter:
+        return inspect.Parameter(
+            "order_by",
+            kind=inspect.Parameter.KEYWORD_ONLY,
+            default=None,
+            annotation=Annotated[
+                str | None,
+                Field(
+                    description="Field to sort by; prefix with - for descending. "
+                    f"One of: {', '.join(orderings)}."
+                ),
+            ],
+        )

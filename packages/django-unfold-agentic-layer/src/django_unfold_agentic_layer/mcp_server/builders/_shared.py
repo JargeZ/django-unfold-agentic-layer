@@ -52,8 +52,6 @@ _BASE_TYPES: dict[str, type] = {
     "int": int,
     "float": float,
     "bool": bool,
-    "related": str,
-    "multi_related": list[str],
 }
 
 
@@ -111,15 +109,23 @@ def build_editable_field_parameter(field: EditableFieldInfo) -> inspect.Paramete
     and ``UpdateModelInstance`` merges the rest in from the current instance
     before validating.
     """
-    base_type = (
-        _choice_literal(field) if field.python_type == "choice" else _BASE_TYPES[field.python_type]
-    )
+    if field.python_type in ("related", "multi_related"):
+        # Resources render relations as dj-admin:// URIs; accept them back.
+        related_pk = Annotated[str | int, AfterValidator(_uri_to_pk(field.related_resource_uri))]
+        base_type = list[related_pk] if field.python_type == "multi_related" else related_pk
+    elif field.python_type == "choice":
+        base_type = _choice_literal(field)
+    else:
+        base_type = _BASE_TYPES[field.python_type]
 
     description = field.title if not field.help_text else f"{field.title} — {field.help_text}"
     if field.required:
         description = f"{description} (required)"
     if field.related_resource_uri:
-        description = f"{description}. Browse valid values at {field.related_resource_uri}"
+        description = (
+            f"{description}. Pass a pk or its {field.related_resource_uri}{{pk}}/ URI; "
+            f"browse valid values at {field.related_resource_uri}"
+        )
 
     return inspect.Parameter(
         field.name,
@@ -127,6 +133,17 @@ def build_editable_field_parameter(field: EditableFieldInfo) -> inspect.Paramete
         default=None,
         annotation=Annotated[base_type | None, Field(description=description)],
     )
+
+
+def _uri_to_pk(prefix: str) -> Callable[[str | int], str]:
+    """``dj-admin://app/model/187/`` -> ``"187"``. A URI of another model is
+    left as-is, so the form rejects it with its own ``invalid_choice``."""
+
+    def to_pk(value: str | int) -> str:
+        value = str(value)
+        return value.removeprefix(prefix).rstrip("/") if value.startswith(prefix) else value
+
+    return to_pk
 
 
 def _choice_literal(field: EditableFieldInfo) -> type:

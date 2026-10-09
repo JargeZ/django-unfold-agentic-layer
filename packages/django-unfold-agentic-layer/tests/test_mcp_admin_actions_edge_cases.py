@@ -7,7 +7,9 @@ and regression guards for the bugs it found (F1–F5).
 import json
 
 import pytest
+from django.contrib import admin
 from django.core.cache import caches
+from django.http import HttpResponse
 from server.apps.blog.models import BlogPost
 
 from tests.test_mcp_admin_actions import _call, _rpc, _run_tools
@@ -188,6 +190,35 @@ def test_publish_posts_ignores_duplicate_pks_but_rejects_missing_ones(logged_in,
         logged_in, "run_blog_blogpost_publish_posts", {"pks": [str(post.pk), str(post.pk)]}
     )
     assert duplicated["messages"] == [{"level": "success", "message": "Published 1 post(s)."}]
+
+
+@pytest.mark.django_db
+def test_bulk_action_reports_invalid_and_missing_pks_together(logged_in, post):
+    result = _call_tool(
+        logged_in, "run_blog_blogpost_publish_posts", {"pks": [MISSING_PK, "abc", "-1"]}
+    )
+    assert result["errors"] == {
+        "pks": [
+            {"message": "Invalid primary key(s): abc.", "code": "invalid"},
+            {"message": f"No blog post found with pk(s): {MISSING_PK}, -1.", "code": "not_found"},
+        ]
+    }
+
+
+@pytest.mark.django_db
+def test_action_answering_with_a_browser_page_is_not_a_success(logged_in, post, monkeypatch):
+    # Like an action that renders its own form instead of using an Unfold dialog.
+    monkeypatch.setattr(
+        admin.site._registry[BlogPost],
+        "feature_post",
+        lambda request, object_id: HttpResponse("<form></form>"),
+    )
+
+    result = _call_tool(logged_in, "run_blog_blogpost_feature_post", {"pk": post.pk})
+
+    assert result["success"] is False
+    assert result["returned_page"] is True
+    assert result["errors"]["__all__"][0]["code"] == "browser_only"
 
 
 @pytest.mark.django_db

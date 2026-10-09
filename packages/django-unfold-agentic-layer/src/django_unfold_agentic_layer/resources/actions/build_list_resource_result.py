@@ -31,6 +31,8 @@ class BuildListResourceResult(BaseLogicAction):
         render_markdown = RenderModelInstanceMarkdown()
 
         json_items = [get_json.execute(model_admin, request, obj) for obj in instances]
+        # TODO: reconsider returning both JSON and Markdown for lists — it
+        # doubles the response size.
         markdown = (
             "\n\n---\n\n".join(render_markdown.execute(item, model_resource) for item in json_items)
             or "*(no results)*"

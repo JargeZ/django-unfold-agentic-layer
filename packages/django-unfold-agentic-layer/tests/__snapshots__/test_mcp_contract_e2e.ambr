@@ -339,7 +339,7 @@
             ]),
           }),
         }),
-        'description': 'First page of groups. Filter, sort and paginate via dj-admin://auth/group/{?q,limit,offset,order_by}; one record via dj-admin://auth/group/{pk}/.',
+        'description': 'First 20 groups. Filter, sort and paginate via dj-admin://auth/group/{?q,limit,offset,order_by} (meta.total is the full count); one record via dj-admin://auth/group/{pk}/.',
         'mimeType': 'application/json',
         'name': 'groups (list)',
         'uriTemplate': 'dj-admin://auth/group/{?q,limit,offset,order_by}',
@@ -362,7 +362,7 @@
             ]),
           }),
         }),
-        'description': 'First page of users. Filter, sort and paginate via dj-admin://auth/user/{?q,is_staff__exact,is_staff__isnull,is_superuser__exact,is_superuser__isnull,is_active__exact,is_active__isnull,limit,offset,order_by}; one record via dj-admin://auth/user/{pk}/.',
+        'description': 'First 20 users. Filter, sort and paginate via dj-admin://auth/user/{?q,is_staff__exact,is_staff__isnull,is_superuser__exact,is_superuser__isnull,is_active__exact,is_active__isnull,limit,offset,order_by} (meta.total is the full count); one record via dj-admin://auth/user/{pk}/.',
         'mimeType': 'application/json',
         'name': 'users (list)',
         'uriTemplate': 'dj-admin://auth/user/{?q,is_staff__exact,is_staff__isnull,is_superuser__exact,is_superuser__isnull,is_active__exact,is_active__isnull,limit,offset,order_by}',
@@ -385,7 +385,7 @@
             ]),
           }),
         }),
-        'description': 'First page of blog posts. Filter, sort and paginate via dj-admin://blog/blogpost/{?q,editor__id__exact,editor__isnull,has_editor,status__exact,status__isnull,is_featured__exact,is_featured__isnull,created_at__gte,created_at__lt,limit,offset,order_by}; one record via dj-admin://blog/blogpost/{pk}/.',
+        'description': 'First 20 blog posts. Filter, sort and paginate via dj-admin://blog/blogpost/{?q,editor__id__exact,editor__isnull,has_editor,status__exact,status__isnull,is_featured__exact,is_featured__isnull,created_at__gte,created_at__lt,limit,offset,order_by} (meta.total is the full count); one record via dj-admin://blog/blogpost/{pk}/.',
         'mimeType': 'application/json',
         'name': 'blog posts (list)',
         'uriTemplate': 'dj-admin://blog/blogpost/{?q,editor__id__exact,editor__isnull,has_editor,status__exact,status__isnull,is_featured__exact,is_featured__isnull,created_at__gte,created_at__lt,limit,offset,order_by}',
@@ -403,7 +403,7 @@
             ]),
           }),
         }),
-        'description': 'First page of groups. Filter, sort and paginate via dj-admin://auth/group/{?q,limit,offset,order_by}; one record via dj-admin://auth/group/{pk}/.',
+        'description': 'First 20 groups. Filter, sort and paginate via dj-admin://auth/group/{?q,limit,offset,order_by} (meta.total is the full count); one record via dj-admin://auth/group/{pk}/.',
         'mimeType': 'application/json',
         'name': 'groups (list)',
         'uri': 'dj-admin://auth/group/',
@@ -415,7 +415,7 @@
             ]),
           }),
         }),
-        'description': 'First page of users. Filter, sort and paginate via dj-admin://auth/user/{?q,is_staff__exact,is_staff__isnull,is_superuser__exact,is_superuser__isnull,is_active__exact,is_active__isnull,limit,offset,order_by}; one record via dj-admin://auth/user/{pk}/.',
+        'description': 'First 20 users. Filter, sort and paginate via dj-admin://auth/user/{?q,is_staff__exact,is_staff__isnull,is_superuser__exact,is_superuser__isnull,is_active__exact,is_active__isnull,limit,offset,order_by} (meta.total is the full count); one record via dj-admin://auth/user/{pk}/.',
         'mimeType': 'application/json',
         'name': 'users (list)',
         'uri': 'dj-admin://auth/user/',
@@ -427,7 +427,7 @@
             ]),
           }),
         }),
-        'description': 'First page of blog posts. Filter, sort and paginate via dj-admin://blog/blogpost/{?q,editor__id__exact,editor__isnull,has_editor,status__exact,status__isnull,is_featured__exact,is_featured__isnull,created_at__gte,created_at__lt,limit,offset,order_by}; one record via dj-admin://blog/blogpost/{pk}/.',
+        'description': 'First 20 blog posts. Filter, sort and paginate via dj-admin://blog/blogpost/{?q,editor__id__exact,editor__isnull,has_editor,status__exact,status__isnull,is_featured__exact,is_featured__isnull,created_at__gte,created_at__lt,limit,offset,order_by} (meta.total is the full count); one record via dj-admin://blog/blogpost/{pk}/.',
         'mimeType': 'application/json',
         'name': 'blog posts (list)',
         'uri': 'dj-admin://blog/blogpost/',
@@ -465,7 +465,14 @@
               'anyOf': list([
                 dict({
                   'items': dict({
-                    'type': 'string',
+                    'anyOf': list([
+                      dict({
+                        'type': 'string',
+                      }),
+                      dict({
+                        'type': 'integer',
+                      }),
+                    ]),
                   }),
                   'type': 'array',
                 }),
@@ -474,7 +481,7 @@
                 }),
               ]),
               'default': None,
-              'description': 'Permissions — Hold down “Control”, or “Command” on a Mac, to select more than one.. Browse valid values at dj-admin://auth/permission/',
+              'description': 'Permissions — Hold down “Control”, or “Command” on a Mac, to select more than one.. Pass a pk or its dj-admin://auth/permission/{pk}/ URI; browse valid values at dj-admin://auth/permission/',
             }),
           }),
           'type': 'object',
@@ -509,7 +516,14 @@
               'anyOf': list([
                 dict({
                   'items': dict({
-                    'type': 'string',
+                    'anyOf': list([
+                      dict({
+                        'type': 'string',
+                      }),
+                      dict({
+                        'type': 'integer',
+                      }),
+                    ]),
                   }),
                   'type': 'array',
                 }),
@@ -518,7 +532,7 @@
                 }),
               ]),
               'default': None,
-              'description': 'Permissions — Hold down “Control”, or “Command” on a Mac, to select more than one.. Browse valid values at dj-admin://auth/permission/',
+              'description': 'Permissions — Hold down “Control”, or “Command” on a Mac, to select more than one.. Pass a pk or its dj-admin://auth/permission/{pk}/ URI; browse valid values at dj-admin://auth/permission/',
             }),
             'pk': dict({
               'anyOf': list([
@@ -550,7 +564,7 @@
         'annotations': dict({
           'destructiveHint': True,
         }),
-        'description': 'Delete a group. Asks for confirmation before deleting.',
+        'description': "Delete a group. Destructive: the server asks the client for the user's confirmation before deleting.",
         'inputSchema': dict({
           'additionalProperties': False,
           'properties': dict({
@@ -705,7 +719,14 @@
               'anyOf': list([
                 dict({
                   'items': dict({
-                    'type': 'string',
+                    'anyOf': list([
+                      dict({
+                        'type': 'string',
+                      }),
+                      dict({
+                        'type': 'integer',
+                      }),
+                    ]),
                   }),
                   'type': 'array',
                 }),
@@ -714,7 +735,7 @@
                 }),
               ]),
               'default': None,
-              'description': 'Groups — The groups this user belongs to. A user will get all permissions granted to each of their groups. Hold down “Control”, or “Command” on a Mac, to select more than one.. Browse valid values at dj-admin://auth/group/',
+              'description': 'Groups — The groups this user belongs to. A user will get all permissions granted to each of their groups. Hold down “Control”, or “Command” on a Mac, to select more than one.. Pass a pk or its dj-admin://auth/group/{pk}/ URI; browse valid values at dj-admin://auth/group/',
             }),
             'is_active': dict({
               'anyOf': list([
@@ -791,7 +812,14 @@
               'anyOf': list([
                 dict({
                   'items': dict({
-                    'type': 'string',
+                    'anyOf': list([
+                      dict({
+                        'type': 'string',
+                      }),
+                      dict({
+                        'type': 'integer',
+                      }),
+                    ]),
                   }),
                   'type': 'array',
                 }),
@@ -800,7 +828,7 @@
                 }),
               ]),
               'default': None,
-              'description': 'User permissions — Specific permissions for this user. Hold down “Control”, or “Command” on a Mac, to select more than one.. Browse valid values at dj-admin://auth/permission/',
+              'description': 'User permissions — Specific permissions for this user. Hold down “Control”, or “Command” on a Mac, to select more than one.. Pass a pk or its dj-admin://auth/permission/{pk}/ URI; browse valid values at dj-admin://auth/permission/',
             }),
             'username': dict({
               'anyOf': list([
@@ -833,7 +861,7 @@
         'annotations': dict({
           'destructiveHint': True,
         }),
-        'description': 'Delete a user. Asks for confirmation before deleting.',
+        'description': "Delete a user. Destructive: the server asks the client for the user's confirmation before deleting.",
         'inputSchema': dict({
           'additionalProperties': False,
           'properties': dict({
@@ -885,11 +913,14 @@
                   'type': 'string',
                 }),
                 dict({
+                  'type': 'integer',
+                }),
+                dict({
                   'type': 'null',
                 }),
               ]),
               'default': None,
-              'description': 'Author (required). Browse valid values at dj-admin://auth/user/',
+              'description': 'Author (required). Pass a pk or its dj-admin://auth/user/{pk}/ URI; browse valid values at dj-admin://auth/user/',
             }),
             'body': dict({
               'anyOf': list([
@@ -909,11 +940,14 @@
                   'type': 'string',
                 }),
                 dict({
+                  'type': 'integer',
+                }),
+                dict({
                   'type': 'null',
                 }),
               ]),
               'default': None,
-              'description': 'Editor. Browse valid values at dj-admin://auth/user/',
+              'description': 'Editor. Pass a pk or its dj-admin://auth/user/{pk}/ URI; browse valid values at dj-admin://auth/user/',
             }),
             'is_featured': dict({
               'anyOf': list([
@@ -991,11 +1025,14 @@
                   'type': 'string',
                 }),
                 dict({
+                  'type': 'integer',
+                }),
+                dict({
                   'type': 'null',
                 }),
               ]),
               'default': None,
-              'description': 'Author (required). Browse valid values at dj-admin://auth/user/',
+              'description': 'Author (required). Pass a pk or its dj-admin://auth/user/{pk}/ URI; browse valid values at dj-admin://auth/user/',
             }),
             'body': dict({
               'anyOf': list([
@@ -1015,11 +1052,14 @@
                   'type': 'string',
                 }),
                 dict({
+                  'type': 'integer',
+                }),
+                dict({
                   'type': 'null',
                 }),
               ]),
               'default': None,
-              'description': 'Editor. Browse valid values at dj-admin://auth/user/',
+              'description': 'Editor. Pass a pk or its dj-admin://auth/user/{pk}/ URI; browse valid values at dj-admin://auth/user/',
             }),
             'is_featured': dict({
               'anyOf': list([
@@ -1104,7 +1144,7 @@
         'annotations': dict({
           'destructiveHint': True,
         }),
-        'description': 'Delete a blog post. Asks for confirmation before deleting.',
+        'description': "Delete a blog post. Destructive: the server asks the client for the user's confirmation before deleting.",
         'inputSchema': dict({
           'additionalProperties': False,
           'properties': dict({
@@ -1156,11 +1196,14 @@
                   'type': 'string',
                 }),
                 dict({
+                  'type': 'integer',
+                }),
+                dict({
                   'type': 'null',
                 }),
               ]),
               'default': None,
-              'description': 'editor. Browse valid values at dj-admin://auth/user/',
+              'description': 'editor. Pass a pk or its dj-admin://auth/user/{pk}/ URI; browse valid values at dj-admin://auth/user/',
             }),
             'pks': dict({
               'description': 'Primary keys of the instances to run the action on.',
@@ -1202,11 +1245,14 @@
                   'type': 'string',
                 }),
                 dict({
+                  'type': 'integer',
+                }),
+                dict({
                   'type': 'null',
                 }),
               ]),
               'default': None,
-              'description': 'editor. Browse valid values at dj-admin://auth/user/',
+              'description': 'editor. Pass a pk or its dj-admin://auth/user/{pk}/ URI; browse valid values at dj-admin://auth/user/',
             }),
             'pks': dict({
               'description': 'Primary keys of the instances to run the action on.',
@@ -1251,11 +1297,14 @@
                   'type': 'string',
                 }),
                 dict({
+                  'type': 'integer',
+                }),
+                dict({
                   'type': 'null',
                 }),
               ]),
               'default': None,
-              'description': 'editor. Browse valid values at dj-admin://auth/user/',
+              'description': 'editor. Pass a pk or its dj-admin://auth/user/{pk}/ URI; browse valid values at dj-admin://auth/user/',
             }),
             'pks': dict({
               'description': 'Primary keys of the instances to run the action on.',

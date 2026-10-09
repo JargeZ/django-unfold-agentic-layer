@@ -29,7 +29,9 @@ class ApplyMCPFiltersToRequest(BaseLogicAction):
         params.pop("offset", None)
 
         get_params = {key: value for key, value in params.items() if value is not None}
-        if order_by:
+        # pk isn't a list_display column, so it has no o= index;
+        # RunAdminChangelistQuery orders by it directly.
+        if order_by and order_by.removeprefix("-") != "pk":
             get_params["o"] = self._translate_order_by(model_admin, request, order_by)
 
         new_request = copy.copy(request)

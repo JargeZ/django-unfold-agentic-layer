@@ -91,37 +91,31 @@ class RunAdminAction(BaseLogicAction):
                     success=False,
                     errors={"pks": [{"message": "Select at least one item.", "code": "required"}]},
                 )
+            pk_errors = []
             invalid_pks = [pk for pk in pks if not self._is_valid_pk(model_admin, pk)]
             if invalid_pks:
-                return ActionResult(
-                    success=False,
-                    errors={
-                        "pks": [
-                            {
-                                "message": f"Invalid primary key(s): {', '.join(invalid_pks)}.",
-                                "code": "invalid",
-                            }
-                        ]
-                    },
+                pk_errors.append(
+                    {
+                        "message": f"Invalid primary key(s): {', '.join(invalid_pks)}.",
+                        "code": "invalid",
+                    }
                 )
             queryset = model_admin.get_queryset(action_request)
             # The admin silently skips pks it can't find; an agent should know.
             pk_field = model_admin.model._meta.pk
-            found = set(queryset.filter(pk__in=pks).values_list("pk", flat=True))
-            missing = [pk for pk in pks if pk_field.to_python(pk) not in found]
+            valid_pks = [pk for pk in pks if pk not in invalid_pks]
+            found = set(queryset.filter(pk__in=valid_pks).values_list("pk", flat=True))
+            missing = [pk for pk in valid_pks if pk_field.to_python(pk) not in found]
             if missing:
-                return ActionResult(
-                    success=False,
-                    errors={
-                        "pks": [
-                            {
-                                "message": f"No {model_admin.opts.verbose_name} found with "
-                                f"pk(s): {', '.join(missing)}.",
-                                "code": "not_found",
-                            }
-                        ]
-                    },
+                pk_errors.append(
+                    {
+                        "message": f"No {model_admin.opts.verbose_name} found with "
+                        f"pk(s): {', '.join(missing)}.",
+                        "code": "not_found",
+                    }
                 )
+            if pk_errors:
+                return ActionResult(success=False, errors={"pks": pk_errors})
             if not form.is_valid():
                 return ActionResult(
                     success=False, errors=form.errors.get_json_data(escape_html=True)
@@ -204,7 +198,22 @@ class RunAdminAction(BaseLogicAction):
         )
         mime_type = content_type.split(";")[0].strip()
         if not disposition_params.get("filename") and mime_type in ("", "text/html"):
-            return ActionResult(success=success, messages=collected, returned_page=True)
+            # An intermediate page (e.g. the action's own form) — the action
+            # is waiting for browser input, so it did not complete.
+            return ActionResult(
+                success=False,
+                messages=collected,
+                returned_page=True,
+                errors={
+                    "__all__": [
+                        {
+                            "message": "The action answered with an HTML page for a browser "
+                            "(e.g. its own form). It cannot be completed through MCP.",
+                            "code": "browser_only",
+                        }
+                    ]
+                },
+            )
 
         if hasattr(response, "render"):
             response.render()

@@ -20,6 +20,8 @@ from django_unfold_agentic_layer.resources.actions.get_admin_model_instance impo
 )
 from django_unfold_agentic_layer.resources.schemas import AdminModelResource
 
+_MAX_LISTED_BLOCKERS = 10
+
 
 class BuildModelDeleteToolDefinition(BaseLogicAction):
     """Registers a ``delete_{app_label}_{model_name}`` tool on ``mcp`` (spec §9.1).
@@ -63,8 +65,11 @@ class BuildModelDeleteToolDefinition(BaseLogicAction):
             except (ProtectedError, RestrictedError) as e:
                 blockers = getattr(e, "protected_objects", None) or e.restricted_objects
                 listed = ", ".join(
-                    f"{obj._meta.verbose_name} {obj} (pk={obj.pk})" for obj in islice(blockers, 10)
+                    f"{obj._meta.verbose_name} {obj} (pk={obj.pk})"
+                    for obj in islice(blockers, _MAX_LISTED_BLOCKERS)
                 )
+                if len(blockers) > _MAX_LISTED_BLOCKERS:
+                    listed = f"{listed} and {len(blockers) - _MAX_LISTED_BLOCKERS} more"
                 raise ToolError(
                     f"Cannot delete {model_resource.verbose_name} {instance} (pk={pk}): "
                     f"still referenced by {listed}. Delete or reassign those first."
@@ -76,7 +81,8 @@ class BuildModelDeleteToolDefinition(BaseLogicAction):
 
         run.__name__ = f"delete_{model_resource.app_label}_{model_resource.model_name}"
         run.__doc__ = (
-            f"Delete a {model_resource.verbose_name}. Asks for confirmation before deleting."
+            f"Delete a {model_resource.verbose_name}. Destructive: the server asks the client "
+            "for the user's confirmation before deleting."
         )
 
         mcp.tool(
