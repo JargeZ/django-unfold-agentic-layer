@@ -37,10 +37,10 @@ class BuildAdminModelResource(BaseLogicAction):
     def execute(self, model_admin: ModelAdmin, request: HttpRequest) -> AdminModelResource:
         opts = model_admin.model._meta
 
-        filter_fields = ExtractListFilterFields().execute(model_admin, request)
-        search_field = ExtractSearchFilterField().execute(model_admin, request)
-        if search_field is not None:
-            filter_fields = [search_field, *filter_fields]
+        filter_fields = [
+            *ExtractSearchFilterField().execute(model_admin, request),
+            *ExtractListFilterFields().execute(model_admin, request),
+        ]
 
         extract_editable_fields = ExtractEditableFields()
 

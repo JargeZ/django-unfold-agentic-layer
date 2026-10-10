@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect
 from django.urls import path, reverse
+from djangoql.admin import DjangoQLSearchMixin
 from unfold.admin import ModelAdmin
 from unfold.contrib.filters.admin import AutocompleteSelectFilter
 from unfold.decorators import action
@@ -61,7 +62,7 @@ class HasEditorFilter(admin.SimpleListFilter):
 
 
 @admin.register(BlogPost)
-class BlogPostAdmin(ModelAdmin):
+class BlogPostAdmin(DjangoQLSearchMixin, ModelAdmin):
     list_display = ("title", "author", "status", "is_featured", "created_at")
     list_filter = (
         "author",
@@ -71,6 +72,8 @@ class BlogPostAdmin(ModelAdmin):
         "is_featured",
         "created_at",
     )
+    # Own search_fields next to DjangoQLSearchMixin: the admin shows a
+    # plain/DjangoQL toggle (q-l=on), see ExtractSearchFilterField.
     search_fields = ("title", "body")
     # Every action kind Unfold supports — https://unfoldadmin.com/docs/actions/
     # Bulk (changelist select box): plain Django actions, one reading the

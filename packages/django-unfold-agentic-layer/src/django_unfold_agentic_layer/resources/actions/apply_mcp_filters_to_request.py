@@ -6,6 +6,9 @@ from django.contrib.admin import ModelAdmin
 from django.http import HttpRequest, QueryDict
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
+from django_unfold_agentic_layer.resources.actions.extract_search_filter_field import (
+    DJANGOQL_PARAM,
+)
 
 
 class ApplyMCPFiltersToRequest(BaseLogicAction):
@@ -13,8 +16,9 @@ class ApplyMCPFiltersToRequest(BaseLogicAction):
     params, translating our own ``order_by`` into Django's ``o=<index>``
     changelist dialect (see spec §5.1) — filter/search params pass through
     verbatim, since their names already *are* the real GET parameter names
-    (§3.2). ``limit``/``offset`` are not Django concepts and are handled by
-    the caller as a plain queryset slice, not translated here.
+    (§3.2), except ``djangoql`` → djangoql's ``q-l``. ``limit``/``offset``
+    are not Django concepts and are handled by the caller as a plain
+    queryset slice, not translated here.
 
     Returns a copy so the original request (and its ``.GET``, used elsewhere
     e.g. for permission checks) is never mutated.
@@ -29,6 +33,8 @@ class ApplyMCPFiltersToRequest(BaseLogicAction):
         params.pop("offset", None)
 
         get_params = {key: value for key, value in params.items() if value is not None}
+        if DJANGOQL_PARAM in get_params:
+            get_params["q-l"] = get_params.pop(DJANGOQL_PARAM)
         # pk isn't a list_display column, so it has no o= index;
         # RunAdminChangelistQuery orders by it directly.
         if order_by and order_by.removeprefix("-") != "pk":

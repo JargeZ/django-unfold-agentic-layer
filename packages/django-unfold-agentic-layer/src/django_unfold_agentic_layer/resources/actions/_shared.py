@@ -10,6 +10,7 @@ from typing import Any
 
 from django.contrib.admin import ModelAdmin
 from django.contrib.admin.utils import model_format_dict
+from django.contrib.messages.storage.base import BaseStorage
 from django.db.models import Model
 from django.http import HttpRequest
 
@@ -65,3 +66,15 @@ def get_filtered_unfold_actions(
         except TypeError:
             allowed.append(action)
     return allowed
+
+
+class CollectedMessages(BaseStorage):
+    """In-memory ``django.contrib.messages`` storage: captures what an
+    admin view reports, without persisting it into the MCP response's
+    session/cookies the way the real storage backends would."""
+
+    def _get(self, *args: Any, **kwargs: Any) -> tuple[list, bool]:
+        return [], True
+
+    def _store(self, messages: list, response: Any, *args: Any, **kwargs: Any) -> list:
+        return []

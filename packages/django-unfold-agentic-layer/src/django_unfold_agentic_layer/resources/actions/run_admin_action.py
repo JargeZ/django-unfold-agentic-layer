@@ -2,7 +2,6 @@ import copy
 from typing import Any
 
 from django.contrib.admin import ModelAdmin, helpers
-from django.contrib.messages.storage.base import BaseStorage
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.http import HttpRequest, HttpResponse, QueryDict
 from django.urls import NoReverseMatch, reverse
@@ -11,6 +10,7 @@ from django.utils.http import parse_header_parameters
 from unfold.forms import BaseDialogForm
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
+from django_unfold_agentic_layer.resources.actions._shared import CollectedMessages
 from django_unfold_agentic_layer.resources.actions.get_admin_model_instance import (
     GetAdminModelInstance,
 )
@@ -26,18 +26,6 @@ from django_unfold_agentic_layer.resources.schemas import (
 MAX_INLINE_FILE_BYTES = 1024 * 1024
 
 _TEXT_CONTENT_TYPES = {"application/json", "application/xml", "application/csv"}
-
-
-class _CollectedMessages(BaseStorage):
-    """In-memory ``django.contrib.messages`` storage: captures what the
-    action reports, without persisting it into the MCP response's
-    session/cookies the way the real storage backends would."""
-
-    def _get(self, *args: Any, **kwargs: Any) -> tuple[list, bool]:
-        return [], True
-
-    def _store(self, messages: list, response: Any, *args: Any, **kwargs: Any) -> list:
-        return []
 
 
 class RunAdminAction(BaseLogicAction):
@@ -76,7 +64,7 @@ class RunAdminAction(BaseLogicAction):
         action_request.method = "POST"
         action_request.POST = post
         action_request._files = MultiValueDict()  # FILES is a read-only property over this
-        action_request._messages = messages = _CollectedMessages(action_request)
+        action_request._messages = messages = CollectedMessages(action_request)
         referer = self._referer(model_admin, request, pk)
         action_request.META = {**request.META, "HTTP_REFERER": referer}
         action_request.__dict__.pop("headers", None)  # cached_property over META
@@ -181,7 +169,7 @@ class RunAdminAction(BaseLogicAction):
                 post[key] = "on" if value is True else str(value)
         return post
 
-    def _result(self, response: HttpResponse | None, messages: _CollectedMessages) -> ActionResult:
+    def _result(self, response: HttpResponse | None, messages: CollectedMessages) -> ActionResult:
         collected = [ActionMessage(level=m.level_tag, message=str(m.message)) for m in messages]
         if response is None:
             return ActionResult(success=True, messages=collected)

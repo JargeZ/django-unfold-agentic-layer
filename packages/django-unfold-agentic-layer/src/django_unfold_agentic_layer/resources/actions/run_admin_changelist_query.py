@@ -2,10 +2,13 @@ from typing import Any
 
 from django.contrib.admin import ModelAdmin, SimpleListFilter
 from django.contrib.admin.views.main import ChangeList
+from django.contrib.messages import WARNING
 from django.db.models import Model
 from django.http import HttpRequest
+from django.utils.html import strip_tags
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
+from django_unfold_agentic_layer.resources.actions._shared import CollectedMessages
 
 
 class RunAdminChangelistQuery(BaseLogicAction):
@@ -34,7 +37,13 @@ class RunAdminChangelistQuery(BaseLogicAction):
         offset: int,
         order_by: str | None = None,
     ) -> tuple[list[Model], int]:
+        # A search reports bad input as a message and returns no rows
+        # (djangoql's DjangoQLSearchMixin); the agent gets it as an error.
+        request._messages = messages = CollectedMessages(request)
         cl = model_admin.get_changelist_instance(request)
+        problems = [strip_tags(str(m.message)).strip() for m in messages if m.level >= WARNING]
+        if problems:
+            raise ValueError(" ".join(problems))
         self._check_filters_applied(cl, request)
         queryset = cl.queryset
         if order_by and order_by.removeprefix("-") == "pk":

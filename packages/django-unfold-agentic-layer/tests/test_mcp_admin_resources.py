@@ -4,6 +4,7 @@ static-docs-tools checks.
 """
 
 import json
+from urllib.parse import quote
 
 import pytest
 from server.apps.blog.models import BlogPost
@@ -51,6 +52,7 @@ def test_resource_templates_include_blog_post_detail_and_list(
     )
     assert set(query_params) == {
         "q",
+        "djangoql",
         "author__id__exact",
         "author__isnull",
         "editor__id__exact",
@@ -185,6 +187,24 @@ def test_read_list_resource_defaults_to_a_small_page_and_orders_by_pk(
     assert pks == sorted(BlogPost.objects.values_list("pk", flat=True), reverse=True)[:2]
 
 
+@pytest.mark.django_db
+def test_read_list_resource_search_is_plain_by_default_and_djangoql_on_request(
+    client, bearer_login, staff_user, regular_user
+):
+    BlogPost.objects.create(title="Django tips", author=staff_user)
+    BlogPost.objects.create(title="Other", body="about django", author=regular_user)
+    bearer_login(client, staff_user)
+
+    def titles(query):
+        result = _read_resource(client, f"dj-admin://blog/blogpost/?{query}&order_by=pk")
+        return [item["title"] for item in json.loads(result["contents"][0]["text"])]
+
+    # Like the admin with the DjangoQL toggle off: search_fields, icontains.
+    assert titles("q=django") == ["Django tips", "Other"]
+    query = quote(f'title ~ "django" and author.username = "{staff_user.username}"')
+    assert titles(f"djangoql=on&q={query}") == ["Django tips"]
+
+
 def _read_resource_error(client, uri):
     payload = {"jsonrpc": "2.0", "id": 1, "method": "resources/read", "params": {"uri": uri}}
     response = client.post(
@@ -205,6 +225,8 @@ def _read_resource_error(client, uri):
         # A custom SimpleListFilter: only its declared lookups are valid.
         ("has_editor=maybe", "Filter ignored has_editor='maybe'"),
         ("order_by=nope", "Invalid order_by 'nope'. Allowed: pk, -pk, title, -title"),
+        # DjangoQLSearchMixin reports a bad query as a message, not an error.
+        ("djangoql=on&q=nope%20%3D%201", "Unknown field: nope"),
     ],
 )
 def test_read_list_resource_rejects_what_it_would_silently_ignore(

@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "djangoql",  # DjangoQLSearchMixin on blog.BlogPostAdmin
     "django_unfold_agentic_layer",
     "server.apps.blog",
 ]

@@ -312,10 +312,17 @@
     'filter_fields': list([
       dict({
         'choices': None,
-        'format': 'free-text search across: title, body',
+        'format': 'free-text search across: title, body. Set djangoql=on to send a DjangoQL query',
         'key': 'q',
         'related_resource_uri': None,
         'title': 'Search',
+      }),
+      dict({
+        'choices': None,
+        'format': 'optional; on = read q as a DjangoQL query, e.g. title ~ "django" and author.username = "admin"; operators = != ~ !~ > >= < <= in, not in, and, or, parentheses; None, True, False; related fields with a dot',
+        'key': 'djangoql',
+        'related_resource_uri': None,
+        'title': 'DjangoQL search',
       }),
       dict({
         'choices': list([
