@@ -7,7 +7,7 @@ this module only backs its ``OAuthAuthorizationServerProvider`` protocol with
 Django models and adds the one step the SDK leaves to us: a staff user logging
 in and approving the client (``views/oauth.py``'s consent view).
 
-All endpoints live under this app's own ``mcp/o/`` URLs, so nothing here can
+All endpoints live under this app's own ``mcp/`` URLs, so nothing here can
 collide with a host project's routes, models or settings (e.g. its own
 django-oauth-toolkit at ``/o/``). Tokens are opaque random strings stored as
 sha256 hashes; no refresh tokens are issued, so ``SESSION_TTL`` is a hard cap
@@ -62,9 +62,11 @@ def resource_url(request: HttpRequest) -> str:
 
 
 def issuer_url(request: HttpRequest) -> str:
-    """``<mcp>/o`` — has a path, so clients discover the metadata at
-    ``<issuer>/.well-known/openid-configuration``, inside our own URLs."""
-    return resource_url(request) + "/o"
+    """The MCP URL itself (see ``urls.py``): clients discover the metadata at
+    ``<issuer>/.well-known/openid-configuration``, inside our own URLs, even
+    when they guess the issuer from the server URL instead of reading it
+    from the protected-resource metadata."""
+    return resource_url(request)
 
 
 def issuer_error(request: HttpRequest) -> str | None:

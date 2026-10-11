@@ -70,15 +70,15 @@ def _start_authorization(
     unauthorized = _tools_list(browser)
     assert unauthorized.status_code == 401
     prm_url = unauthorized["WWW-Authenticate"].split('resource_metadata="')[1].rstrip('"')
-    assert prm_url == f"{base}/mcp/o/.well-known/oauth-protected-resource"
+    assert prm_url == f"{base}/mcp/.well-known/oauth-protected-resource"
 
     prm = browser.get(_path(prm_url)).json()
     assert prm["resource"] == f"{base}/mcp"
     (issuer,) = prm["authorization_servers"]
     metadata = browser.get(_path(f"{issuer}/.well-known/openid-configuration")).json()
-    assert metadata["issuer"] == issuer == f"{base}/mcp/o"
+    assert metadata["issuer"] == issuer == f"{base}/mcp"
     for endpoint in ("authorization_endpoint", "token_endpoint", "registration_endpoint"):
-        assert metadata[endpoint].startswith(f"{base}/mcp/o/")
+        assert metadata[endpoint].startswith(f"{base}/mcp/")
 
     registered = browser.post(
         _path(metadata["registration_endpoint"]),
@@ -201,7 +201,7 @@ def test_plain_http_non_loopback_host_explains_the_proxy_setting(settings, path)
     body = response.json()
     assert body["error"] == "server_error"
     assert "SECURE_PROXY_SSL_HEADER" in body["error_description"]
-    assert f"http://{PROXY_HOST}/mcp/o" in body["error_description"]
+    assert f"http://{PROXY_HOST}/mcp" in body["error_description"]
 
 
 @pytest.mark.django_db
@@ -210,7 +210,7 @@ def test_unauthenticated_mcp_call_behind_proxy_points_at_https_metadata(proxied_
 
     assert response.status_code == 401
     assert response["WWW-Authenticate"] == (
-        f'Bearer resource_metadata="https://{PROXY_HOST}/mcp/o/.well-known/oauth-protected-resource"'
+        f'Bearer resource_metadata="https://{PROXY_HOST}/mcp/.well-known/oauth-protected-resource"'
     )
 
 
@@ -359,3 +359,42 @@ def test_registration_rejects_redirect_uris_no_client_can_receive_a_code_at(brow
     assert response.status_code == 400
     assert response.json()["error"] == "invalid_redirect_uri"
     assert not OAuthClient.objects.exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("server_url", ["/mcp", "/mcp/"])
+def test_client_that_skips_the_401_still_discovers_registration_from_the_server_url(
+    browser, server_url
+):
+    """Claude Code's "Authenticate" starts discovery without calling /mcp, so
+    it never sees resource_metadata: it treats the server URL as the issuer,
+    and the only path it tries outside the host's root is
+    ``<server URL>/.well-known/openid-configuration``. Without it, it falls
+    back to ``POST /register`` at the root — a 404."""
+    metadata = browser.get(f"{server_url.rstrip('/')}/.well-known/openid-configuration").json()
+
+    assert metadata["issuer"] == "http://localhost/mcp"
+    registered = browser.post(
+        _path(metadata["registration_endpoint"]),
+        data=json.dumps({"client_name": "Agent", "redirect_uris": [REDIRECT_URI]}),
+        content_type="application/json",
+    )
+    assert registered.status_code == 201, registered.content
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/mcp/o/register",  # pre-1.x URLs, cached by already-connected clients
+        "/mcp/register/",
+        "/mcp/o/register/",
+    ],
+)
+def test_registration_answers_on_legacy_and_slashed_urls(browser, path):
+    response = browser.post(
+        path,
+        data=json.dumps({"client_name": "Agent", "redirect_uris": [REDIRECT_URI]}),
+        content_type="application/json",
+    )
+    assert response.status_code == 201, response.content

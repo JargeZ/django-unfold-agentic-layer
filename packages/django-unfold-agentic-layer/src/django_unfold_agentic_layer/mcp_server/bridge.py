@@ -25,7 +25,7 @@ async def call_asgi(app: ASGIApp, request: HttpRequest, path: str | None = None)
 
     ``path`` overrides the scope path, for apps whose routes are relative to
     where Django mounted them (the SDK's OAuth app routes ``/token``, not
-    ``/mcp/o/token``).
+    ``/mcp/token``).
     """
     body = request.body
 

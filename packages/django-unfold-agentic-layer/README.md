@@ -64,13 +64,13 @@ from django.urls import include, path
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("", include("django_unfold_agentic_layer.urls")),  # → /mcp/, /mcp/o/…
+    path("", include("django_unfold_agentic_layer.urls")),  # → /mcp, /mcp/…
 ]
 ```
 
 Then `python manage.py migrate` (the app stores OAuth clients and hashed tokens in its own tables).
 
-This wires up `POST /mcp` (URL name `django_unfold_agentic_layer:mcp`; `/mcp/` works too) plus its OAuth endpoints under `/mcp/o/` — every route the app adds lives under `mcp/`, so it can't collide with your own (e.g. a django-oauth-toolkit at `/o/`). To serve it under a prefix, change the include path — e.g. `path("agent/", include("django_unfold_agentic_layer.urls"))` gives `/agent/mcp`. The view is CSRF-exempt, so no extra CSRF setup is needed for MCP clients.
+This wires up `POST /mcp` (URL name `django_unfold_agentic_layer:mcp`; `/mcp/` works too) plus its OAuth endpoints under `/mcp/` — every route the app adds lives under `mcp/`, so it can't collide with your own (e.g. a django-oauth-toolkit at `/o/`). To serve it under a prefix, change the include path — e.g. `path("agent/", include("django_unfold_agentic_layer.urls"))` gives `/agent/mcp`. The view is CSRF-exempt, so no extra CSRF setup is needed for MCP clients.
 
 Works under **either WSGI or ASGI** deployment — the bridge that delegates requests into the MCP server doesn't rely on ASGI-only mechanics (see `mcp_server/bridge.py` and CLAUDE.md for how).
 
@@ -83,20 +83,20 @@ claude mcp add --transport http unfold https://your-project.example/mcp
 # then /mcp → Authenticate: the browser opens your admin login, then a consent page
 ```
 
-- No/invalid/expired `Bearer` token → `401` with `WWW-Authenticate: Bearer resource_metadata="…/mcp/o/.well-known/oauth-protected-resource"` — what clients use to start the login.
+- No/invalid/expired `Bearer` token → `401` with `WWW-Authenticate: Bearer resource_metadata="…/mcp/.well-known/oauth-protected-resource"` — what clients use to start the login.
 - Only active **staff** users can log in and approve a client; `is_active`/`is_staff` is re-checked on every request (`403` otherwise), so un-staffing someone cuts off their tokens immediately.
 - A login lasts `SESSION_TTL` (default 1 day); no refresh tokens are issued, so the client re-runs the browser login after that.
 - The Django session cookie does **not** authenticate `/mcp/` — only the token does.
 - The consent page shows the full `redirect_uri` that receives the code. If it is not on the user's computer (not a loopback address and not an app scheme such as `cursor://`), the page shows a warning.
 
-By default, any client can register itself (RFC 7591). To stop this, set `"CLOSED_CLIENT_REGISTRATION": True`. Then `/mcp/o/register` returns `403`, and an admin adds each client in **MCP clients → Add** (name + exact redirect URIs). Give the generated client ID to the user:
+By default, any client can register itself (RFC 7591). To stop this, set `"CLOSED_CLIENT_REGISTRATION": True`. Then `/mcp/register` returns `403`, and an admin adds each client in **MCP clients → Add** (name + exact redirect URIs). Give the generated client ID to the user:
 
 ```bash
 claude mcp add --transport http --client-id <client-id> --callback-port 33418 unfold https://your-project.example/mcp
 # redirect URI to add in the admin: http://localhost:33418/callback
 ```
 
-The OAuth server itself is the MCP SDK's (`mcp.server.auth`); this app only stores its state. Discovery stays inside `/mcp/o/` (via the 401's `resource_metadata` and `<issuer>/.well-known/openid-configuration`), nothing is added at your site root. The issuer must be `https` (or `localhost`) — behind a proxy, set `SECURE_PROXY_SSL_HEADER`/`USE_X_FORWARDED_HOST` so Django builds the right absolute URLs.
+The OAuth server itself is the MCP SDK's (`mcp.server.auth`); this app only stores its state. Discovery stays inside `/mcp/` (the issuer is the MCP URL itself, so `<mcp>/.well-known/openid-configuration` works even for clients that never see the 401's `resource_metadata`), nothing is added at your site root. The issuer must be `https` (or `localhost`) — behind a proxy, set `SECURE_PROXY_SSL_HEADER`/`USE_X_FORWARDED_HOST` so Django builds the right absolute URLs.
 
 ## What's available today
 

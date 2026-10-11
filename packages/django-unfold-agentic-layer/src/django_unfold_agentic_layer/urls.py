@@ -14,20 +14,30 @@ urlpatterns = [
     # every client's resource-prefix check, not the other way round.
     path("mcp", MCPView.as_view(), name="mcp"),
     path("mcp/", MCPView.as_view()),
-    path(
-        "mcp/o/.well-known/oauth-protected-resource",
+    # OAuth lives under the MCP URL itself, which is also the issuer: a client
+    # that starts login without first hitting /mcp (so never sees the 401's
+    # resource_metadata) derives only <mcp>/.well-known/openid-configuration
+    # from the server URL — the one discovery path not at the host's root.
+    # "o/" is the previous prefix, kept for clients that cached those URLs;
+    # trailing slashes are optional because clients disagree on them.
+    re_path(
+        r"^mcp/(?:o/)?\.well-known/oauth-protected-resource/?$",
         oauth.protected_resource_metadata,
         name="oauth-protected-resource",
     ),
-    path(
-        "mcp/o/.well-known/openid-configuration",
+    re_path(
+        r"^mcp/(?:o/)?\.well-known/openid-configuration/?$",
         oauth.authorization_server_metadata,
         name="oauth-authorization-server",
     ),
-    path("mcp/o/jwks", oauth.jwks, name="oauth-jwks"),
+    re_path(
+        r"^mcp/(?:o/)?\.well-known/oauth-authorization-server/?$",
+        oauth.authorization_server_metadata,
+    ),
+    re_path(r"^mcp/(?:o/)?jwks/?$", oauth.jwks, name="oauth-jwks"),
     path("mcp/o/consent", oauth.ConsentView.as_view(), name="oauth-consent"),
     re_path(
-        r"^mcp/o/(?P<endpoint>authorize|token|register|revoke)$",
+        r"^mcp/(?:o/)?(?P<endpoint>authorize|token|register|revoke)/?$",
         oauth.OAuthEndpointView.as_view(),
         name="oauth-endpoint",
     ),
