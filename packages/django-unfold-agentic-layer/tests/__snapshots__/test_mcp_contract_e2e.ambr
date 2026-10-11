@@ -240,6 +240,7 @@
       dict({
         'mimeType': 'application/json',
         'text': dict({
+          'attachment': None,
           'author': 'dj-admin://auth/user/<pk>/',
           'body': 'Body text',
           'editor': None,
@@ -265,6 +266,7 @@
           - **status**: published
           - **is_featured**: False
           - **metadata**: {}
+          - **attachment**: *(empty)*
           - **word_count**: 2
         ''',
         'uri': 'dj-admin://blog/blogpost/<pk>/',
@@ -283,6 +285,7 @@
         'mimeType': 'application/json',
         'text': list([
           dict({
+            'attachment': None,
             'author': 'dj-admin://auth/user/<pk>/',
             'body': 'Body text',
             'editor': None,
@@ -309,6 +312,7 @@
           - **status**: published
           - **is_featured**: False
           - **metadata**: {}
+          - **attachment**: *(empty)*
           - **word_count**: 2
         ''',
         'uri': 'dj-admin://blog/blogpost/',
@@ -905,6 +909,32 @@
         'inputSchema': dict({
           'additionalProperties': False,
           'properties': dict({
+            'attachment': dict({
+              'anyOf': list([
+                dict({
+                  'description': 'A file to upload: its file name and its base64-encoded content.',
+                  'properties': dict({
+                    'content': dict({
+                      'format': 'base64',
+                      'type': 'string',
+                    }),
+                    'name': dict({
+                      'type': 'string',
+                    }),
+                  }),
+                  'required': list([
+                    'name',
+                    'content',
+                  ]),
+                  'type': 'object',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Attachment',
+            }),
             'author': dict({
               'anyOf': list([
                 dict({
@@ -1017,6 +1047,32 @@
         'inputSchema': dict({
           'additionalProperties': False,
           'properties': dict({
+            'attachment': dict({
+              'anyOf': list([
+                dict({
+                  'description': 'A file to upload: its file name and its base64-encoded content.',
+                  'properties': dict({
+                    'content': dict({
+                      'format': 'base64',
+                      'type': 'string',
+                    }),
+                    'name': dict({
+                      'type': 'string',
+                    }),
+                  }),
+                  'required': list([
+                    'name',
+                    'content',
+                  ]),
+                  'type': 'object',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Attachment',
+            }),
             'author': dict({
               'anyOf': list([
                 dict({

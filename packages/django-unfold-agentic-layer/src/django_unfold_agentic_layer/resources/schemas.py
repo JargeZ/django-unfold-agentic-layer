@@ -4,9 +4,10 @@ These are pure data — building them from a live ``admin.site`` registry is the
 job of :mod:`django_unfold_agentic_layer.resources.actions`.
 """
 
-from typing import Literal
+import base64
+from typing import Annotated, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, BeforeValidator, WithJsonSchema
 
 
 class ActionInfo(BaseModel):
@@ -56,9 +57,46 @@ class EditableFieldInfo(BaseModel):
     title: str
     required: bool
     help_text: str
-    python_type: Literal["str", "int", "float", "bool", "choice", "related", "multi_related"]
+    python_type: Literal[
+        "str", "int", "float", "bool", "choice", "related", "multi_related", "file"
+    ]
     choices: list[tuple[str, str]] | None = None
     related_resource_uri: str | None = None
+
+
+#: Strict base64: pydantic's own ``Base64Bytes`` silently drops non-alphabet
+#: characters, so garbage would become an empty or corrupt file.
+StrictBase64Bytes = Annotated[
+    bytes,
+    BeforeValidator(lambda value: base64.b64decode(value, validate=True)),
+    WithJsonSchema({"type": "string", "format": "base64"}),
+]
+
+
+# Meant for small files: the whole content goes through the model's
+# context, and Django's DATA_UPLOAD_MAX_MEMORY_SIZE limits the request body.
+# (Comment, not docstring: pydantic sends the docstring to agents.)
+#
+# TODO: large files — fastmcp's ``FileUpload`` provider
+# (https://gofastmcp.com/apps/providers/file-upload.md, fastmcp>=3.2, needs
+# ``fastmcp[apps]``) lets the user drop files into an MCP Apps UI, so the
+# content never goes through the model. To integrate it:
+# - Subclass it and override ``_get_scope_key`` to return the OAuth token
+#   subject: the default key is the MCP session ID, and our stateless bridge
+#   gets a new one per request, so a file would not survive until the
+#   create/update call.
+# - Override ``on_store``/``on_list``/``on_read`` to keep files in Django's
+#   ``default_storage`` (or the cache): the default in-memory store does not
+#   work with multiple workers.
+# - Let a file field also accept a reference to a stored upload (e.g.
+#   ``{"upload": "<name>"}``), resolved to a ``File`` in ``split_uploads``.
+# - Mount the provider in ``BuildAdminMCPInstance`` only for clients that
+#   support MCP Apps; other clients do not show the UI.
+class FileUploadInput(BaseModel):
+    """A file to upload: its file name and its base64-encoded content."""
+
+    name: str
+    content: StrictBase64Bytes
 
 
 class ActionToolInfo(BaseModel):

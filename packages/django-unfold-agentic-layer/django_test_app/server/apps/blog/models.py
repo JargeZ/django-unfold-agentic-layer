@@ -37,6 +37,8 @@ class BlogPost(models.Model):
     # constraint on save (a real Django JSONField gotcha, not MCP-specific).
     metadata = models.JSONField(default=dict, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    # Optional upload — exercises file fields over MCP.
+    attachment = models.FileField(upload_to="attachments/", blank=True)
 
     def __str__(self) -> str:
         return self.title

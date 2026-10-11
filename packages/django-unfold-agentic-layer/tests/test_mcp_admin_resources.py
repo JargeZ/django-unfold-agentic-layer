@@ -87,6 +87,7 @@ def test_read_detail_resource_returns_json_and_markdown(client, bearer_login, st
         "status": "draft",
         "is_featured": False,
         "metadata": {},
+        "attachment": None,
         "word_count": 1,
     }
     assert "_meta" not in result

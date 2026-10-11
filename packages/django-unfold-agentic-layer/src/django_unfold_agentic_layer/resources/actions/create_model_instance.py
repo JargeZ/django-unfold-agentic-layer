@@ -2,14 +2,29 @@ from typing import Any
 
 from django.contrib.admin import ModelAdmin
 from django.core.exceptions import PermissionDenied
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models import Model
 from django.http import HttpRequest
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
+from django_unfold_agentic_layer.resources.schemas import FileUploadInput
 
 #: Shape of Django's own ``form.errors.get_json_data()`` — reused verbatim
 #: rather than inventing a new error format (same spirit as FilterChoiceInfo).
 FormErrors = dict[str, list[dict[str, str]]]
+
+
+def split_uploads(data: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Tool arguments -> a form's ``(data, files)``: a bound form reads a
+    file field only from ``files``, and ignores it in ``data``. Omitted
+    (``None``) values are dropped."""
+    files = {
+        key: SimpleUploadedFile(value.name, value.content)
+        for key, value in data.items()
+        if isinstance(value, FileUploadInput)
+    }
+    rest = {key: value for key, value in data.items() if value is not None and key not in files}
+    return rest, files
 
 
 class CreateModelInstance(BaseLogicAction):
@@ -28,7 +43,8 @@ class CreateModelInstance(BaseLogicAction):
             raise PermissionDenied("You do not have permission to add this object.")
 
         form_class = model_admin.get_form(request, None, change=False)
-        form = form_class(data={key: value for key, value in data.items() if value is not None})
+        provided, files = split_uploads(data)
+        form = form_class(data=provided, files=files)
         if not form.is_valid():
             return None, form.errors.get_json_data(escape_html=True)
 

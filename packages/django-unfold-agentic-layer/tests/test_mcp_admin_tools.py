@@ -10,6 +10,7 @@ _modern_rpc below) — a real client library does this automatically, this is
 only needed here because these tests speak raw JSON-RPC.
 """
 
+import base64
 import json
 
 import pytest
@@ -166,6 +167,63 @@ def test_update_tool_names_required_fields_empty_on_the_record(client, bearer_lo
     assert result["errors"]["title"][0]["message"] == (
         "This field is required and is empty on the current record, so it must be provided."
     )
+
+
+@pytest.mark.django_db
+def test_file_field_upload_replace_and_read(client, bearer_login, staff_user, settings, tmp_path):
+    # An agent passes a file inline as {name, base64 content}; reading the
+    # record back gives the storage name and an absolute URL.
+    settings.MEDIA_ROOT = tmp_path
+    bearer_login(client, staff_user)
+    tools = {tool["name"]: tool for tool in _rpc(client, "tools/list")["tools"]}
+    schema = json.dumps(tools["create_blog_blogpost"]["inputSchema"])
+    assert '"format": "base64"' in schema
+
+    created = _call_tool(
+        client,
+        "create_blog_blogpost",
+        {
+            "title": "With file",
+            "author": staff_user.pk,
+            "status": "draft",
+            "attachment": {"name": "a.txt", "content": base64.b64encode(b"hello").decode()},
+        },
+    )
+    post = BlogPost.objects.get(pk=created["pk"])
+    assert post.attachment.read() == b"hello"
+
+    # Update without the field keeps the file; with it, replaces it.
+    _call_tool(client, "update_blog_blogpost", {"pk": post.pk, "title": "Renamed"})
+    post.refresh_from_db()
+    assert post.attachment.name == "attachments/a.txt"
+    _call_tool(
+        client,
+        "update_blog_blogpost",
+        {"pk": post.pk, "attachment": {"name": "b.txt", "content": "Ynll"}},
+    )
+    post.refresh_from_db()
+    assert post.attachment.read() == b"bye"
+
+    detail = _rpc(client, "resources/read", {"uri": f"dj-admin://blog/blogpost/{post.pk}/"})
+    assert json.loads(detail["contents"][0]["text"])["attachment"] == {
+        "name": "attachments/b.txt",
+        "url": "http://testserver/media/attachments/b.txt",
+    }
+
+
+@pytest.mark.django_db
+def test_file_field_rejects_invalid_base64(client, bearer_login, staff_user):
+    bearer_login(client, staff_user)
+    result = _rpc(
+        client,
+        "tools/call",
+        {
+            "name": "create_blog_blogpost",
+            "arguments": {"title": "x", "attachment": {"name": "a.txt", "content": "@@@"}},
+        },
+    )
+    assert result["isError"] is True
+    assert BlogPost.objects.count() == 0
 
 
 @pytest.mark.django_db

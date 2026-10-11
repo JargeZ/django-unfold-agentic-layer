@@ -34,6 +34,9 @@ DATABASES = {
     }
 }
 
+MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_URL = "/media/"
+
 INSTALLED_APPS = [
     # Unfold must precede django.contrib.admin so it can override admin templates.
     "unfold",

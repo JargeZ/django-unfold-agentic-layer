@@ -43,6 +43,8 @@ class ExtractFormFields(BaseLogicAction):
             return "multi_related", None, self._related_resource_uri(field)
         if isinstance(field, forms.ModelChoiceField):
             return "related", None, self._related_resource_uri(field)
+        if isinstance(field, forms.FileField):
+            return "file", None, None
         if isinstance(field, forms.BooleanField):
             return "bool", None, None
         if isinstance(field, forms.ChoiceField):

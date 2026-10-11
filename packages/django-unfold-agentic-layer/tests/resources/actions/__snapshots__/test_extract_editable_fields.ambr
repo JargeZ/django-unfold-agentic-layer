@@ -77,5 +77,14 @@
       'required': False,
       'title': 'Metadata',
     }),
+    dict({
+      'choices': None,
+      'help_text': '',
+      'name': 'attachment',
+      'python_type': 'file',
+      'related_resource_uri': None,
+      'required': False,
+      'title': 'Attachment',
+    }),
   ])
 # ---

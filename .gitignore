@@ -41,3 +41,4 @@ htmlcov/
 
 # Local demo database (Taskfile's demo:manage task)
 packages/django-unfold-agentic-layer/django_test_app/db.sqlite3
+packages/django-unfold-agentic-layer/django_test_app/media/

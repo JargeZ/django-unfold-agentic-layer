@@ -5,7 +5,7 @@ from django.contrib.admin import ModelAdmin
 from django.contrib.admin.utils import flatten_fieldsets, lookup_field
 from django.contrib.auth.forms import ReadOnlyPasswordHashWidget
 from django.core.exceptions import FieldDoesNotExist, ObjectDoesNotExist
-from django.db.models import Model
+from django.db.models import FileField, Model
 from django.http import HttpRequest
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
@@ -26,6 +26,10 @@ class GetModelJsonRepresentation(BaseLogicAction):
     callable, a model method/property) is resolved with the admin's own
     ``lookup_field``, as the changeform does.
 
+    A file field is ``{"name", "url"}`` (``None`` when empty). The URL comes
+    from the storage's own ``url()``, so a storage that signs URLs (S3) still
+    signs them; a relative one is made absolute for the current request.
+
     Relations are rendered as resource URIs, not inlined values (spec §8.3):
     an agent that wants the related object's data can follow the link, and
     this avoids both N+1 queries and unbounded recursion (e.g. a self-FK).
@@ -41,7 +45,7 @@ class GetModelJsonRepresentation(BaseLogicAction):
             form_field = form_fields.get(field_name)
             if form_field is not None and self._hides_value(form_field.widget):
                 continue
-            data[field_name] = self._field_value(model_admin, opts, instance, field_name)
+            data[field_name] = self._field_value(model_admin, request, opts, instance, field_name)
         return data
 
     def _hides_value(self, widget: forms.Widget) -> bool:
@@ -50,7 +54,12 @@ class GetModelJsonRepresentation(BaseLogicAction):
         return isinstance(widget, forms.PasswordInput) and not widget.render_value
 
     def _field_value(
-        self, model_admin: ModelAdmin, opts: Any, instance: Model, field_name: str
+        self,
+        model_admin: ModelAdmin,
+        request: HttpRequest,
+        opts: Any,
+        instance: Model,
+        field_name: str,
     ) -> Any:
         try:
             field = opts.get_field(field_name)
@@ -73,6 +82,12 @@ class GetModelJsonRepresentation(BaseLogicAction):
             if related is None:
                 return None
             return self._resource_uri(field.related_model._meta, related.pk)
+
+        if isinstance(field, FileField):
+            file = getattr(instance, field_name)
+            if not file:
+                return None
+            return {"name": file.name, "url": request.build_absolute_uri(file.url)}
 
         return field.value_from_object(instance)
 

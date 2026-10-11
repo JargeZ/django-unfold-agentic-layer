@@ -7,7 +7,10 @@ from django.forms.models import model_to_dict
 from django.http import HttpRequest
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
-from django_unfold_agentic_layer.resources.actions.create_model_instance import FormErrors
+from django_unfold_agentic_layer.resources.actions.create_model_instance import (
+    FormErrors,
+    split_uploads,
+)
 
 
 class UpdateModelInstance(BaseLogicAction):
@@ -30,15 +33,16 @@ class UpdateModelInstance(BaseLogicAction):
 
         form_class = model_admin.get_form(request, instance, change=True)
         current = model_to_dict(instance, fields=list(form_class.base_fields))
-        provided = {key: value for key, value in data.items() if value is not None}
-        form = form_class(data={**current, **provided}, instance=instance)
+        provided, files = split_uploads(data)
+        # A file field not in ``files`` keeps its current file (form initial).
+        form = form_class(data={**current, **provided}, files=files, instance=instance)
         if not form.is_valid():
             errors = form.errors.get_json_data(escape_html=True)
             # Omitted fields keep their current values — but a required one
             # that is already empty on the record (e.g. a modeltranslation
             # field for a language nobody filled in) has nothing to keep.
             for name, field_errors in errors.items():
-                if name not in provided:
+                if name not in provided and name not in files:
                     for error in field_errors:
                         if error["code"] == "required":
                             error["message"] = (

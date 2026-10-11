@@ -17,7 +17,7 @@ from mcp.types import ElicitRequest, ElicitRequestFormParams, InputRequiredResul
 from pydantic import AfterValidator, Field
 
 from django_unfold_agentic_layer.conf import Settings, get_config
-from django_unfold_agentic_layer.resources.schemas import EditableFieldInfo
+from django_unfold_agentic_layer.resources.schemas import EditableFieldInfo, FileUploadInput
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +52,7 @@ _BASE_TYPES: dict[str, type] = {
     "int": int,
     "float": float,
     "bool": bool,
+    "file": FileUploadInput,
 }
 
 
