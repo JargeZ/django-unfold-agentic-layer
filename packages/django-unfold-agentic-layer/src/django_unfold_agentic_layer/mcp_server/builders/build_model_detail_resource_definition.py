@@ -34,7 +34,7 @@ class BuildModelDetailResourceDefinition(BaseLogicAction):
             request = get_django_request()
             instance = GetAdminModelInstance().execute(model_admin, request, pk)
             return BuildListResourceResult().execute(
-                model_admin, request, model_resource, [instance], total=1
+                model_admin, request, model_resource, [instance], many=False
             )
 
         # Unlike tools, fastmcp calls a resource template's function directly

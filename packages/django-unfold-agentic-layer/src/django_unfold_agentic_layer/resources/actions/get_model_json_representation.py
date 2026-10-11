@@ -2,9 +2,9 @@ from typing import Any
 
 from django import forms
 from django.contrib.admin import ModelAdmin
-from django.contrib.admin.utils import flatten_fieldsets
+from django.contrib.admin.utils import flatten_fieldsets, lookup_field
 from django.contrib.auth.forms import ReadOnlyPasswordHashWidget
-from django.core.exceptions import FieldDoesNotExist
+from django.core.exceptions import FieldDoesNotExist, ObjectDoesNotExist
 from django.db.models import Model
 from django.http import HttpRequest
 
@@ -22,6 +22,10 @@ class GetModelJsonRepresentation(BaseLogicAction):
     masked password hash, a ``PasswordInput``) is dropped as well: the admin
     never shows its raw value, so neither does MCP.
 
+    A non-model field (``readonly_fields`` entry: a ModelAdmin method, a
+    callable, a model method/property) is resolved with the admin's own
+    ``lookup_field``, as the changeform does.
+
     Relations are rendered as resource URIs, not inlined values (spec §8.3):
     an agent that wants the related object's data can follow the link, and
     this avoids both N+1 queries and unbounded recursion (e.g. a self-FK).
@@ -37,7 +41,7 @@ class GetModelJsonRepresentation(BaseLogicAction):
             form_field = form_fields.get(field_name)
             if form_field is not None and self._hides_value(form_field.widget):
                 continue
-            data[field_name] = self._field_value(opts, instance, field_name)
+            data[field_name] = self._field_value(model_admin, opts, instance, field_name)
         return data
 
     def _hides_value(self, widget: forms.Widget) -> bool:
@@ -45,14 +49,18 @@ class GetModelJsonRepresentation(BaseLogicAction):
             return True
         return isinstance(widget, forms.PasswordInput) and not widget.render_value
 
-    def _field_value(self, opts: Any, instance: Model, field_name: str) -> Any:
+    def _field_value(
+        self, model_admin: ModelAdmin, opts: Any, instance: Model, field_name: str
+    ) -> Any:
         try:
             field = opts.get_field(field_name)
         except FieldDoesNotExist:
-            # A method/@display field (admin-only, not a model field) — best
-            # effort: call it if callable, otherwise report it as-is.
-            value = getattr(instance, field_name, None)
-            return value() if callable(value) else value
+            try:
+                _field, _attr, value = lookup_field(field_name, instance, model_admin)
+            except (AttributeError, ValueError, ObjectDoesNotExist):
+                # Same errors the changeform's AdminReadonlyField hides.
+                return None
+            return value
 
         if field.many_to_many:
             related_opts = field.related_model._meta

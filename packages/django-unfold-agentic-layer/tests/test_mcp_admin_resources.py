@@ -78,19 +78,18 @@ def test_read_detail_resource_returns_json_and_markdown(client, bearer_login, st
     result = _read_resource(client, f"dj-admin://blog/blogpost/{post.pk}/")
 
     contents_by_mime = {c["mimeType"]: c["text"] for c in result["contents"]}
-    assert json.loads(contents_by_mime["application/json"]) == [
-        {
-            "pk": post.pk,
-            "title": "Hello",
-            "body": "World",
-            "author": f"dj-admin://auth/user/{staff_user.pk}/",
-            "editor": None,
-            "status": "draft",
-            "is_featured": False,
-            "metadata": {},
-        }
-    ]
-    assert result["_meta"] == {"total": 1, "count": 1}
+    assert json.loads(contents_by_mime["application/json"]) == {
+        "pk": post.pk,
+        "title": "Hello",
+        "body": "World",
+        "author": f"dj-admin://auth/user/{staff_user.pk}/",
+        "editor": None,
+        "status": "draft",
+        "is_featured": False,
+        "metadata": {},
+        "word_count": 1,
+    }
+    assert "_meta" not in result
 
 
 @pytest.mark.django_db

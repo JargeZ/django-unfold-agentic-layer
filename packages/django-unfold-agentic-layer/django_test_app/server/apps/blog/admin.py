@@ -9,7 +9,7 @@ from django.urls import path, reverse
 from djangoql.admin import DjangoQLSearchMixin
 from unfold.admin import ModelAdmin
 from unfold.contrib.filters.admin import AutocompleteSelectFilter
-from unfold.decorators import action
+from unfold.decorators import action, display
 from unfold.enums import ActionVariant
 from unfold.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationForm
 
@@ -75,6 +75,8 @@ class BlogPostAdmin(DjangoQLSearchMixin, ModelAdmin):
     # Own search_fields next to DjangoQLSearchMixin: the admin shows a
     # plain/DjangoQL toggle (q-l=on), see ExtractSearchFilterField.
     search_fields = ("title", "body")
+    # Computed admin method on the changeform — not a model attribute.
+    readonly_fields = ("word_count",)
     # Every action kind Unfold supports — https://unfoldadmin.com/docs/actions/
     # Bulk (changelist select box): plain Django actions, one reading the
     # extra action_form field, and an Unfold @action with a variant.
@@ -93,6 +95,10 @@ class BlogPostAdmin(DjangoQLSearchMixin, ModelAdmin):
     )
     # Runs while saving the changeform — not exposed over MCP yet.
     actions_submit_line = ("notify_author_on_save",)
+
+    @display(description="Word count")
+    def word_count(self, obj):
+        return len(obj.body.split())
 
     @action(
         description="Archive selected posts",

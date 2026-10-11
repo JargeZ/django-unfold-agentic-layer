@@ -236,26 +236,21 @@
 # ---
 # name: test_full_mcp_contract_lifecycle[read-detail-resource]
   dict({
-    '_meta': dict({
-      'count': 1,
-      'total': 1,
-    }),
     'contents': list([
       dict({
         'mimeType': 'application/json',
-        'text': list([
-          dict({
-            'author': 'dj-admin://auth/user/<pk>/',
-            'body': 'Body text',
-            'editor': None,
-            'is_featured': False,
-            'metadata': dict({
-            }),
-            'pk': '<pk>',
-            'status': 'published',
-            'title': 'Hello contract',
+        'text': dict({
+          'author': 'dj-admin://auth/user/<pk>/',
+          'body': 'Body text',
+          'editor': None,
+          'is_featured': False,
+          'metadata': dict({
           }),
-        ]),
+          'pk': '<pk>',
+          'status': 'published',
+          'title': 'Hello contract',
+          'word_count': 2,
+        }),
         'uri': 'dj-admin://blog/blogpost/<pk>/',
       }),
       dict({
@@ -270,6 +265,7 @@
           - **status**: published
           - **is_featured**: False
           - **metadata**: {}
+          - **word_count**: 2
         ''',
         'uri': 'dj-admin://blog/blogpost/<pk>/',
       }),
@@ -296,6 +292,7 @@
             'pk': '<pk>',
             'status': 'published',
             'title': 'Hello contract',
+            'word_count': 2,
           }),
         ]),
         'uri': 'dj-admin://blog/blogpost/',
@@ -312,6 +309,7 @@
           - **status**: published
           - **is_featured**: False
           - **metadata**: {}
+          - **word_count**: 2
         ''',
         'uri': 'dj-admin://blog/blogpost/',
       }),

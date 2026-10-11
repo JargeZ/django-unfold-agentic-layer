@@ -16,7 +16,8 @@ from django_unfold_agentic_layer.resources.schemas import AdminModelResource
 class BuildListResourceResult(BaseLogicAction):
     """A resource's instances rendered as both JSON and Markdown (spec §8.1) —
     a single instance is just the ``len(instances) == 1`` case of this, not a
-    separately-implemented path.
+    separately-implemented path. With ``many=False`` (detail resource) only
+    the presentation changes: the JSON is the one object, with no list meta.
     """
 
     def execute(
@@ -25,7 +26,8 @@ class BuildListResourceResult(BaseLogicAction):
         request: HttpRequest,
         model_resource: AdminModelResource,
         instances: list[Model],
-        total: int,
+        total: int = 0,
+        many: bool = True,
     ) -> ResourceResult:
         get_json = GetModelJsonRepresentation()
         render_markdown = RenderModelInstanceMarkdown()
@@ -38,6 +40,13 @@ class BuildListResourceResult(BaseLogicAction):
             or "*(no results)*"
         )
 
+        if not many:
+            return ResourceResult(
+                contents=[
+                    ResourceContent(json_items[0], mime_type="application/json"),
+                    ResourceContent(markdown, mime_type="text/markdown"),
+                ]
+            )
         return ResourceResult(
             contents=[
                 ResourceContent(json_items, mime_type="application/json"),
