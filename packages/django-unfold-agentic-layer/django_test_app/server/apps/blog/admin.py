@@ -13,8 +13,14 @@ from unfold.decorators import action, display
 from unfold.enums import ActionVariant
 from unfold.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationForm
 
-from .forms import AppendNoteDialogForm, BlogPostActionForm, DraftDialogForm, SetStatusDialogForm
-from .models import BlogPost
+from .forms import (
+    AppendNoteDialogForm,
+    BlogPostActionForm,
+    DraftDialogForm,
+    RescheduleDialogForm,
+    SetStatusDialogForm,
+)
+from .models import BlogPost, UsagePackage
 
 admin.site.unregister(User)
 
@@ -219,3 +225,16 @@ class SiteSettingsAdmin(ModelAdmin):
     def clear_cache(self, request):
         self.message_user(request, "Cache cleared.", messages.SUCCESS)
         return redirect(request.headers["referer"])
+
+
+@admin.register(UsagePackage)
+class UsagePackageAdmin(ModelAdmin):
+    actions_detail = ["reschedule"]
+
+    @action(
+        description="Reschedule",
+        dialog={"title": "Reschedule", "form_class": RescheduleDialogForm},
+    )
+    def reschedule(self, request, form, object_id):
+        UsagePackage.objects.filter(pk=object_id).update(starts_at=form.cleaned_data["starts_at"])
+        return HttpResponseRedirect(reverse("admin:blog_usagepackage_change", args=[object_id]))

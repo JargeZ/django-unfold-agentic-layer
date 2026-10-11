@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "djangoql",  # DjangoQLSearchMixin on blog.BlogPostAdmin
+    "djmoney",  # MoneyField on blog.UsagePackage
     "django_unfold_agentic_layer",
     "server.apps.blog",
 ]
@@ -79,3 +80,6 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 USE_TZ = True
+
+# django-money: a short currency list keeps schema snapshots readable.
+CURRENCIES = ("USD", "EUR")

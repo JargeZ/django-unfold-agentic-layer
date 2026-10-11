@@ -392,6 +392,29 @@
         'name': 'blog posts (list)',
         'uriTemplate': 'dj-admin://blog/blogpost/{?q,djangoql,editor__id__exact,editor__isnull,has_editor,status__exact,status__isnull,is_featured__exact,is_featured__isnull,created_at__gte,created_at__lt,limit,offset,order_by}',
       }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'mimeType': 'application/json',
+        'name': 'usage package',
+        'uriTemplate': 'dj-admin://blog/usagepackage/{pk}/',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'First 20 usage packages. Filter, sort and paginate via dj-admin://blog/usagepackage/{?limit,offset,order_by} (meta.total is the full count); one record via dj-admin://blog/usagepackage/{pk}/.',
+        'mimeType': 'application/json',
+        'name': 'usage packages (list)',
+        'uriTemplate': 'dj-admin://blog/usagepackage/{?limit,offset,order_by}',
+      }),
     ]),
   })
 # ---
@@ -433,6 +456,18 @@
         'mimeType': 'application/json',
         'name': 'blog posts (list)',
         'uri': 'dj-admin://blog/blogpost/',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'First 20 usage packages. Filter, sort and paginate via dj-admin://blog/usagepackage/{?limit,offset,order_by} (meta.total is the full count); one record via dj-admin://blog/usagepackage/{pk}/.',
+        'mimeType': 'application/json',
+        'name': 'usage packages (list)',
+        'uri': 'dj-admin://blog/usagepackage/',
       }),
     ]),
   })
@@ -684,14 +719,38 @@
             'date_joined': dict({
               'anyOf': list([
                 dict({
-                  'type': 'string',
+                  'maxItems': 2,
+                  'minItems': 2,
+                  'prefixItems': list([
+                    dict({
+                      'anyOf': list([
+                        dict({
+                          'type': 'string',
+                        }),
+                        dict({
+                          'type': 'null',
+                        }),
+                      ]),
+                    }),
+                    dict({
+                      'anyOf': list([
+                        dict({
+                          'type': 'string',
+                        }),
+                        dict({
+                          'type': 'null',
+                        }),
+                      ]),
+                    }),
+                  ]),
+                  'type': 'array',
                 }),
                 dict({
                   'type': 'null',
                 }),
               ]),
               'default': None,
-              'description': 'Date joined (required)',
+              'description': 'Date joined. Pass [date, time] (required)',
             }),
             'email': dict({
               'anyOf': list([
@@ -778,14 +837,38 @@
             'last_login': dict({
               'anyOf': list([
                 dict({
-                  'type': 'string',
+                  'maxItems': 2,
+                  'minItems': 2,
+                  'prefixItems': list([
+                    dict({
+                      'anyOf': list([
+                        dict({
+                          'type': 'string',
+                        }),
+                        dict({
+                          'type': 'null',
+                        }),
+                      ]),
+                    }),
+                    dict({
+                      'anyOf': list([
+                        dict({
+                          'type': 'string',
+                        }),
+                        dict({
+                          'type': 'null',
+                        }),
+                      ]),
+                    }),
+                  ]),
+                  'type': 'array',
                 }),
                 dict({
                   'type': 'null',
                 }),
               ]),
               'default': None,
-              'description': 'Last login',
+              'description': 'Last login. Pass [date, time]',
             }),
             'last_name': dict({
               'anyOf': list([
@@ -1629,6 +1712,342 @@
         }),
         'name': 'run_blog_sitesettings_clear_cache',
         'title': 'Run Blog Sitesettings Clear Cache',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Create a new usage package.',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'name': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Name (required)',
+            }),
+            'price': dict({
+              'anyOf': list([
+                dict({
+                  'maxItems': 2,
+                  'minItems': 2,
+                  'prefixItems': list([
+                    dict({
+                      'anyOf': list([
+                        dict({
+                          'type': 'number',
+                        }),
+                        dict({
+                          'type': 'null',
+                        }),
+                      ]),
+                    }),
+                    dict({
+                      'anyOf': list([
+                        dict({
+                          'enum': list([
+                            'EUR',
+                            'USD',
+                          ]),
+                          'type': 'string',
+                        }),
+                        dict({
+                          'type': 'null',
+                        }),
+                      ]),
+                    }),
+                  ]),
+                  'type': 'array',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Price. Pass [Price, choice] (required)',
+            }),
+            'starts_at': dict({
+              'anyOf': list([
+                dict({
+                  'maxItems': 2,
+                  'minItems': 2,
+                  'prefixItems': list([
+                    dict({
+                      'anyOf': list([
+                        dict({
+                          'type': 'string',
+                        }),
+                        dict({
+                          'type': 'null',
+                        }),
+                      ]),
+                    }),
+                    dict({
+                      'anyOf': list([
+                        dict({
+                          'type': 'string',
+                        }),
+                        dict({
+                          'type': 'null',
+                        }),
+                      ]),
+                    }),
+                  ]),
+                  'type': 'array',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Starts at. Pass [date, time] (required)',
+            }),
+          }),
+          'type': 'object',
+        }),
+        'name': 'create_blog_usagepackage',
+        'title': 'Create Blog Usagepackage',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Update an existing usage package. Only send the fields you want to change; omitted fields keep their current values. A required field that is empty on the record must be sent too.',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'name': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Name (required)',
+            }),
+            'pk': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'integer',
+                }),
+              ]),
+              'description': 'Primary key of the instance to update.',
+            }),
+            'price': dict({
+              'anyOf': list([
+                dict({
+                  'maxItems': 2,
+                  'minItems': 2,
+                  'prefixItems': list([
+                    dict({
+                      'anyOf': list([
+                        dict({
+                          'type': 'number',
+                        }),
+                        dict({
+                          'type': 'null',
+                        }),
+                      ]),
+                    }),
+                    dict({
+                      'anyOf': list([
+                        dict({
+                          'enum': list([
+                            'EUR',
+                            'USD',
+                          ]),
+                          'type': 'string',
+                        }),
+                        dict({
+                          'type': 'null',
+                        }),
+                      ]),
+                    }),
+                  ]),
+                  'type': 'array',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Price. Pass [Price, choice] (required)',
+            }),
+            'starts_at': dict({
+              'anyOf': list([
+                dict({
+                  'maxItems': 2,
+                  'minItems': 2,
+                  'prefixItems': list([
+                    dict({
+                      'anyOf': list([
+                        dict({
+                          'type': 'string',
+                        }),
+                        dict({
+                          'type': 'null',
+                        }),
+                      ]),
+                    }),
+                    dict({
+                      'anyOf': list([
+                        dict({
+                          'type': 'string',
+                        }),
+                        dict({
+                          'type': 'null',
+                        }),
+                      ]),
+                    }),
+                  ]),
+                  'type': 'array',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Starts at. Pass [date, time] (required)',
+            }),
+          }),
+          'required': list([
+            'pk',
+          ]),
+          'type': 'object',
+        }),
+        'name': 'update_blog_usagepackage',
+        'title': 'Update Blog Usagepackage',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'annotations': dict({
+          'destructiveHint': True,
+        }),
+        'description': "Delete a usage package. Destructive: the server asks the client for the user's confirmation before deleting.",
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'pk': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'integer',
+                }),
+              ]),
+            }),
+          }),
+          'required': list([
+            'pk',
+          ]),
+          'type': 'object',
+        }),
+        'name': 'delete_blog_usagepackage',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Delete Blog Usagepackage',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Reschedule. Runs on one usage package (pass its pk).',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'pk': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'integer',
+                }),
+              ]),
+              'description': 'Primary key of the instance to run the action on.',
+            }),
+            'starts_at': dict({
+              'anyOf': list([
+                dict({
+                  'maxItems': 2,
+                  'minItems': 2,
+                  'prefixItems': list([
+                    dict({
+                      'anyOf': list([
+                        dict({
+                          'type': 'string',
+                        }),
+                        dict({
+                          'type': 'null',
+                        }),
+                      ]),
+                    }),
+                    dict({
+                      'anyOf': list([
+                        dict({
+                          'type': 'string',
+                        }),
+                        dict({
+                          'type': 'null',
+                        }),
+                      ]),
+                    }),
+                  ]),
+                  'type': 'array',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'starts_at. Pass [date, time] (required)',
+            }),
+          }),
+          'required': list([
+            'pk',
+          ]),
+          'type': 'object',
+        }),
+        'name': 'run_blog_usagepackage_reschedule',
+        'title': 'Run Blog Usagepackage Reschedule',
       }),
       dict({
         '_meta': dict({

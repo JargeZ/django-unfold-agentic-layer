@@ -318,5 +318,65 @@
       }),
       'name': 'run_blog_sitesettings_clear_cache',
     }),
+    dict({
+      'description': 'Reschedule. Runs on one usage package (pass its pk).',
+      'inputSchema': dict({
+        'additionalProperties': False,
+        'properties': dict({
+          'pk': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'integer',
+              }),
+            ]),
+            'description': 'Primary key of the instance to run the action on.',
+          }),
+          'starts_at': dict({
+            'anyOf': list([
+              dict({
+                'maxItems': 2,
+                'minItems': 2,
+                'prefixItems': list([
+                  dict({
+                    'anyOf': list([
+                      dict({
+                        'type': 'string',
+                      }),
+                      dict({
+                        'type': 'null',
+                      }),
+                    ]),
+                  }),
+                  dict({
+                    'anyOf': list([
+                      dict({
+                        'type': 'string',
+                      }),
+                      dict({
+                        'type': 'null',
+                      }),
+                    ]),
+                  }),
+                ]),
+                'type': 'array',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'starts_at. Pass [date, time] (required)',
+          }),
+        }),
+        'required': list([
+          'pk',
+        ]),
+        'type': 'object',
+      }),
+      'name': 'run_blog_usagepackage_reschedule',
+    }),
   ])
 # ---

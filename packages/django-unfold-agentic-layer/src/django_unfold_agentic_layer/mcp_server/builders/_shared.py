@@ -110,16 +110,10 @@ def build_editable_field_parameter(field: EditableFieldInfo) -> inspect.Paramete
     and ``UpdateModelInstance`` merges the rest in from the current instance
     before validating.
     """
-    if field.python_type in ("related", "multi_related"):
-        # Resources render relations as dj-admin:// URIs; accept them back.
-        related_pk = Annotated[str | int, AfterValidator(_uri_to_pk(field.related_resource_uri))]
-        base_type = list[related_pk] if field.python_type == "multi_related" else related_pk
-    elif field.python_type == "choice":
-        base_type = _choice_literal(field)
-    else:
-        base_type = _BASE_TYPES[field.python_type]
-
+    base_type = _value_type(field)
     description = field.title if not field.help_text else f"{field.title} — {field.help_text}"
+    if field.parts:
+        description = f"{description}. Pass [{', '.join(part.title for part in field.parts)}]"
     if field.required:
         description = f"{description} (required)"
     if field.related_resource_uri:
@@ -134,6 +128,19 @@ def build_editable_field_parameter(field: EditableFieldInfo) -> inspect.Paramete
         default=None,
         annotation=Annotated[base_type | None, Field(description=description)],
     )
+
+
+def _value_type(field: EditableFieldInfo) -> Any:
+    if field.python_type in ("related", "multi_related"):
+        # Resources render relations as dj-admin:// URIs; accept them back.
+        related_pk = Annotated[str | int, AfterValidator(_uri_to_pk(field.related_resource_uri))]
+        return list[related_pk] if field.python_type == "multi_related" else related_pk
+    if field.python_type == "multi":
+        # One item per subwidget, in order; Django's form validates each one.
+        return tuple[tuple(_value_type(part) | None for part in field.parts)]
+    if field.python_type == "choice":
+        return _choice_literal(field)
+    return _BASE_TYPES[field.python_type]
 
 
 def _uri_to_pk(prefix: str) -> Callable[[str | int], str]:

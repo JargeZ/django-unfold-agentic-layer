@@ -5,9 +5,10 @@ Not an action itself — just avoids repeating the same "resolved action" →
 action representations.
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any
 
+from django import forms
 from django.contrib.admin import ModelAdmin
 from django.contrib.admin.utils import model_format_dict
 from django.contrib.messages.storage.base import BaseStorage
@@ -66,6 +67,33 @@ def get_filtered_unfold_actions(
         except TypeError:
             allowed.append(action)
     return allowed
+
+
+def splits_into_subwidgets(widget: forms.Widget) -> bool:
+    """A ``MultiWidget`` that reads its value from ``<name><suffix>`` keys
+    (``widgets_names``): Money, split datetime, range. A subclass with its
+    own ``value_from_datadict`` (Unfold's ``ArrayWidget``) is excluded."""
+    return (
+        isinstance(widget, forms.MultiWidget)
+        and type(widget).value_from_datadict is forms.MultiWidget.value_from_datadict
+    )
+
+
+def to_form_data(fields: Mapping[str, forms.Field], values: dict[str, Any]) -> dict[str, Any]:
+    """Field values -> the keys a bound form reads. A composite field's
+    value goes to one key per subwidget: a list as is, any other value
+    (a model value, e.g. ``Money``/``datetime``) through the widget's own
+    ``decompress()``, as Django does to render it."""
+    data = {}
+    for name, value in values.items():
+        field = fields.get(name)
+        if field is None or not splits_into_subwidgets(field.widget):
+            data[name] = value
+            continue
+        widget = field.widget
+        parts = value if isinstance(value, list | tuple) else widget.decompress(value)
+        data.update({f"{name}{suffix}": part for suffix, part in zip(widget.widgets_names, parts)})
+    return data
 
 
 class CollectedMessages(BaseStorage):

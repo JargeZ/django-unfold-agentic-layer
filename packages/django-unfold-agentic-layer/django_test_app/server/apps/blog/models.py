@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from djmoney.models.fields import MoneyField
 
 
 class BlogPost(models.Model):
@@ -54,3 +55,16 @@ class Comment(models.Model):
 
     def __str__(self) -> str:
         return f"{self.post.title}: {self.text}"
+
+
+class UsagePackage(models.Model):
+    """Composite form fields: Unfold renders both through a ``MultiWidget``
+    (``UnfoldAdminMoneyWidget``, ``UnfoldAdminSplitDateTimeWidget``), whose
+    form data is split into ``<name>_0``/``<name>_1``."""
+
+    name = models.CharField(max_length=255)
+    price = MoneyField(max_digits=10, decimal_places=2, default_currency="USD")
+    starts_at = models.DateTimeField()
+
+    def __str__(self) -> str:
+        return self.name

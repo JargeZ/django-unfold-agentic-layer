@@ -81,6 +81,15 @@ wheels = [
 ]
 
 [[package]]
+name = "babel"
+version = "2.18.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/7d/b2/51899539b6ceeeb420d40ed3cd4b7a40519404f9baf3d4ac99dc413a834b/babel-2.18.0.tar.gz", hash = "sha256:b80b99a14bd085fcacfa15c9165f651fbb3406e66cc603abf11c5750937c992d", size = 9959554, upload-time = "2026-02-01T12:30:56.078Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/77/f5/21d2de20e8b8b0408f0681956ca2c69f1320a3848ac50e6e7f39c6159675/babel-2.18.0-py3-none-any.whl", hash = "sha256:e2b422b277c2b9a9630c1d7903c2a00d0830c409c59ac8cae9081c92f1aeba35", size = 10196845, upload-time = "2026-02-01T12:30:53.445Z" },
+]
+
+[[package]]
 name = "backports-tarfile"
 version = "1.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -343,6 +352,20 @@ wheels = [
 ]
 
 [[package]]
+name = "django-money"
+version = "3.6.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django", version = "5.2.16", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "django", version = "6.0.7", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "py-moneyed" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5e/a1/2a86adff207bd7562a26da2319746fba516978a946fe0864fad96640ecae/django_money-3.6.1.tar.gz", hash = "sha256:9b25d992a457af932eef1e5fef0098dd3ff0c92f4255d2d6d452af772b2fdde5", size = 45020, upload-time = "2026-06-07T10:52:34.363Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/53/27/d044f09fcdb2a630c12f737a38615e9ace35eeb7923c4a10247f9b1e552b/django_money-3.6.1-py3-none-any.whl", hash = "sha256:32a8027a91dea969951a34a9cc4a4f101aaa6ec45e7f784f0b17ec7813818fb2", size = 38296, upload-time = "2026-06-07T10:52:33.193Z" },
+]
+
+[[package]]
 name = "django-unfold"
 version = "0.91.0"
 source = { registry = "https://pypi.org/simple" }
@@ -388,6 +411,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "django-money" },
     { name = "djangoql" },
     { name = "pytest" },
     { name = "pytest-django" },
@@ -405,6 +429,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "django-money", specifier = ">=3.6.1" },
     { name = "djangoql", specifier = ">=0.19.1" },
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-django", specifier = ">=4.8.0" },
@@ -916,6 +941,19 @@ keyring = [
 ]
 memory = [
     { name = "cachetools" },
+]
+
+[[package]]
+name = "py-moneyed"
+version = "3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "babel" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/2c/d9/cb6f113d2b7cf930bb3963d2b84ee245c20f93f9afc2e41adece58d324ae/py-moneyed-3.0.tar.gz", hash = "sha256:4906f0f02cf2b91edba2e156f2d4e9a78f224059ab8c8fa2ff26230c75d894e8", size = 20385, upload-time = "2022-11-27T21:29:38.564Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/be/2b/2d87f12edc70f0d8c85148c51b57a4b8cf89e4d8ad291935a47ed1b7c52e/py_moneyed-3.0-py3-none-any.whl", hash = "sha256:9583a14f99c05b46196193d8185206e9b73c8439fc8a5eee9cfc7e733676d9bb", size = 11324, upload-time = "2022-11-27T21:29:37.201Z" },
 ]
 
 [[package]]

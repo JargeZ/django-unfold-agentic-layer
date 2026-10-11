@@ -10,7 +10,7 @@ from django.utils.http import parse_header_parameters
 from unfold.forms import BaseDialogForm
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
-from django_unfold_agentic_layer.resources.actions._shared import CollectedMessages
+from django_unfold_agentic_layer.resources.actions._shared import CollectedMessages, to_form_data
 from django_unfold_agentic_layer.resources.actions.get_admin_model_instance import (
     GetAdminModelInstance,
 )
@@ -59,7 +59,7 @@ class RunAdminAction(BaseLogicAction):
     ) -> ActionResult | None:
         if action.scope != "instance" and not model_admin.has_view_permission(request):
             raise PermissionDenied("You do not have permission to view this model.")
-        post = self._form_data(data)
+        post = self._form_data(to_form_data(self._form_fields(model_admin, action), data))
         action_request = copy.copy(request)
         action_request.method = "POST"
         action_request.POST = post
@@ -157,6 +157,12 @@ class RunAdminAction(BaseLogicAction):
         except ValidationError:
             return False
         return True
+
+    def _form_fields(self, model_admin: ModelAdmin, action: ActionToolInfo) -> dict[str, Any]:
+        if action.scope == "bulk":
+            return model_admin.action_form.base_fields
+        dialog = model_admin.get_unfold_action(action.name).dialog
+        return (dialog.get("form_class") or BaseDialogForm).base_fields if dialog else {}
 
     def _form_data(self, data: dict[str, Any]) -> QueryDict:
         post = QueryDict(mutable=True)

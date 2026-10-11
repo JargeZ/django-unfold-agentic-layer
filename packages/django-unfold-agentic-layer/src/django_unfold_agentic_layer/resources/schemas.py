@@ -58,10 +58,13 @@ class EditableFieldInfo(BaseModel):
     required: bool
     help_text: str
     python_type: Literal[
-        "str", "int", "float", "bool", "choice", "related", "multi_related", "file"
+        "str", "int", "float", "bool", "choice", "related", "multi_related", "file", "multi"
     ]
     choices: list[tuple[str, str]] | None = None
     related_resource_uri: str | None = None
+    #: ``multi``: one entry per subwidget of a composite field (Money, split
+    #: datetime), in the order the agent passes them.
+    parts: list["EditableFieldInfo"] | None = None
 
 
 #: Strict base64: pydantic's own ``Base64Bytes`` silently drops non-alphabet

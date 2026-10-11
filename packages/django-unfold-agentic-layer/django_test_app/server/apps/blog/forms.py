@@ -22,3 +22,7 @@ class SetStatusDialogForm(BaseDialogForm):
 
 class AppendNoteDialogForm(BaseDialogForm):
     note = forms.CharField(help_text="Appended to the end of the post body.")
+
+
+class RescheduleDialogForm(BaseDialogForm):
+    starts_at = forms.SplitDateTimeField()

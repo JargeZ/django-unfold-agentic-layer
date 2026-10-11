@@ -33,6 +33,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "django-money>=3.6.1",
     "djangoql>=0.19.1",
     "pytest>=8.0.0",
     "pytest-django>=4.8.0",

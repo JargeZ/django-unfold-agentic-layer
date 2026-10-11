@@ -7,6 +7,7 @@ from django.forms.models import model_to_dict
 from django.http import HttpRequest
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
+from django_unfold_agentic_layer.resources.actions._shared import to_form_data
 from django_unfold_agentic_layer.resources.actions.create_model_instance import (
     FormErrors,
     split_uploads,
@@ -35,7 +36,8 @@ class UpdateModelInstance(BaseLogicAction):
         current = model_to_dict(instance, fields=list(form_class.base_fields))
         provided, files = split_uploads(data)
         # A file field not in ``files`` keeps its current file (form initial).
-        form = form_class(data={**current, **provided}, files=files, instance=instance)
+        data = to_form_data(form_class.base_fields, {**current, **provided})
+        form = form_class(data=data, files=files, instance=instance)
         if not form.is_valid():
             errors = form.errors.get_json_data(escape_html=True)
             # Omitted fields keep their current values — but a required one
