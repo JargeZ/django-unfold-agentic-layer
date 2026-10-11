@@ -1774,7 +1774,7 @@
                 }),
               ]),
               'default': None,
-              'description': 'Price. Pass [Price, choice] (required)',
+              'description': 'Price. Pass [decimal, select currency] (required)',
             }),
             'starts_at': dict({
               'anyOf': list([
@@ -1890,7 +1890,7 @@
                 }),
               ]),
               'default': None,
-              'description': 'Price. Pass [Price, choice] (required)',
+              'description': 'Price. Pass [decimal, select currency] (required)',
             }),
             'starts_at': dict({
               'anyOf': list([

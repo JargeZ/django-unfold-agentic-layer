@@ -750,7 +750,7 @@
                 'python_type': 'float',
                 'related_resource_uri': None,
                 'required': False,
-                'title': 'Price',
+                'title': 'decimal',
               }),
               dict({
                 'choices': list([
@@ -769,7 +769,7 @@
                 'python_type': 'choice',
                 'related_resource_uri': None,
                 'required': False,
-                'title': 'choice',
+                'title': 'select currency',
               }),
             ]),
             'python_type': 'multi',
@@ -851,7 +851,7 @@
                 'python_type': 'float',
                 'related_resource_uri': None,
                 'required': False,
-                'title': 'Price',
+                'title': 'decimal',
               }),
               dict({
                 'choices': list([
@@ -870,7 +870,7 @@
                 'python_type': 'choice',
                 'related_resource_uri': None,
                 'required': False,
-                'title': 'choice',
+                'title': 'select currency',
               }),
             ]),
             'python_type': 'multi',

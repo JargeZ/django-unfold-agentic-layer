@@ -29,14 +29,14 @@ class ExtractFormFields(BaseLogicAction):
         python_type, choices, related_resource_uri = self._classify(field)
         parts = None
         if python_type == "multi":
+            subwidgets = zip(field.widget.widgets_names, field.fields, field.widget.widgets)
             parts = [
-                # A subfield has no label: name it by type (date, time, decimal).
-                self._field_info(name + suffix, sub, type(sub).__name__.removesuffix("Field"))
-                for suffix, sub in zip(field.widget.widgets_names, field.fields)
+                self._field_info(name + suffix, sub, self._part_title(field, sub, subwidget))
+                for suffix, sub, subwidget in subwidgets
             ]
         return EditableFieldInfo(
             name=name,
-            title=str(field.label or title.lower() or name),
+            title=title or str(field.label or name),
             required=field.required,
             help_text=str(field.help_text or ""),
             python_type=python_type,
@@ -44,6 +44,16 @@ class ExtractFormFields(BaseLogicAction):
             related_resource_uri=related_resource_uri,
             parts=parts,
         )
+
+    def _part_title(self, field: forms.Field, sub: forms.Field, subwidget: forms.Widget) -> str:
+        """What the admin shows for one part of a composite field: the
+        subwidget's placeholder/aria-label (Unfold: "Date", "Select
+        currency"), an own label, else the part's type ("decimal")."""
+        attrs = subwidget.attrs
+        title = attrs.get("placeholder") or attrs.get("aria-label")
+        if not title and sub.label != field.label:
+            title = sub.label
+        return str(title or type(sub).__name__.removesuffix("Field")).lower()
 
     def _classify(self, field: forms.Field) -> tuple[str, list[tuple[str, str]] | None, str | None]:
         # ModelMultipleChoiceField/ModelChoiceField subclass ChoiceField, so
