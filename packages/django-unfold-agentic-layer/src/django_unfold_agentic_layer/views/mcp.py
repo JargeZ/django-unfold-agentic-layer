@@ -4,7 +4,13 @@ from typing import Any
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed, JsonResponse
+from django.http import (
+    HttpRequest,
+    HttpResponse,
+    HttpResponseNotAllowed,
+    JsonResponse,
+    QueryDict,
+)
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views import View
@@ -81,6 +87,9 @@ class MCPView(View):
         if not (user.is_active and user.is_staff):
             return JsonResponse({"error": "staff permission required"}, status=403)
         request.user = user
+        # /mcp/ takes no query parameters; handlers pass this request to admin
+        # hooks (get_queryset, get_form…), which must not see caller-chosen GET.
+        request.GET = QueryDict()
         return bridge.dispatch(request)
 
     def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseNotAllowed:

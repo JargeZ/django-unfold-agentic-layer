@@ -173,6 +173,12 @@ exactly this fix instead of advertising unusable `http://` URLs.
 Everything goes through the admin's own `has_*_permission` checks, re-run on every request — the agent never sees
 or does what its user can't do in the admin right now; granting or revoking a permission applies to the very next call.
 
+> [!IMPORTANT]
+> The agent gets **exactly** the admin's permissions — including the admin's blind spots. Before you connect agents, check
+> what a user can do in the browser: actions without `permissions=` run for view-only users; `UserAdmin` lets anyone with
+> `change_user` set `is_superuser`; object permissions (e.g. django-guardian) apply only if your `get_queryset` and
+> actions enforce them. Run `manage.py check --deploy` — it warns when confirmations are not shared between workers.
+
 ## Access and sessions
 
 - Only active **staff** users can log in; `is_active`/`is_staff` is re-checked on every request — un-staffing someone cuts off their tokens immediately.

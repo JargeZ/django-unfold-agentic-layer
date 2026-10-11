@@ -343,3 +343,19 @@ def test_closed_registration_requires_clients_added_in_the_admin(settings, brows
     authorize = _authorize(browser, client.client_id, REDIRECT_URI)
     assert authorize.status_code == 302
     assert "/mcp/o/consent?" in authorize["Location"]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "redirect_uri", ["javascript:alert(1)", "data:text/html,<script>alert(1)</script>"]
+)
+def test_registration_rejects_redirect_uris_no_client_can_receive_a_code_at(browser, redirect_uri):
+    response = browser.post(
+        "/mcp/o/register",
+        data=json.dumps({"client_name": "Agent", "redirect_uris": [redirect_uri]}),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 400
+    assert response.json()["error"] == "invalid_redirect_uri"
+    assert not OAuthClient.objects.exists()

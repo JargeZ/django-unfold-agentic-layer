@@ -32,6 +32,7 @@ from mcp.server.auth.provider import (
     AuthorizationParams,
     OAuthAuthorizationServerProvider,
     RefreshToken,
+    RegistrationError,
     TokenError,
     construct_redirect_uri,
 )
@@ -49,6 +50,10 @@ _SIGNING_SALT = "django_unfold_agentic_layer.oauth.consent"
 #: How long the user has to log in and approve on the consent page.
 CONSENT_MAX_AGE = 600
 AUTHORIZATION_CODE_TTL = 300
+#: Redirect schemes no MCP client can receive a code at; the consent page
+#: would otherwise show them as "on your computer" (any non-http(s) scheme
+#: counts as an app's own, see views/oauth.py's ``_is_local_redirect``).
+_FORBIDDEN_REDIRECT_SCHEMES = {"javascript", "data", "vbscript", "file", "blob"}
 
 
 def resource_url(request: HttpRequest) -> str:
@@ -107,6 +112,12 @@ class DjangoOAuthProvider(
         return row and OAuthClientInformationFull.model_validate(row.info)
 
     async def register_client(self, client_info: OAuthClientInformationFull) -> None:
+        for uri in client_info.redirect_uris or []:
+            if uri.scheme.lower() in _FORBIDDEN_REDIRECT_SCHEMES:
+                raise RegistrationError(
+                    error="invalid_redirect_uri",
+                    error_description=f"{uri.scheme}: redirect URIs are not allowed",
+                )
         await OAuthClient.objects.acreate(
             client_id=client_info.client_id, info=client_info.model_dump(mode="json")
         )

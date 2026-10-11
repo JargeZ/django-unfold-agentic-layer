@@ -180,6 +180,40 @@ def test_handlers_refuse_when_the_admin_denies_after_the_server_was_built(
     _assert_no_blog_access(client, post)  # ...but every call is refused
 
 
+@pytest.mark.django_db
+def test_mcp_query_string_does_not_reach_admin_hooks(
+    client, bearer_login, staff_user, post, monkeypatch
+):
+    """``/mcp/`` takes no query parameters; one an agent appends must not
+    widen a ``get_queryset`` that branches on ``request.GET``."""
+    original = BlogPostAdmin.get_queryset
+    monkeypatch.setattr(
+        BlogPostAdmin,
+        "get_queryset",
+        lambda self, request: original(self, request).filter(
+            pk__in=[] if not request.GET.get("show_all") else [post.pk]
+        ),
+    )
+    bearer_login(client, staff_user)
+    payload = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/call",
+        "params": {"name": "update_blog_blogpost", "arguments": {"pk": str(post.pk), "title": "X"}},
+    }
+
+    body = client.post(
+        "/mcp/?show_all=1",
+        data=json.dumps(payload),
+        content_type="application/json",
+        HTTP_ACCEPT="application/json",
+    ).json()
+
+    assert "error" in body or body["result"].get("isError") is True
+    post.refresh_from_db()
+    assert post.title == "Post"
+
+
 # --- bearer tokens ------------------------------------------------------------
 
 
@@ -424,4 +458,21 @@ def test_delete_confirmation_is_single_use(client, bearer_login, staff_user):
     status, body = _modern_raw(client, answer)
 
     assert status != 200 or "inputRequests" in body["result"]
+    assert BlogPost.objects.filter(pk=post.pk).exists()
+
+
+@pytest.mark.django_db
+def test_delete_confirmation_cannot_be_spent_by_another_user(client, bearer_login, staff_user):
+    post = BlogPost.objects.create(title="A", author=staff_user)
+    other = Client()
+    bearer_login(client, staff_user)
+    bearer_login(other, User.objects.create_superuser(username="other"))
+    call = {"name": "delete_blog_blogpost", "arguments": {"pk": str(post.pk)}}
+    asked = _modern_rpc(client, "tools/call", call)
+
+    status, _ = _modern_raw(
+        other, {**call, "inputResponses": ACCEPT, "requestState": asked["requestState"]}
+    )
+
+    assert status == 400
     assert BlogPost.objects.filter(pk=post.pk).exists()

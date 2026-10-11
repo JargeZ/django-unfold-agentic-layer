@@ -91,12 +91,16 @@ def _build_admin_mcp_instance(
     # derived from SECRET_KEY, not fastmcp's per-instance ephemeral default:
     # that one rotates on every runserver reload / differs per worker, so the
     # confirmation round fails with "Invalid or expired requestState".
+    # bind_principal: the SDK's default reads its own auth middleware, which
+    # never runs here (auth is Django's, see views/mcp.py) — without it one
+    # user's confirmation would be accepted by another user's server.
     request_state_key = salted_hmac("django_unfold_agentic_layer.request_state", "").hexdigest()
     admin_mcp = FastMCP(
         "django_unfold_agentic_layer",
         request_state_security=RequestStateSecurity(
             keys=[request_state_key],
             ttl=REQUEST_STATE_TTL,
+            bind_principal=lambda _ctx: str(user.pk),
         ),
     )
     admin_mcp.mount(docs_mcp)
