@@ -8,4 +8,6 @@ class DjangoUnfoldAgenticLayerConfig(AppConfig):
     verbose_name = "Django Unfold Agentic Layer"
 
     def ready(self):
-        from django_unfold_agentic_layer import checks  # noqa: F401 — registers them
+        from django_unfold_agentic_layer import checks  # registers them
+
+        checks.log_startup_warnings()

@@ -1,0 +1,9 @@
+{% load i18n %}
+
+{% blocktranslate trimmed asvar message %}
+    One row per MCP login: which user approved which client, with which scopes (chosen on the consent page,
+    on top of the user's own permissions), and until when. Deleting a row revokes it — the
+    client has to log in again. A token also stops working when it expires, when its user changes their password,
+    or stops being active staff. Only a hash of each token is stored.
+{% endblocktranslate %}
+{% include "unfold/helpers/messages/info.html" with message=message %}

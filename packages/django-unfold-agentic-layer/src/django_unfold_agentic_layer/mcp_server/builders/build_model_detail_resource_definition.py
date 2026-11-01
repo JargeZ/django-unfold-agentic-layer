@@ -3,6 +3,7 @@ from fastmcp import FastMCP
 from fastmcp.exceptions import ResourceError
 from fastmcp.resources import ResourceResult
 
+from django_unfold_agentic_layer import scopes
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
 from django_unfold_agentic_layer.mcp_server.builders._shared import (
     get_django_request,
@@ -31,7 +32,7 @@ class BuildModelDetailResourceDefinition(BaseLogicAction):
         uri_template = f"dj-admin://{model_resource.app_label}/{model_resource.model_name}/{{pk}}/"
 
         def run(pk: str) -> ResourceResult:
-            request = get_django_request()
+            request = get_django_request(scopes.READ)
             instance = GetAdminModelInstance().execute(model_admin, request, pk)
             return BuildListResourceResult().execute(
                 model_admin, request, model_resource, [instance], many=False

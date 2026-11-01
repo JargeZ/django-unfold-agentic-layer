@@ -9,6 +9,13 @@ from django.db.models import FileField, Model
 from django.http import HttpRequest
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
+from django_unfold_agentic_layer.resources.actions._shared import related_list_uri
+
+#: Many-to-many values listed per field; the rest are left to a list query.
+M2M_LIMIT = 100
+
+#: Per-field notes on values cut short (``{field: note}``), only when any are.
+TRUNCATED_KEY = "_truncated"
 
 
 class GetModelJsonRepresentation(BaseLogicAction):
@@ -33,6 +40,8 @@ class GetModelJsonRepresentation(BaseLogicAction):
     Relations are rendered as resource URIs, not inlined values (spec §8.3):
     an agent that wants the related object's data can follow the link, and
     this avoids both N+1 queries and unbounded recursion (e.g. a self-FK).
+    A many-to-many field lists at most ``M2M_LIMIT`` links; when there are
+    more, ``TRUNCATED_KEY`` says so and where to query the rest.
     """
 
     def execute(
@@ -41,11 +50,16 @@ class GetModelJsonRepresentation(BaseLogicAction):
         opts = instance._meta
         form_fields = model_admin.get_form(request, instance, change=True).base_fields
         data: dict[str, Any] = {"pk": instance.pk}
+        truncated: dict[str, str] = {}
         for field_name in flatten_fieldsets(model_admin.get_fieldsets(request, instance)):
             form_field = form_fields.get(field_name)
             if form_field is not None and self._hides_value(form_field.widget):
                 continue
-            data[field_name] = self._field_value(model_admin, request, opts, instance, field_name)
+            data[field_name] = self._field_value(
+                model_admin, request, opts, instance, field_name, truncated
+            )
+        if truncated:
+            data[TRUNCATED_KEY] = truncated
         return data
 
     def _hides_value(self, widget: forms.Widget) -> bool:
@@ -60,6 +74,7 @@ class GetModelJsonRepresentation(BaseLogicAction):
         opts: Any,
         instance: Model,
         field_name: str,
+        truncated: dict[str, str],
     ) -> Any:
         try:
             field = opts.get_field(field_name)
@@ -72,16 +87,22 @@ class GetModelJsonRepresentation(BaseLogicAction):
             return value
 
         if field.many_to_many:
-            related_opts = field.related_model._meta
-            return [
-                self._resource_uri(related_opts, obj.pk)
-                for obj in getattr(instance, field_name).all()
-            ]
+            list_uri = related_list_uri(model_admin, request, field.related_model)
+            # One extra row tells "exactly the limit" from "more than that".
+            related = list(getattr(instance, field_name).all()[: M2M_LIMIT + 1])
+            if len(related) > M2M_LIMIT:
+                truncated[field_name] = (
+                    f"Only the first {M2M_LIMIT} are listed; there are more."
+                    + (f" Query {list_uri} for the rest." if list_uri else "")
+                )
+            return [_reference(list_uri, obj.pk) for obj in related[:M2M_LIMIT]]
         if field.many_to_one or field.one_to_one:
             related = getattr(instance, field_name)
             if related is None:
                 return None
-            return self._resource_uri(field.related_model._meta, related.pk)
+            return _reference(
+                related_list_uri(model_admin, request, field.related_model), related.pk
+            )
 
         if isinstance(field, FileField):
             file = getattr(instance, field_name)
@@ -91,5 +112,8 @@ class GetModelJsonRepresentation(BaseLogicAction):
 
         return field.value_from_object(instance)
 
-    def _resource_uri(self, opts: Any, pk: Any) -> str:
-        return f"dj-admin://{opts.app_label}/{opts.model_name}/{pk}/"
+
+def _reference(list_uri: str | None, pk: Any) -> Any:
+    """A related object: its resource URI, or its pk when MCP has no
+    resource for its model."""
+    return f"{list_uri}{pk}/" if list_uri else pk

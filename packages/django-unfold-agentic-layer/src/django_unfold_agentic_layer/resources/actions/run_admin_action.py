@@ -40,6 +40,10 @@ class RunAdminAction(BaseLogicAction):
       decorator re-checks ``permissions`` (object-level for an instance) and
       binds the dialog form from ``request.POST``.
 
+    No transaction, on purpose: the admin runs neither kind inside one
+    (``changelist_view`` and Unfold's ``admin_view``-wrapped action URLs), so
+    an action that commits part of its work does so here too.
+
     Forms are validated here first as well, because on invalid input Django
     and Unfold only re-render HTML; doing it up front turns that into the
     same structured ``errors`` the create/update tools return. ``dry_run``

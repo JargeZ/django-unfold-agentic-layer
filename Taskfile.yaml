@@ -20,6 +20,12 @@ tasks:
     cmds:
       - uv run pytest {{.CLI_ARGS}}
 
+  test:matrix:
+    desc: Run the CI matrix (Python × Django) through tox, in parallel.
+    dir: packages/django-unfold-agentic-layer
+    cmds:
+      - uv run tox run-parallel {{.CLI_ARGS}}
+
   test:update:
     dir: packages/django-unfold-agentic-layer
     cmds:

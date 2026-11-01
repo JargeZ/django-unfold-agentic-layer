@@ -2,13 +2,13 @@
 
 import hashlib
 import inspect
-import logging
 import uuid
 from collections.abc import Callable
 from typing import Annotated, Any, Literal, TypeVar
 
 from asgiref.sync import sync_to_async
 from django.core.cache import caches
+from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest
 from fastmcp import Context
 from fastmcp.exceptions import FastMCPError, ToolError
@@ -16,10 +16,14 @@ from fastmcp.server.dependencies import get_http_request
 from mcp.types import ElicitRequest, ElicitRequestFormParams, InputRequiredResult
 from pydantic import AfterValidator, Field
 
+from django_unfold_agentic_layer import scopes
 from django_unfold_agentic_layer.conf import Settings, get_config
-from django_unfold_agentic_layer.resources.schemas import EditableFieldInfo, FileUploadInput
-
-logger = logging.getLogger(__name__)
+from django_unfold_agentic_layer.errors import format_error
+from django_unfold_agentic_layer.resources.schemas import (
+    ActionToolInfo,
+    EditableFieldInfo,
+    FileUploadInput,
+)
 
 _T = TypeVar("_T")
 
@@ -56,15 +60,25 @@ _BASE_TYPES: dict[str, type] = {
 }
 
 
-def get_django_request() -> HttpRequest:
-    """The live Django ``HttpRequest`` behind the current MCP call.
+def get_django_request(required_scope: str) -> HttpRequest:
+    """The live Django ``HttpRequest`` behind the current MCP call, once its
+    token is known to hold ``required_scope`` (see ``scopes.py``) — every
+    handler gets its request through here, so none can skip the check.
 
     Works because bridge.py hands the *same* scope dict all the way down to
     ``StreamableHTTPSessionManager``, which threads it through as
     ``RequestContext.request`` — see spec §6 for the full chain, verified
     end-to-end against a real HTTP POST through ``/mcp/``.
     """
-    return get_http_request().scope[REQUEST_SCOPE_KEY]
+    request = get_http_request().scope[REQUEST_SCOPE_KEY]
+    if required_scope not in getattr(request, "mcp_scopes", ()):
+        raise PermissionDenied(f"This login was not granted the {required_scope} scope.")
+    return request
+
+
+def action_scope(action: ActionToolInfo) -> str:
+    """The scope an admin action needs: ``DANGER`` ones are destructive."""
+    return scopes.DESTRUCTIVE if action.dangerous else scopes.WRITE
 
 
 async def run_in_django(
@@ -80,6 +94,9 @@ async def run_in_django(
     ``SynchronousOnlyOperation`` inside fastmcp's error handler, and the
     client gets a bare 500 instead of the error. ``from None`` drops the
     chain for the same reason: fastmcp logs it on the event loop too.
+
+    The message comes from :func:`errors.format_error`, the only place an
+    exception becomes agent-facing text.
     """
 
     def guarded() -> _T:
@@ -88,8 +105,7 @@ async def run_in_django(
         except FastMCPError:
             raise
         except Exception as e:
-            logger.exception("Error in %s", label)
-            raise error(f"{type(e).__name__} in {label}: {e}") from None
+            raise error(format_error(e, label)) from None
 
     return await sync_to_async(guarded, thread_sensitive=True)()
 
@@ -121,6 +137,8 @@ def build_editable_field_parameter(field: EditableFieldInfo) -> inspect.Paramete
             f"{description}. Pass a pk or its {field.related_resource_uri}{{pk}}/ URI; "
             f"browse valid values at {field.related_resource_uri}"
         )
+    elif field.python_type in ("related", "multi_related"):
+        description = f"{description}. Pass a pk"
 
     return inspect.Parameter(
         field.name,
@@ -133,7 +151,11 @@ def build_editable_field_parameter(field: EditableFieldInfo) -> inspect.Paramete
 def _value_type(field: EditableFieldInfo) -> Any:
     if field.python_type in ("related", "multi_related"):
         # Resources render relations as dj-admin:// URIs; accept them back.
-        related_pk = Annotated[str | int, AfterValidator(_uri_to_pk(field.related_resource_uri))]
+        related_pk = str | int
+        if field.related_resource_uri:
+            related_pk = Annotated[
+                related_pk, AfterValidator(_uri_to_pk(field.related_resource_uri))
+            ]
         return list[related_pk] if field.python_type == "multi_related" else related_pk
     if field.python_type == "multi":
         # One item per subwidget, in order; Django's form validates each one.
@@ -157,6 +179,48 @@ def _uri_to_pk(prefix: str) -> Callable[[str | int], str]:
 def _choice_literal(field: EditableFieldInfo) -> type:
     values = [value for value, _label in (field.choices or []) if value]
     return Literal[tuple(values)] if values else str
+
+
+#: The ``ctx`` keyword every confirmable tool takes (fastmcp injects it and
+#: keeps it out of the tool's input schema).
+CTX_PARAMETER = inspect.Parameter("ctx", kind=inspect.Parameter.KEYWORD_ONLY, annotation=Context)
+
+#: What a write tool returns when the user declines its confirmation.
+CANCELLED = {
+    "success": False,
+    "errors": {"__all__": [{"message": "Cancelled by the user.", "code": "cancelled"}]},
+}
+
+
+def confirm_writes() -> bool:
+    """``CONFIRM_WRITES``: every data-changing tool asks first, not only
+    the destructive ones."""
+    return get_config()[Settings.CONFIRM_WRITES]
+
+
+def confirm_write(
+    ctx: Context, message: str, request_state: str
+) -> InputRequiredResult | dict[str, Any] | None:
+    """One confirmation round for a write: the question while unanswered,
+    :data:`CANCELLED` once declined, ``None`` once confirmed — go ahead."""
+    confirmed = is_confirmed(ctx)
+    if confirmed is None:
+        return confirmation_request(message, title="Confirm change", request_state=request_state)
+    return None if confirmed else CANCELLED
+
+
+def describe_values(values: dict[str, Any]) -> str:
+    """``title='Hello', status='draft'`` — what a confirmation asks about."""
+
+    def short(value: Any) -> str:
+        if isinstance(value, FileUploadInput):
+            return f"file {value.name!r}"
+        text = repr(value)
+        return text if len(text) <= 60 else f"{text[:57]}..."
+
+    return ", ".join(
+        f"{name}={short(value)}" for name, value in values.items() if value is not None
+    )
 
 
 def confirmation_request(message: str, title: str, request_state: str) -> InputRequiredResult:

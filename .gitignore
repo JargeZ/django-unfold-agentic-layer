@@ -10,7 +10,8 @@ build/
 *.egg
 
 # Virtual environments
-.venv/
+.venv
+.tox/
 venv/
 env/
 

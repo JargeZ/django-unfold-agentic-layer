@@ -52,7 +52,7 @@ No separate process, works under both WSGI and ASGI.
 
 ## Installation
 
-**Requirements:** Python 3.11+, Django 5.0+, `django-unfold` 0.91+.
+**Requirements:** Python 3.11+, Django 5.2+, `django-unfold` 0.91+.
 
 **1. Install the package** from git:
 
@@ -142,6 +142,9 @@ npx @modelcontextprotocol/inspector
 > ```
 >
 > Requests without a token act as the first active superuser; permission filtering still applies.
+>
+> Every such request logs a warning (`django_unfold_agentic_layer.mcp`), and a second one when it comes from a non-loopback address.
+> The app also logs a warning once at startup (`django_unfold_agentic_layer.config`), because gunicorn and uvicorn do not run system checks.
 
 ### HTTPS and reverse proxies
 
@@ -164,14 +167,18 @@ exactly this fix instead of advertising unusable `http://` URLs.
 | Primitive | Example | What it does |
 |---|---|---|
 | Doc tools | `unfold_filters`, `unfold_search_docs` | Django Unfold docs, including all third-party integrations |
-| Detail resource | `dj-admin://blog/blogpost/42/` | One object's fields as JSON + Markdown; FK/M2M as links |
+| Detail resource | `dj-admin://blog/blogpost/42/` | One object's fields as JSON + Markdown; FK/M2M as links (up to 100 per M2M field, with a note when there are more) |
 | List resource | `dj-admin://blog/blogpost/{?params}` | Your `list_filter`/search params, `limit`/`offset`/`order_by` |
 | Tools | `create_blog_blogpost`, `update_blog_blogpost` | Through the admin form; errors come back per field |
 | Tool | `delete_blog_blogpost` | Asks for confirmation before deleting |
 | Action tools | `run_blog_blogpost_publish_posts` | Every admin/Unfold action (bulk, list, row, detail) with its form; `DANGER` ones ask for confirmation |
 
+By default users and groups are **not** exposed (`MODELS` setting) — opt them in deliberately.
 Everything goes through the admin's own `has_*_permission` checks, re-run on every request — the agent never sees
 or does what its user can't do in the admin right now; granting or revoking a permission applies to the very next call.
+Writes run like the admin's own views: the same `save_model`/`save_related`/`delete_model` hooks in the same
+transaction, the same history entries (an object's "History" shows what the agent changed, under its user), and a delete
+is refused when it would cascade onto objects the user can't delete.
 
 > [!IMPORTANT]
 > The agent gets **exactly** the admin's permissions — including the admin's blind spots. Before you connect agents, check
@@ -181,9 +188,14 @@ or does what its user can't do in the admin right now; granting or revoking a pe
 
 ## Access and sessions
 
-- Only active **staff** users can log in; `is_active`/`is_staff` is re-checked on every request — un-staffing someone cuts off their tokens immediately.
+- On the consent page the user picks the login's **scopes**, on top of their own permissions: `mcp:read` (resources, always granted), `mcp:write` (create/update tools and actions) and `mcp:destructive` (delete tools and `DANGER` actions). Tools outside the scopes are not even listed, and every call re-checks its scope.
+- Only active **staff** users holding the **`django_unfold_agentic_layer.use_mcp`** permission ("Can use the admin through MCP" — grant it per user or group; superusers always have it) can log in; `is_active`/`is_staff` and the permission are re-checked on every request — un-staffing someone or taking the permission away cuts off their tokens immediately. `REQUIRED_PERMISSION = False` lets every active staff user in.
+- Changing a user's password revokes their MCP tokens, the same way Django logs out their browser sessions (the session auth hash; `SECRET_KEY_FALLBACKS` keeps them valid until the old key leaves it).
+- The login (consent) page goes through `admin.site.admin_view`, so your admin site's own `has_permission` applies — a custom site's 2FA or IP rules guard the MCP login exactly like the admin.
+- The consent page names where the code goes and warns about what it can't verify: a return address off your computer, an app's own scheme (`cursor://`), a self-declared client name — and suggests a separate, less privileged user to superusers.
 - The Django session cookie does **not** authenticate `/mcp` — only the `Bearer` token does.
 - A login lasts `SESSION_TTL` (default 1 day), no refresh tokens.
+- An authorization code works once; presenting it again also revokes the token it was exchanged for (RFC 6749 §4.1.2).
 - Clients and tokens are visible in the admin — deleting one revokes it. A deleted client gets a page asking the person to
   clear the saved authentication in their MCP client (Claude Code: `/mcp` → server → Clear authentication) and reconnect.
 
@@ -200,10 +212,54 @@ UNFOLD_AGENTIC_LAYER = {
     # confirmation can't be replayed into many runs. Default "default" — with several
     # worker processes it must be a shared backend (Redis, DB, Memcached), not LocMem.
     "CONFIRMATION_CACHE": "default",
+    # Only users with the use_mcp permission (superusers always) may use MCP. Default True.
+    "REQUIRED_PERMISSION": True,
+    # Which admin models MCP exposes: "app_label" or "app_label.model" entries.
+    # INCLUDE None = all; EXCLUDE None = your user model and auth.group (so an agent can't
+    # grant itself permissions); [] = exclude nothing.
+    "MODELS": {"INCLUDE": None, "EXCLUDE": None},
+    # True: create/update tools and every admin action ask the user to confirm first,
+    # like delete tools and DANGER actions always do. Default False.
+    "CONFIRM_WRITES": False,
 }
 ```
 
 The full list is in [`conf.py`](packages/django-unfold-agentic-layer/src/django_unfold_agentic_layer/conf.py).
+
+### Logging
+
+The library logs under `django_unfold_agentic_layer`, split by area. Configure them with Django's standard
+[`LOGGING`](https://docs.djangoproject.com/en/stable/topics/logging/) setting — all at once by the parent name, or one area by its full name:
+
+| Logger | What it reports |
+|---|---|
+| `django_unfold_agentic_layer.mcp` | Rejected `/mcp` calls (method + status at `WARNING`, response body at `DEBUG`), dev-mode warnings |
+| `django_unfold_agentic_layer.oauth` | The OAuth flow: discovery, login, consent, tokens |
+| `django_unfold_agentic_layer.tools` | Errors inside tool and resource handlers |
+| `django_unfold_agentic_layer.builder` | Building the per-user server from the admin registry |
+| `django_unfold_agentic_layer.config` | Unsafe settings, once at startup (the app's system-check warnings) |
+
+```python
+LOGGING = {
+    "version": 1,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "loggers": {
+        "django_unfold_agentic_layer": {"handlers": ["console"], "level": "INFO"},
+        # Response bodies can hold admin data: enable DEBUG only while debugging.
+        "django_unfold_agentic_layer.mcp": {"level": "DEBUG"},
+    },
+}
+```
+
+## Production checklist
+
+- Serve over **https** (behind a proxy: `SECURE_PROXY_SSL_HEADER`) and keep `ALLOWED_HOSTS` strict — OAuth URLs are built from the `Host` header.
+- Grant `use_mcp` only to the people who should connect agents (`REQUIRED_PERMISSION`, on by default), ideally to dedicated users with just the permissions the agent needs — not superusers.
+- Keep users and groups out of MCP (`MODELS`, the default) unless you mean it; narrow `MODELS["INCLUDE"]` to what agents need.
+- Consider `CLOSED_CLIENT_REGISTRATION = True` and `CONFIRM_WRITES = True` for sensitive data.
+- Point `CONFIRMATION_CACHE` at a cache all workers share and run `manage.py check --deploy`.
+- Never set `UNFOLD_AGENTIC_LAYER_UNAUTHORIZED` outside local development.
+- Rate-limit `/mcp/register` and `/mcp/token` at your proxy; collect `django_unfold_agentic_layer.*` logs.
 
 ## Roadmap
 
@@ -221,9 +277,10 @@ The repo is a [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspa
 
 ```bash
 uv sync
-uvx pre-commit install   # secret scanning (gitleaks, trufflehog) + ruff on every commit
+uv run pre-commit install   # secret scanning (gitleaks, trufflehog) + ruff, and a Conventional Commits check on messages
 cd packages/django-unfold-agentic-layer
 uv run pytest
+uv run tox run-parallel   # the CI matrix: Python 3.11–3.14 × Django 5.2, 6.0, 6.1
 ```
 
 The tests boot a throwaway Django project (`django_test_app/`) and drive real MCP requests through `/mcp`.

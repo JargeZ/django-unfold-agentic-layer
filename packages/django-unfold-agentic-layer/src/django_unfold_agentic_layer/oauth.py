@@ -21,11 +21,13 @@ from datetime import timedelta
 from functools import lru_cache
 from urllib.parse import urlencode
 
+from django.contrib.auth import get_user_model
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.core import signing
 from django.http import HttpRequest
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.crypto import constant_time_compare
 from mcp.server.auth.provider import (
     AccessToken,
     AuthorizationCode,
@@ -43,6 +45,7 @@ from mcp.shared.auth import OAuthToken as TokenResponse
 from pydantic import AnyHttpUrl
 from starlette.applications import Starlette
 
+from django_unfold_agentic_layer import log, scopes
 from django_unfold_agentic_layer.conf import Settings, get_config
 from django_unfold_agentic_layer.models import OAuthClient, OAuthToken
 
@@ -100,6 +103,17 @@ def _live(kind: OAuthToken.Kind, token: str):
     )
 
 
+async def _revoke_issued_for(used_code: OAuthToken) -> None:
+    """Revokes the access token a used authorization code was exchanged for."""
+    log.oauth.warning(
+        "Authorization code reused (client %s, user %s): revoking its token",
+        used_code.client_id,
+        used_code.user_id,
+    )
+    await OAuthToken.objects.filter(token_hash=used_code.data["access_token_hash"]).adelete()
+    await used_code.adelete()
+
+
 class DjangoOAuthProvider(
     OAuthAuthorizationServerProvider[AuthorizationCode, RefreshToken, AccessToken]
 ):
@@ -111,7 +125,7 @@ class DjangoOAuthProvider(
 
     async def get_client(self, client_id: str) -> OAuthClientInformationFull | None:
         row = await OAuthClient.objects.filter(pk=client_id).afirst()
-        return row and OAuthClientInformationFull.model_validate(row.info)
+        return row and client_information(row)
 
     async def register_client(self, client_info: OAuthClientInformationFull) -> None:
         for uri in client_info.redirect_uris or []:
@@ -137,23 +151,26 @@ class DjangoOAuthProvider(
         self, client: OAuthClientInformationFull, authorization_code: str
     ) -> AuthorizationCode | None:
         row = (
-            await _live(OAuthToken.Kind.CODE, authorization_code)
+            await OAuthToken.objects.filter(
+                token_hash=_hash(authorization_code),
+                kind__in=[OAuthToken.Kind.CODE, OAuthToken.Kind.USED_CODE],
+                expires_at__gt=timezone.now(),
+            )
             .filter(client_id=client.client_id)
             .afirst()
         )
-        return row and AuthorizationCode(code=authorization_code, **row.data)
+        if row is None:
+            return None
+        if row.kind == OAuthToken.Kind.USED_CODE:
+            # RFC 6749 §4.1.2: a code presented twice may have been stolen,
+            # so the token issued for it goes too.
+            await _revoke_issued_for(row)
+            return None
+        return AuthorizationCode(code=authorization_code, **row.data)
 
     async def exchange_authorization_code(
         self, client: OAuthClientInformationFull, authorization_code: AuthorizationCode
     ) -> TokenResponse:
-        deleted, _ = await OAuthToken.objects.filter(
-            token_hash=_hash(authorization_code.code), kind=OAuthToken.Kind.CODE
-        ).adelete()
-        if not deleted:  # lost a race with a concurrent exchange of the same code
-            raise TokenError(
-                error="invalid_grant", error_description="authorization code already used"
-            )
-
         ttl = get_config()[Settings.SESSION_TTL]
         expires_at = timezone.now() + ttl
         token = secrets.token_urlsafe(32)
@@ -165,15 +182,35 @@ class DjangoOAuthProvider(
             resource=authorization_code.resource,
             subject=authorization_code.subject,
         )
+        user = await get_user_model()._default_manager.aget(pk=authorization_code.subject)
         await OAuthToken.objects.filter(expires_at__lt=timezone.now()).adelete()
-        await OAuthToken.objects.acreate(
+        access_row = await OAuthToken.objects.acreate(
             token_hash=_hash(token),
             kind=OAuthToken.Kind.ACCESS,
             client_id=client.client_id,
-            user_id=authorization_code.subject,
+            user=user,
             data=access.model_dump(mode="json", exclude={"token"}),
+            session_auth_hash=user.get_session_auth_hash(),
             expires_at=expires_at,
         )
+        # Flip the code to "used", remembering its token for as long as that
+        # token lives: a later replay (see load_authorization_code) revokes it.
+        # The conditional update is atomic, so of two concurrent exchanges
+        # exactly one wins.
+        code_rows = OAuthToken.objects.filter(token_hash=_hash(authorization_code.code))
+        won = await code_rows.filter(kind=OAuthToken.Kind.CODE).aupdate(
+            kind=OAuthToken.Kind.USED_CODE,
+            data={"access_token_hash": access_row.token_hash},
+            expires_at=expires_at,
+        )
+        if not won:
+            await access_row.adelete()
+            used = await code_rows.filter(kind=OAuthToken.Kind.USED_CODE).afirst()
+            if used is not None:
+                await _revoke_issued_for(used)
+            raise TokenError(
+                error="invalid_grant", error_description="authorization code already used"
+            )
         return TokenResponse(
             access_token=token,
             expires_in=int(ttl.total_seconds()),
@@ -198,13 +235,31 @@ class DjangoOAuthProvider(
         await OAuthToken.objects.filter(token_hash=_hash(token.token)).adelete()
 
 
+def registration_options(enabled: bool) -> ClientRegistrationOptions:
+    """Registration with our scopes: a client asking for none gets them all
+    (the user narrows them on the consent page)."""
+    return ClientRegistrationOptions(
+        enabled=enabled, valid_scopes=scopes.ALL, default_scopes=scopes.ALL
+    )
+
+
+def client_information(row: OAuthClient) -> OAuthClientInformationFull:
+    """A stored client, allowed every scope when it registered without any
+    (added in the admin, or before scopes existed) — the consent page is
+    where scopes get narrowed, not registration."""
+    client = OAuthClientInformationFull.model_validate(row.info)
+    if client.scope is None:
+        client.scope = " ".join(scopes.ALL)
+    return client
+
+
 @lru_cache(maxsize=8)
 def _auth_app(issuer: str, consent_url: str) -> Starlette:
     return Starlette(
         routes=create_auth_routes(
             DjangoOAuthProvider(consent_url),
             AnyHttpUrl(issuer),
-            client_registration_options=ClientRegistrationOptions(enabled=True),
+            client_registration_options=registration_options(enabled=True),
             revocation_options=RevocationOptions(enabled=True),
         )
     )
@@ -227,20 +282,22 @@ def load_consent_request(
     client = OAuthClient.objects.filter(pk=payload["client_id"]).first()
     if client is None:
         return None
-    return (
-        OAuthClientInformationFull.model_validate(client.info),
-        AuthorizationParams.model_validate(payload["params"]),
-    )
+    return client_information(client), AuthorizationParams.model_validate(payload["params"])
 
 
 def approve(
-    user: AbstractBaseUser, client: OAuthClientInformationFull, params: AuthorizationParams
+    user: AbstractBaseUser,
+    client: OAuthClientInformationFull,
+    params: AuthorizationParams,
+    chosen_scopes: list[str],
 ) -> str:
-    """Issue an authorization code for ``user`` and return the client redirect URL."""
+    """Issue an authorization code for ``user`` with the scopes they chose
+    (within what the client asked for, see ``scopes.granted``) and return the
+    client redirect URL."""
     code = secrets.token_urlsafe(32)
     authorization_code = AuthorizationCode(
         code=code,
-        scopes=params.scopes or [],
+        scopes=scopes.granted(params.scopes, chosen_scopes),
         expires_at=time.time() + AUTHORIZATION_CODE_TTL,
         client_id=client.client_id,
         code_challenge=params.code_challenge,
@@ -266,8 +323,19 @@ def deny(params: AuthorizationParams) -> str:
     )
 
 
-def authenticate_bearer(request: HttpRequest) -> AbstractBaseUser | None:
-    """The user behind a live ``Authorization: Bearer`` access token, if any."""
+#: The permission ``REQUIRED_PERMISSION`` asks for (see ``models.MCPAccess``).
+USE_MCP_PERMISSION = "django_unfold_agentic_layer.use_mcp"
+
+
+def can_use_mcp(user: AbstractBaseUser) -> bool:
+    """Whether ``user`` may log in to and use ``/mcp`` at all, on top of
+    being active staff."""
+    return not get_config()[Settings.REQUIRED_PERMISSION] or user.has_perm(USE_MCP_PERMISSION)
+
+
+def authenticate_bearer(request: HttpRequest) -> tuple[AbstractBaseUser, frozenset[str]] | None:
+    """The user and scopes behind a live ``Authorization: Bearer`` access
+    token, if any."""
     scheme, _, token = request.headers.get("Authorization", "").partition(" ")
     if scheme.lower() != "bearer" or not token:
         return None
@@ -277,4 +345,22 @@ def authenticate_bearer(request: HttpRequest) -> AbstractBaseUser | None:
     resource = row.data.get("resource")
     if resource is not None and resource.rstrip("/") != resource_url(request).rstrip("/"):
         return None  # issued for a different resource (RFC 8707 audience check)
-    return row.user
+    if not _session_hash_verified(row):
+        log.oauth.info("Revoking token of %s: password changed since login", row.user)
+        row.delete()
+        return None
+    return row.user, frozenset(row.data.get("scopes") or ())
+
+
+def _session_hash_verified(row: OAuthToken) -> bool:
+    """Django's own check that a session is still valid
+    (``django.contrib.auth.get_user``): the hash taken at login must match
+    the user's current one, or one under ``SECRET_KEY_FALLBACKS``. Unlike a
+    session it is never re-stamped: a login lasts at most ``SESSION_TTL``,
+    so dropping the old key from the fallbacks ends it. It covers the password hash, so
+    changing the password logs MCP clients out, as it does browsers."""
+    user = row.user
+    if not hasattr(user, "get_session_auth_hash"):
+        return True
+    hashes = [user.get_session_auth_hash(), *user.get_session_auth_fallback_hash()]
+    return any(constant_time_compare(row.session_auth_hash, h) for h in hashes)

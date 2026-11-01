@@ -7,7 +7,7 @@ from django.forms.models import model_to_dict
 from django.http import HttpRequest
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
-from django_unfold_agentic_layer.resources.actions._shared import to_form_data
+from django_unfold_agentic_layer.resources.actions._shared import admin_atomic, to_form_data
 from django_unfold_agentic_layer.resources.actions.create_model_instance import (
     FormErrors,
     split_uploads,
@@ -22,38 +22,49 @@ class UpdateModelInstance(BaseLogicAction):
     instance's *current* values (``model_to_dict``, which already reports FK/
     M2M fields as raw pks — exactly what the form's fields expect) and
     overlays whatever the agent actually provided, before validating the
-    full form. Saving goes through ``ModelAdmin.save_model()``, same as
-    ``CreateModelInstance``, so admin-level save overrides still run.
+    full form. Saving runs the same hooks in the same transaction as
+    ``CreateModelInstance`` (the admin's ``_changeform_view``), and
+    ``dry_run`` means the same.
     """
 
     def execute(
-        self, model_admin: ModelAdmin, request: HttpRequest, instance: Model, data: dict[str, Any]
+        self,
+        model_admin: ModelAdmin,
+        request: HttpRequest,
+        instance: Model,
+        data: dict[str, Any],
+        dry_run: bool = False,
     ) -> tuple[Model | None, FormErrors]:
-        if not model_admin.has_change_permission(request, instance):
-            raise PermissionDenied("You do not have permission to change this object.")
+        with admin_atomic(model_admin):
+            if not model_admin.has_change_permission(request, instance):
+                raise PermissionDenied("You do not have permission to change this object.")
 
-        form_class = model_admin.get_form(request, instance, change=True)
-        current = model_to_dict(instance, fields=list(form_class.base_fields))
-        provided, files = split_uploads(data)
-        # A file field not in ``files`` keeps its current file (form initial).
-        data = to_form_data(form_class.base_fields, {**current, **provided})
-        form = form_class(data=data, files=files, instance=instance)
-        if not form.is_valid():
-            errors = form.errors.get_json_data(escape_html=True)
-            # Omitted fields keep their current values — but a required one
-            # that is already empty on the record (e.g. a modeltranslation
-            # field for a language nobody filled in) has nothing to keep.
-            for name, field_errors in errors.items():
-                if name not in provided and name not in files:
-                    for error in field_errors:
-                        if error["code"] == "required":
-                            error["message"] = (
-                                "This field is required and is empty on the current record, "
-                                "so it must be provided."
-                            )
-            return None, errors
+            form_class = model_admin.get_form(request, instance, change=True)
+            current = model_to_dict(instance, fields=list(form_class.base_fields))
+            provided, files = split_uploads(data)
+            # A file field not in ``files`` keeps its current file (form initial).
+            data = to_form_data(form_class.base_fields, {**current, **provided})
+            form = form_class(data=data, files=files, instance=instance)
+            if not form.is_valid():
+                errors = form.errors.get_json_data(escape_html=True)
+                # Omitted fields keep their current values — but a required one
+                # that is already empty on the record (e.g. a modeltranslation
+                # field for a language nobody filled in) has nothing to keep.
+                for name, field_errors in errors.items():
+                    if name not in provided and name not in files:
+                        for error in field_errors:
+                            if error["code"] == "required":
+                                error["message"] = (
+                                    "This field is required and is empty on the current record, "
+                                    "so it must be provided."
+                                )
+                return None, errors
+            if dry_run:
+                return None, {}
 
-        obj = form.save(commit=False)
-        model_admin.save_model(request, obj, form, change=True)
-        form.save_m2m()
-        return obj, {}
+            obj = model_admin.save_form(request, form, change=True)
+            model_admin.save_model(request, obj, form, change=True)
+            model_admin.save_related(request, form, formsets=[], change=True)
+            message = model_admin.construct_change_message(request, form, [], add=False)
+            model_admin.log_change(request, obj, message)
+            return obj, {}

@@ -84,7 +84,9 @@ claude mcp add --transport http unfold https://your-project.example/mcp
 ```
 
 - No/invalid/expired `Bearer` token → `401` with `WWW-Authenticate: Bearer resource_metadata="…/mcp/.well-known/oauth-protected-resource"` — what clients use to start the login.
-- Only active **staff** users can log in and approve a client; `is_active`/`is_staff` is re-checked on every request (`403` otherwise), so un-staffing someone cuts off their tokens immediately.
+- Only active **staff** users with the `django_unfold_agentic_layer.use_mcp` permission (per user or group; superusers always have it) can log in and approve a client; both are re-checked on every request (`403` otherwise), so un-staffing someone or taking the permission away cuts off their tokens immediately. The consent page goes through `admin.site.admin_view`, so your admin site's own `has_permission` (2FA, IP rules) guards the login.
+- The user picks the login's **scopes** on the consent page: `mcp:read` (always), `mcp:write` (create/update, actions), `mcp:destructive` (delete, `DANGER` actions). Tools outside them are not listed, and every call re-checks.
+- Changing a user's password revokes their tokens, like Django's own sessions; a replayed authorization code revokes the token issued for it.
 - A login lasts `SESSION_TTL` (default 1 day); no refresh tokens are issued, so the client re-runs the browser login after that.
 - The Django session cookie does **not** authenticate `/mcp/` — only the token does.
 - The consent page shows the full `redirect_uri` that receives the code. If it is not on the user's computer (not a loopback address and not an app scheme such as `cursor://`), the page shows a warning.
@@ -107,10 +109,11 @@ The OAuth server itself is the MCP SDK's (`mcp.server.auth`); this app only stor
 - A `dj-admin://{app_label}/{model_name}/{pk}/` resource per model — one instance's fields, rendered as both JSON and Markdown. Foreign keys/M2M come back as resource URIs to follow, not inlined objects.
 - A `dj-admin://{app_label}/{model_name}/{?params}` resource per model for lists — the model's real `list_filter`/search GET parameters (verbatim, e.g. `author__id__exact`), plus `limit`/`offset`/`order_by`.
 - `create_{app_label}_{model_name}` / `update_{app_label}_{model_name}` tools, backed by the model's own admin form — Django's `form.is_valid()` does the validation, errors come back structured per field.
+- Writes run the admin's own hooks (`save_form`/`save_model`/`save_related`/`delete_model`) in the admin's transaction and leave the same history entries; a delete that would cascade onto objects the user can't delete is refused. Unexpected errors reach the agent only as a reference to the server log.
 - A `delete_{app_label}_{model_name}` tool that asks for confirmation (via the MCP "input required" round-trip) before deleting.
 - A `run_{app_label}_{model_name}_{action}` tool per admin action — Django bulk `actions` (take `pks`), Unfold `actions_list` (whole model), `actions_row`/`actions_detail` (take `pk`). The action's form becomes the tool's parameters: an Unfold `dialog` `form_class`, or for bulk actions your `ModelAdmin.action_form` extras. Results report the action's messages, its redirect, and any returned file (e.g. a CSV export) inline. Actions with `variant=ActionVariant.DANGER` ask for confirmation first.
 
-Everything above is permission-filtered per request using Django's/Unfold's own permission checks (`has_*_permission`, `get_actions`, …) — a user only ever sees resources and tools for what they could actually do in the admin.
+Users and groups are not exposed by default (`MODELS` setting). Everything above is permission-filtered per request using Django's/Unfold's own permission checks (`has_*_permission`, `get_actions`, …) — a user only ever sees resources and tools for what they could actually do in the admin.
 
 Not yet covered: `actions_submit_line` actions (they run while saving a changeform), Django's built-in bulk `delete_selected` (use the delete tool), and there's no stateful/SSE mode for server-initiated pushes — see the roadmap note in the repository's `CLAUDE.md` and `docs/specs/dynamic-admin-mcp-primitives.md` for what's planned next.
 
@@ -129,8 +132,18 @@ Configure the app with an `UNFOLD_AGENTIC_LAYER` dict in your project's settings
 ```python
 from datetime import timedelta
 
-UNFOLD_AGENTIC_LAYER = {"SESSION_TTL": timedelta(hours=8)}  # MCP login lifetime, default 1 day
+UNFOLD_AGENTIC_LAYER = {
+    "SESSION_TTL": timedelta(hours=8),  # MCP login lifetime, default 1 day
+    "CONFIRMATION_CACHE": "default",  # CACHES alias shared by all workers (replay protection)
+    "CLOSED_CLIENT_REGISTRATION": False,  # True: clients are added in the admin only
+    "REQUIRED_PERMISSION": True,  # require django_unfold_agentic_layer.use_mcp
+    # "app_label" / "app_label.model" entries; EXCLUDE None = user model + auth.group
+    "MODELS": {"INCLUDE": None, "EXCLUDE": None},
+    "CONFIRM_WRITES": False,  # True: create/update/actions ask for confirmation too
+}
 ```
+
+Logs go to `django_unfold_agentic_layer.{mcp,oauth,tools,builder}` — configure them with Django's `LOGGING`. Response bodies are logged at `DEBUG` only.
 
 ## Development
 

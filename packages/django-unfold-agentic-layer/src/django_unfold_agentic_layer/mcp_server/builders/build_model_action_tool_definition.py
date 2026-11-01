@@ -17,8 +17,11 @@ from pydantic import Field
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
 from django_unfold_agentic_layer.mcp_server.builders._shared import (
+    CTX_PARAMETER,
     PK,
+    action_scope,
     build_editable_field_parameter,
+    confirm_writes,
     confirmation_request,
     get_django_request,
     is_confirmed,
@@ -44,7 +47,6 @@ _PKS_PARAMETER = inspect.Parameter(
         list[PK], Field(description="Primary keys of the instances to run the action on.")
     ],
 )
-_CTX_PARAMETER = inspect.Parameter("ctx", kind=inspect.Parameter.KEYWORD_ONLY, annotation=Context)
 
 
 class BuildModelActionToolDefinition(BaseLogicAction):
@@ -68,13 +70,13 @@ class BuildModelActionToolDefinition(BaseLogicAction):
         parameters = [
             *target,
             *(build_editable_field_parameter(field) for field in action.fields),
-            _CTX_PARAMETER,
+            CTX_PARAMETER,
         ]
 
         def run_body(ctx: Context, kwargs: dict[str, Any]) -> ToolResult | InputRequiredResult:
             pk, pks = kwargs.pop("pk", None), kwargs.pop("pks", None)
-            request = get_django_request()
-            if action.dangerous:
+            request = get_django_request(action_scope(action))
+            if action.dangerous or confirm_writes():
                 # Validate first, so the user never confirms a run that can't happen.
                 invalid = RunAdminAction().execute(
                     model_admin, request, action, kwargs, pk=pk, pks=pks, dry_run=True

@@ -8,7 +8,9 @@ from fastmcp.exceptions import ResourceError
 from fastmcp.resources import ResourceResult
 from pydantic import Field
 
+from django_unfold_agentic_layer import scopes
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
+from django_unfold_agentic_layer.errors import AgentError
 from django_unfold_agentic_layer.mcp_server.builders._shared import (
     get_django_request,
     run_in_django,
@@ -65,7 +67,7 @@ class BuildModelListResourceDefinition(BaseLogicAction):
         ]
 
         def run(kwargs: dict[str, Any]) -> ResourceResult:
-            request = get_django_request()
+            request = get_django_request(scopes.READ)
             # The admin's changelist_view check — the cached server only
             # proves the user could view this model when it was built.
             if not model_admin.has_view_permission(request):
@@ -78,7 +80,7 @@ class BuildModelListResourceDefinition(BaseLogicAction):
             # reach the agent as a raw dump naming this closure.
             order_by = kwargs.get("order_by")
             if order_by is not None and order_by not in orderings:
-                raise ValueError(f"Invalid order_by {order_by!r}. Allowed: {', '.join(orderings)}.")
+                raise AgentError(f"Invalid order_by {order_by!r}. Allowed: {', '.join(orderings)}.")
 
             filtered_request = ApplyMCPFiltersToRequest().execute(request, model_admin, kwargs)
             instances, total = RunAdminChangelistQuery().execute(

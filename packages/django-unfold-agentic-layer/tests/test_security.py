@@ -17,13 +17,17 @@ from datetime import timedelta
 from urllib.parse import urlencode
 
 import pytest
+from django.contrib import admin
 from django.contrib.auth.models import Group, Permission, User
 from django.test import Client
 from django.utils import timezone
+from django_unfold_agentic_layer import scopes
+from django_unfold_agentic_layer.conf import is_model_exposed
 from django_unfold_agentic_layer.models import OAuthClient, OAuthToken
 from server.apps.blog.admin import BlogPostAdmin
 from server.apps.blog.models import BlogPost
 
+from tests.conftest import grant_mcp_access
 from tests.test_mcp_admin_actions_edge_cases import ACCEPT, _modern_raw
 from tests.test_mcp_admin_tools import _modern_rpc, _rpc
 from tests.test_oauth import REDIRECT_URI, _path, _start_authorization
@@ -87,11 +91,11 @@ def blog_group_member(db) -> User:
     group.permissions.set(Permission.objects.filter(content_type__app_label="blog"))
     user = User.objects.create_user(username="grouped", is_staff=True)
     user.groups.add(group)
-    return user
+    return grant_mcp_access(user)
 
 
 def _remove_direct_permissions(user: User) -> None:
-    user.user_permissions.clear()
+    user.user_permissions.remove(*Permission.objects.filter(content_type__app_label="blog"))
 
 
 def _leave_groups(user: User) -> None:
@@ -220,7 +224,7 @@ def test_mcp_query_string_does_not_reach_admin_hooks(
 def _issue(user: User, *, kind=OAuthToken.Kind.ACCESS, resource=None, ttl=timedelta(days=1)):
     oauth_client, _ = OAuthClient.objects.get_or_create(client_id="sec", defaults={"info": {}})
     token = secrets.token_urlsafe(32)
-    data = {"client_id": "sec", "scopes": []}
+    data = {"client_id": "sec", "scopes": scopes.ALL}
     if resource is not None:
         data["resource"] = resource
     OAuthToken.objects.create(
@@ -229,6 +233,7 @@ def _issue(user: User, *, kind=OAuthToken.Kind.ACCESS, resource=None, ttl=timede
         client=oauth_client,
         user=user,
         data=data,
+        session_auth_hash=user.get_session_auth_hash(),
         expires_at=timezone.now() + ttl,
     )
     return token
@@ -309,6 +314,136 @@ def test_live_token_is_cut_off_when_the_user_loses_staff_access(staff_user, fiel
     assert _status(f"Bearer {token}") == 403
 
 
+@pytest.mark.django_db
+def test_password_change_revokes_live_tokens(staff_user):
+    """Like Django sessions: the session auth hash covers the password."""
+    token = _issue(staff_user)
+    assert _status(f"Bearer {token}") == 200
+
+    staff_user.set_password("n3w-s3cret")  # noqa: S106
+    staff_user.save()
+
+    assert _status(f"Bearer {token}") == 401
+    assert not OAuthToken.objects.filter(kind=OAuthToken.Kind.ACCESS).exists()
+
+
+@pytest.mark.django_db
+def test_token_without_a_session_hash_is_revoked(staff_user):
+    token = _issue(staff_user)
+    OAuthToken.objects.update(session_auth_hash="")
+
+    assert _status(f"Bearer {token}") == 401
+    assert not OAuthToken.objects.exists()
+
+
+@pytest.mark.django_db
+def test_secret_key_rotation_keeps_tokens_valid(staff_user, settings):
+    """SECRET_KEY_FALLBACKS keeps logins alive, like it does for sessions;
+    dropping the old key ends them (no re-stamp: SESSION_TTL caps a login)."""
+    token = _issue(staff_user)
+    settings.SECRET_KEY_FALLBACKS = [settings.SECRET_KEY]
+    settings.SECRET_KEY = "rotated-secret-key"  # noqa: S105
+
+    assert _status(f"Bearer {token}") == 200
+    settings.SECRET_KEY_FALLBACKS = []
+    assert _status(f"Bearer {token}") == 401
+
+
+# --- MODELS --------------------------------------------------------------------
+
+
+def _exposed_models(client) -> set[str]:
+    """``app_label.model`` of every model with a list resource."""
+    resources = _rpc(client, "resources/list")["resources"]
+    return {
+        ".".join(r["uri"].removeprefix("dj-admin://").strip("/").split("/"))
+        for r in resources
+        if r["uri"].startswith("dj-admin://")
+    }
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("models", "expected"),
+    [
+        (None, {"blog.blogpost", "blog.usagepackage"}),
+        ({"EXCLUDE": []}, {"auth.group", "auth.user", "blog.blogpost", "blog.usagepackage"}),
+        ({"INCLUDE": ["blog"]}, {"blog.blogpost", "blog.usagepackage"}),
+        ({"INCLUDE": ["blog.BlogPost", "auth"]}, {"blog.blogpost"}),
+        ({"EXCLUDE": ["blog.usagepackage"]}, {"auth.group", "auth.user", "blog.blogpost"}),
+    ],
+    ids=[
+        "default-hides-users-and-groups",
+        "exclude-none",
+        "include-app",
+        "include-model",
+        "exclude",
+    ],
+)
+def test_models_setting_decides_what_mcp_exposes(
+    client, bearer_login, staff_user, settings, models, expected
+):
+    if models is not None:
+        settings.UNFOLD_AGENTIC_LAYER = {"MODELS": models}
+    bearer_login(client, staff_user)
+
+    assert _exposed_models(client) == expected
+    tools = {t["name"] for t in _rpc(client, "tools/list")["tools"]}
+    assert ("update_auth_user" in tools) == ("auth.user" in expected)
+
+
+def test_default_exclusion_follows_a_swapped_user_model(settings):
+    settings.AUTH_USER_MODEL = "accounts.Member"
+
+    assert not is_model_exposed("accounts", "member")
+    assert not is_model_exposed("auth", "group")
+    assert is_model_exposed("auth", "user")
+
+
+# --- the use_mcp permission -------------------------------------------------
+
+
+@pytest.fixture
+def staff_without_mcp_access(db) -> User:
+    user = User.objects.create_user(username="no-mcp", is_staff=True)
+    user.user_permissions.set(Permission.objects.filter(content_type__app_label="blog"))
+    return user
+
+
+@pytest.mark.django_db
+def test_staff_without_use_mcp_is_refused_on_every_request(staff_without_mcp_access):
+    assert _status(f"Bearer {_issue(staff_without_mcp_access)}") == 403
+
+
+@pytest.mark.django_db
+def test_use_mcp_can_come_from_a_group(staff_without_mcp_access):
+    group = Group.objects.create(name="mcp users")
+    group.permissions.add(Permission.objects.get(codename="use_mcp"))
+    staff_without_mcp_access.groups.add(group)
+
+    assert _status(f"Bearer {_issue(staff_without_mcp_access)}") == 200
+
+
+@pytest.mark.django_db
+def test_required_permission_can_be_turned_off(staff_without_mcp_access, settings):
+    settings.UNFOLD_AGENTIC_LAYER = {"REQUIRED_PERMISSION": False}
+
+    assert _status(f"Bearer {_issue(staff_without_mcp_access)}") == 200
+
+
+@pytest.mark.django_db
+def test_staff_without_use_mcp_cannot_approve_a_login(browser, staff_without_mcp_access):
+    _, _, consent_url, _ = _start_authorization(browser)
+    browser.force_login(staff_without_mcp_access)
+
+    page = browser.get(consent_url)
+    approved = browser.post(consent_url, {"approve": ""})
+
+    assert page.status_code == approved.status_code == 403
+    assert b"django_unfold_agentic_layer.use_mcp" in page.content
+    assert not OAuthToken.objects.filter(kind=OAuthToken.Kind.CODE).exists()
+
+
 # --- OAuth consent ------------------------------------------------------------
 
 
@@ -335,6 +470,22 @@ def test_stale_consent_request_is_rejected(browser, staff_user, freezer):
     freezer.tick(timedelta(minutes=10, seconds=1))
 
     assert browser.post(consent_url, {"approve": ""}).status_code == 400
+
+
+@pytest.mark.django_db
+def test_consent_is_guarded_by_the_admin_sites_own_permission_check(
+    browser, staff_user, monkeypatch
+):
+    """A host site's stricter has_permission (2FA, IP allowlist…) applies to
+    the MCP login too: a refused staff user is sent to the admin login."""
+    _, _, consent_url, _ = _start_authorization(browser)
+    browser.force_login(staff_user)
+    monkeypatch.setattr(admin.site, "has_permission", lambda request: False)
+
+    for response in (browser.get(consent_url), browser.post(consent_url, {"approve": ""})):
+        assert response.status_code == 302
+        assert response["Location"].startswith("/admin/login/")
+    assert not OAuthToken.objects.filter(kind=OAuthToken.Kind.CODE).exists()
 
 
 @pytest.mark.django_db
@@ -476,3 +627,46 @@ def test_delete_confirmation_cannot_be_spent_by_another_user(client, bearer_logi
 
     assert status == 400
     assert BlogPost.objects.filter(pk=post.pk).exists()
+
+
+# --- error details -----------------------------------------------------------
+
+#: What a database error typically carries: internal table and column names.
+_DB_ERROR_DETAIL = "UNIQUE constraint failed: blog_internal_ledger.audit_hash"
+
+
+def _explode(*args, **kwargs):
+    raise RuntimeError(_DB_ERROR_DETAIL)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("patched", "method", "params"),
+    [
+        (
+            "save_model",
+            "tools/call",
+            lambda user: {
+                "name": "create_blog_blogpost",
+                "arguments": {"title": "T", "status": "draft", "author": user.pk},
+            },
+        ),
+        ("get_object", "resources/read", lambda user: {"uri": f"{LIST_URI}1/"}),
+    ],
+    ids=["tool", "resource"],
+)
+def test_unexpected_errors_reach_the_agent_only_as_a_reference(
+    client, bearer_login, staff_user, monkeypatch, caplog, patched, method, params
+):
+    monkeypatch.setattr(BlogPostAdmin, patched, _explode)
+    bearer_login(client, staff_user)
+
+    body = _raw(client, method, params(staff_user)).content.decode()
+
+    assert _DB_ERROR_DETAIL not in body
+    assert "RuntimeError" not in body
+    assert "Internal error in " in body
+    ref = body.split("(ref ")[1][:8]
+    # The operator finds the details under that reference.
+    logged = [r for r in caplog.records if r.name == "django_unfold_agentic_layer.tools"]
+    assert any(ref in r.getMessage() and r.exc_info for r in logged)

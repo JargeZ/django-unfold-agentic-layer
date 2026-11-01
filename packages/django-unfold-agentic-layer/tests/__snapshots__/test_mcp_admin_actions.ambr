@@ -19,7 +19,7 @@
               }),
             ]),
             'default': None,
-            'description': 'editor. Pass a pk or its dj-admin://auth/user/{pk}/ URI; browse valid values at dj-admin://auth/user/',
+            'description': 'editor. Pass a pk',
           }),
           'pks': dict({
             'description': 'Primary keys of the instances to run the action on.',
@@ -61,7 +61,7 @@
               }),
             ]),
             'default': None,
-            'description': 'editor. Pass a pk or its dj-admin://auth/user/{pk}/ URI; browse valid values at dj-admin://auth/user/',
+            'description': 'editor. Pass a pk',
           }),
           'pks': dict({
             'description': 'Primary keys of the instances to run the action on.',
@@ -103,7 +103,7 @@
               }),
             ]),
             'default': None,
-            'description': 'editor. Pass a pk or its dj-admin://auth/user/{pk}/ URI; browse valid values at dj-admin://auth/user/',
+            'description': 'editor. Pass a pk',
           }),
           'pks': dict({
             'description': 'Primary keys of the instances to run the action on.',

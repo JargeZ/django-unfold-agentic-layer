@@ -52,7 +52,7 @@ claude mcp add --transport http unfold-mcp-demo "https://django-formula-admin-ag
 
 ## Установка
 
-**Требования:** Python 3.11+, Django 5.0+, `django-unfold` 0.91+.
+**Требования:** Python 3.11+, Django 5.2+, `django-unfold` 0.91+.
 
 **1. Установите пакет** из git:
 
@@ -142,6 +142,9 @@ npx @modelcontextprotocol/inspector
 > ```
 >
 > Запросы без токена выполняются от первого активного суперпользователя; фильтрация по правам при этом сохраняется.
+>
+> Каждый такой запрос пишет warning в лог (`django_unfold_agentic_layer.mcp`), а запрос не с loopback-адреса — ещё один.
+> Кроме того, при старте приложение один раз пишет warning (`django_unfold_agentic_layer.config`): gunicorn и uvicorn не запускают system checks.
 
 ### HTTPS и reverse proxy
 
@@ -164,14 +167,18 @@ USE_X_FORWARDED_HOST = True  # только если прокси перепис
 | Примитив | Пример | Что делает |
 |---|---|---|
 | Инструменты документации | `unfold_filters`, `unfold_search_docs` | Документация Django Unfold, включая все сторонние интеграции |
-| Ресурс объекта | `dj-admin://blog/blogpost/42/` | Поля объекта в JSON + Markdown; FK/M2M — ссылками |
+| Ресурс объекта | `dj-admin://blog/blogpost/42/` | Поля объекта в JSON + Markdown; FK/M2M — ссылками (до 100 на M2M-поле, с пометкой, если их больше) |
 | Ресурс списка | `dj-admin://blog/blogpost/{?params}` | Ваши параметры `list_filter`/поиска, `limit`/`offset`/`order_by` |
 | Инструменты | `create_blog_blogpost`, `update_blog_blogpost` | Через форму админки; ошибки возвращаются по полям |
 | Инструмент | `delete_blog_blogpost` | Запрашивает подтверждение перед удалением |
 | Инструменты экшенов | `run_blog_blogpost_publish_posts` | Все экшены админки/Unfold (bulk, list, row, detail) с их формами; `DANGER` запрашивают подтверждение |
 
+По умолчанию пользователи и группы **не** доступны (настройка `MODELS`) — включайте их осознанно.
 Всё проходит через собственные проверки админки `has_*_permission` на каждый запрос — агент не видит и не делает того,
 чего его пользователь не может сделать в админке прямо сейчас; выдача или отзыв права применяются со следующего вызова.
+Запись идёт так же, как в самих view админки: те же хуки `save_model`/`save_related`/`delete_model` в той же транзакции,
+те же записи истории (в «Истории» объекта видно, что изменил агент и от какого пользователя), а удаление отклоняется,
+если каскад задел бы объекты, которые пользователь удалять не вправе.
 
 > [!IMPORTANT]
 > Агент получает **ровно** права админки — вместе с её слабыми местами. Перед подключением агентов проверьте, что
@@ -182,9 +189,14 @@ USE_X_FORWARDED_HOST = True  # только если прокси перепис
 
 ## Доступ и сессии
 
-- Войти могут только активные **staff**-пользователи; `is_active`/`is_staff` перепроверяется на каждом запросе — снятие staff сразу отзывает токены.
+- На странице подтверждения пользователь выбирает **scopes** логина поверх своих прав: `mcp:read` (ресурсы, выдаётся всегда), `mcp:write` (инструменты create/update и экшены) и `mcp:destructive` (инструменты delete и `DANGER`-экшены). Инструменты вне scopes даже не попадают в список, а каждый вызов перепроверяет свой scope.
+- Войти могут только активные **staff**-пользователи с правом **`django_unfold_agentic_layer.use_mcp`** («Can use the admin through MCP» — выдаётся пользователю или группе; у суперпользователей есть всегда); `is_active`/`is_staff` и право перепроверяются на каждом запросе — снятие staff или права сразу отзывает токены. `REQUIRED_PERMISSION = False` пускает всех активных staff.
+- Смена пароля пользователя отзывает его MCP-токены — так же, как Django разлогинивает его браузерные сессии (session auth hash; `SECRET_KEY_FALLBACKS` сохраняет их, пока старый ключ в нём).
+- Страница входа (consent) проходит через `admin.site.admin_view`, поэтому действует `has_permission` вашего admin site — 2FA или IP-правила кастомного сайта защищают вход в MCP так же, как саму админку.
+- Страница подтверждения показывает, куда уйдёт код, и предупреждает о том, что нельзя проверить: адрес не на вашем компьютере, собственная схема приложения (`cursor://`), имя клиента, которое он выбрал сам, — а суперпользователю советует завести отдельного пользователя с меньшими правами.
 - Сессионная cookie Django **не** аутентифицирует `/mcp` — только `Bearer`-токен.
 - Логин живёт `SESSION_TTL` (по умолчанию 1 день), refresh-токенов нет.
+- Код авторизации одноразовый; повторное предъявление отзывает и выданный по нему токен (RFC 6749 §4.1.2).
 - Клиенты и токены видны в админке — удаление = отзыв. Удалённый клиент увидит страницу с просьбой сбросить сохранённую
   авторизацию в MCP-клиенте (Claude Code: `/mcp` → сервер → Clear authentication) и подключиться заново.
 
@@ -201,10 +213,54 @@ UNFOLD_AGENTIC_LAYER = {
     # чтобы одно подтверждение нельзя было переиграть в несколько запусков. По умолчанию
     # "default"; при нескольких воркерах нужен общий бэкенд (Redis, БД, Memcached), не LocMem.
     "CONFIRMATION_CACHE": "default",
+    # MCP доступен только пользователям с правом use_mcp (суперпользователям всегда). По умолчанию True.
+    "REQUIRED_PERMISSION": True,
+    # Какие модели админки видны через MCP: записи "app_label" или "app_label.model".
+    # INCLUDE None — все; EXCLUDE None — ваша модель пользователя и auth.group (чтобы агент
+    # не мог выдать себе права); [] — ничего не исключать.
+    "MODELS": {"INCLUDE": None, "EXCLUDE": None},
+    # True: инструменты create/update и все экшены сначала спрашивают подтверждение у
+    # пользователя — как всегда делают delete и DANGER-экшены. По умолчанию False.
+    "CONFIRM_WRITES": False,
 }
 ```
 
 Полный список — в [`conf.py`](packages/django-unfold-agentic-layer/src/django_unfold_agentic_layer/conf.py).
+
+### Логирование
+
+Библиотека пишет логи в `django_unfold_agentic_layer` с разбивкой по областям. Настраиваются стандартным
+[`LOGGING`](https://docs.djangoproject.com/en/stable/topics/logging/) Django — все сразу по родительскому имени или одна область по полному имени:
+
+| Логгер | Что пишет |
+|---|---|
+| `django_unfold_agentic_layer.mcp` | Отклонённые вызовы `/mcp` (метод и статус на `WARNING`, тело ответа на `DEBUG`), предупреждения dev-режима |
+| `django_unfold_agentic_layer.oauth` | OAuth: discovery, логин, consent, токены |
+| `django_unfold_agentic_layer.tools` | Ошибки внутри обработчиков инструментов и ресурсов |
+| `django_unfold_agentic_layer.builder` | Сборка MCP-сервера пользователя из реестра админки |
+| `django_unfold_agentic_layer.config` | Небезопасные настройки, один раз при старте (warnings из system checks приложения) |
+
+```python
+LOGGING = {
+    "version": 1,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "loggers": {
+        "django_unfold_agentic_layer": {"handlers": ["console"], "level": "INFO"},
+        # В теле ответа могут быть данные админки: DEBUG включайте только на время отладки.
+        "django_unfold_agentic_layer.mcp": {"level": "DEBUG"},
+    },
+}
+```
+
+## Чеклист для продакшна
+
+- Работайте по **https** (за прокси — `SECURE_PROXY_SSL_HEADER`) и держите `ALLOWED_HOSTS` строгим: OAuth-адреса строятся из заголовка `Host`.
+- Выдавайте `use_mcp` только тем, кто будет подключать агентов (`REQUIRED_PERMISSION`, включено по умолчанию), лучше отдельным пользователям ровно с теми правами, что нужны агенту, — не суперпользователям.
+- Не открывайте пользователей и группы через MCP (`MODELS`, по умолчанию так и есть) без явной необходимости; сузьте `MODELS["INCLUDE"]` до нужного агентам.
+- Для чувствительных данных подумайте о `CLOSED_CLIENT_REGISTRATION = True` и `CONFIRM_WRITES = True`.
+- Укажите в `CONFIRMATION_CACHE` кеш, общий для всех workers, и запустите `manage.py check --deploy`.
+- Никогда не включайте `UNFOLD_AGENTIC_LAYER_UNAUTHORIZED` вне локальной разработки.
+- Ограничьте частоту запросов к `/mcp/register` и `/mcp/token` на прокси; собирайте логи `django_unfold_agentic_layer.*`.
 
 ## Планы
 
@@ -222,9 +278,10 @@ UNFOLD_AGENTIC_LAYER = {
 
 ```bash
 uv sync
-uvx pre-commit install   # проверка секретов (gitleaks, trufflehog) + ruff на каждый коммит
+uv run pre-commit install   # проверка секретов (gitleaks, trufflehog), ruff и формата сообщений (Conventional Commits)
 cd packages/django-unfold-agentic-layer
 uv run pytest
+uv run tox run-parallel   # матрица CI: Python 3.11–3.14 × Django 5.2, 6.0, 6.1
 ```
 
 Тесты поднимают одноразовый Django-проект (`django_test_app/`) и гоняют реальные MCP-запросы через `/mcp`.

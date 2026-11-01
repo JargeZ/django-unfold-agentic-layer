@@ -66,6 +66,7 @@ def test_create_and_update_composite_fields(client, bearer_login, staff_user):
     assert package.price == Money(Decimal("20"), "USD")
 
 
+@pytest.mark.usefixtures("expose_auth_models")
 @pytest.mark.django_db
 def test_update_user_keeps_its_split_datetime_fields(client, bearer_login, staff_user):
     # The User change form has last_login/date_joined as split datetimes.

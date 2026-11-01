@@ -5,6 +5,7 @@ from django.contrib.admin.views.main import ChangeList
 from django.http import HttpRequest
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
+from django_unfold_agentic_layer.resources.actions._shared import related_list_uri
 from django_unfold_agentic_layer.resources.schemas import FilterChoiceInfo, FilterFieldInfo
 
 
@@ -36,13 +37,19 @@ class ExtractListFilterFields(BaseLogicAction):
         cl = model_admin.get_changelist_instance(request)
         filter_specs, *_ = cl.get_filters(request)
 
-        return [field for spec in filter_specs for field in self._to_filter_fields(cl, spec)]
+        return [
+            field
+            for spec in filter_specs
+            for field in self._to_filter_fields(model_admin, request, cl, spec)
+        ]
 
-    def _to_filter_fields(self, cl: ChangeList, spec: Any) -> list[FilterFieldInfo]:
+    def _to_filter_fields(
+        self, model_admin: ModelAdmin, request: HttpRequest, cl: ChangeList, spec: Any
+    ) -> list[FilterFieldInfo]:
         title = str(spec.title)
         field_format = type(spec).__name__
         choices = self._extract_choices(cl, spec)
-        related_resource_uri = self._related_resource_uri(spec)
+        related_resource_uri = self._related_resource_uri(model_admin, request, spec)
 
         return [
             FilterFieldInfo(
@@ -77,9 +84,10 @@ class ExtractListFilterFields(BaseLogicAction):
             for choice in raw_choices
         ]
 
-    def _related_resource_uri(self, spec: Any) -> str | None:
+    def _related_resource_uri(
+        self, model_admin: ModelAdmin, request: HttpRequest, spec: Any
+    ) -> str | None:
         related_model = getattr(getattr(spec, "field", None), "related_model", None)
         if related_model is None:
             return None
-        opts = related_model._meta
-        return f"dj-admin://{opts.app_label}/{opts.model_name}/"
+        return related_list_uri(model_admin, request, related_model)

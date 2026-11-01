@@ -1,14 +1,12 @@
 """Django side of the MCP OAuth flow — see ``oauth.py`` for the design."""
 
 import ipaddress
-import logging
 from functools import wraps
 from typing import Any
 from urllib.parse import ParseResult, urlparse
 
 from asgiref.sync import async_to_sync
 from django.contrib import admin
-from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
@@ -19,16 +17,15 @@ from django.views import View
 from django.views.decorators.clickjacking import xframe_options_deny
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from mcp.server.auth.routes import build_metadata
-from mcp.server.auth.settings import ClientRegistrationOptions, RevocationOptions
+from mcp.server.auth.settings import RevocationOptions
 from mcp.shared.auth import ProtectedResourceMetadata
+from unfold.widgets import CHECKBOX_CLASSES
 
-from django_unfold_agentic_layer import oauth
+from django_unfold_agentic_layer import log, oauth, scopes
 from django_unfold_agentic_layer.conf import Settings, get_config
 from django_unfold_agentic_layer.mcp_server import bridge
 from django_unfold_agentic_layer.models import OAuthClient
 from django_unfold_agentic_layer.views import login_not_required
-
-logger = logging.getLogger(__name__)
 
 
 def _cors_json(data: dict[str, Any], status: int = 200) -> JsonResponse:
@@ -48,7 +45,7 @@ def _requires_https_issuer(view):
     def wrapped(request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         error = oauth.issuer_error(request)
         if error is not None:
-            logger.error(error)
+            log.oauth.error(error)
             return _cors_json({"error": "server_error", "error_description": error}, status=500)
         return view(request, *args, **kwargs)
 
@@ -62,6 +59,7 @@ def protected_resource_metadata(request: HttpRequest) -> JsonResponse:
     metadata = ProtectedResourceMetadata(
         resource=oauth.resource_url(request),
         authorization_servers=[oauth.issuer_url(request)],
+        scopes_supported=scopes.ALL,
     )
     return _cors_json(metadata.model_dump(mode="json", exclude_none=True))
 
@@ -76,7 +74,7 @@ def authorization_server_metadata(request: HttpRequest) -> JsonResponse:
         oauth.issuer_url(request),
         None,
         # No registration_endpoint when closed, so clients don't even try.
-        ClientRegistrationOptions(enabled=not _registration_closed()),
+        oauth.registration_options(enabled=not _registration_closed()),
         RevocationOptions(enabled=True),
     )
     metadata.grant_types_supported = ["authorization_code"]  # no refresh tokens
@@ -143,6 +141,22 @@ def _unknown_client(request: HttpRequest, client_id: str) -> HttpResponse:
     )
 
 
+def _scope_choices(requested: list[str] | None) -> list[dict[str, Any]]:
+    """The consent page's scope checkboxes: the ones the client asked for
+    (all when it asked for none), pre-checked; ``mcp:read`` fixed on."""
+    allowed = scopes.ALL if requested is None else requested
+    return [
+        {
+            "name": scope,
+            "description": scopes.DESCRIPTIONS[scope],
+            "fixed": scope in scopes.ALWAYS_GRANTED,
+            "destructive": scope == scopes.DESTRUCTIVE,
+        }
+        for scope in scopes.ALL
+        if scope in allowed or scope in scopes.ALWAYS_GRANTED
+    ]
+
+
 def _is_local_redirect(url: ParseResult) -> bool:
     """Whether the authorization code stays on the user's own device: a
     loopback http(s) address, or an app's custom scheme (cursor://,
@@ -159,7 +173,6 @@ def _is_local_redirect(url: ParseResult) -> bool:
         return False
 
 
-@method_decorator(staff_member_required, name="dispatch")
 @method_decorator(csrf_protect, name="dispatch")
 @method_decorator(xframe_options_deny, name="dispatch")
 class ConsentView(View):
@@ -168,7 +181,26 @@ class ConsentView(View):
     Mandatory even though the user just logged in: registration is open
     (RFC 7591), so without it any page could start a flow and silently get a
     code for an already-logged-in staff user.
+
+    Mounted through ``admin.site.admin_view`` (see ``urls.py``), so access
+    is decided by the admin site's own ``has_permission``: a host's custom
+    site (2FA, IP allowlist…) guards the login exactly as it guards the
+    admin, and a refused user lands on the admin's own login page.
     """
+
+    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        if not oauth.can_use_mcp(request.user):
+            return render(
+                request,
+                "django_unfold_agentic_layer/permission_required.html",
+                {
+                    **admin.site.each_context(request),
+                    "title": _("MCP access not granted"),
+                    "permission": oauth.USE_MCP_PERMISSION,
+                },
+                status=403,
+            )
+        return super().dispatch(request, *args, **kwargs)
 
     def get(self, request: HttpRequest) -> HttpResponse:
         consent = oauth.load_consent_request(request.GET.get("request", ""))
@@ -176,6 +208,7 @@ class ConsentView(View):
             return HttpResponseBadRequest("Authorization request is invalid or expired.")
         client, params = consent
         redirect_uri = str(params.redirect_uri)
+        parsed_redirect = urlparse(redirect_uri)
         now = timezone.now()
         return render(
             request,
@@ -187,9 +220,17 @@ class ConsentView(View):
                 "client_name": client.client_name or client.client_id,
                 # What the user can sanity-check: where the code is about to be sent.
                 "redirect_uri": redirect_uri,
-                "redirect_is_local": _is_local_redirect(urlparse(redirect_uri)),
+                "redirect_is_local": _is_local_redirect(parsed_redirect),
+                # An app's own scheme (cursor://): local, but worth naming.
+                "redirect_scheme": (
+                    parsed_redirect.scheme
+                    if parsed_redirect.scheme not in ("http", "https")
+                    else None
+                ),
                 "now": now,
                 "expires_at": now + get_config()[Settings.SESSION_TTL],
+                "scopes": _scope_choices(params.scopes),
+                "checkbox_classes": " ".join(CHECKBOX_CLASSES),
             },
         )
 
@@ -199,7 +240,7 @@ class ConsentView(View):
             return HttpResponseBadRequest("Authorization request is invalid or expired.")
         client, params = consent
         if "approve" in request.POST:
-            location = oauth.approve(request.user, client, params)
+            location = oauth.approve(request.user, client, params, request.POST.getlist("scope"))
         else:
             location = oauth.deny(params)
         # Not HttpResponseRedirect: it rejects custom schemes (cursor://,

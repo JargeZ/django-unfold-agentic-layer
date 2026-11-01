@@ -1,5 +1,5 @@
+import ipaddress
 import json
-import logging
 from typing import Any
 
 from django.conf import settings
@@ -16,11 +16,9 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
-from django_unfold_agentic_layer import oauth
+from django_unfold_agentic_layer import log, oauth, scopes
 from django_unfold_agentic_layer.mcp_server import bridge
 from django_unfold_agentic_layer.views import login_not_required
-
-logger = logging.getLogger(__name__)
 
 
 # MCP clients send a Bearer token, never a session cookie: a host's
@@ -46,16 +44,20 @@ class MCPView(View):
             if not response.content:
                 response.content = json.dumps({"error": response.reason_phrase})
                 response["Content-Type"] = "application/json"
-            logger.warning(
-                "MCP %s -> %s: %s",
-                _rpc_method(request),
+            # The body may hold admin data, so only DEBUG carries it.
+            method = _rpc_method(request)
+            log.mcp.warning("MCP %s -> %s", method, response.status_code)
+            log.mcp.debug(
+                "MCP %s -> %s body: %s",
+                method,
                 response.status_code,
                 response.content[:500].decode(errors="replace"),
             )
         return response
 
     def _post(self, request: HttpRequest) -> HttpResponse:
-        user = oauth.authenticate_bearer(request)
+        login = oauth.authenticate_bearer(request)
+        user, granted_scopes = login or (None, frozenset())
         # Dev-only escape hatch: with UNFOLD_AGENTIC_LAYER_UNAUTHORIZED = True
         # (and DEBUG), a request without a token acts as the first active
         # superuser. Swapping in a real user (rather than skipping the checks)
@@ -71,6 +73,8 @@ class MCPView(View):
                 .order_by("pk")
                 .first()
             )
+            granted_scopes = frozenset(scopes.ALL)
+            _warn_unauthorized_mode(request, user)
 
         if user is None:
             # RFC 9728: points MCP clients at the metadata that starts their
@@ -84,9 +88,19 @@ class MCPView(View):
                 headers={"WWW-Authenticate": f'Bearer resource_metadata="{metadata_url}"'},
             )
         # Checked on every request, so revoking staff status cuts off live tokens.
+        # Deliberately the base AdminSite.has_permission rule, not the site's
+        # own: a custom site may require state a bearer request can't carry
+        # (django-otp's verified device). That rule already ran at consent
+        # (urls.py's admin_view), before this token was issued.
         if not (user.is_active and user.is_staff):
             return JsonResponse({"error": "staff permission required"}, status=403)
+        if not oauth.can_use_mcp(user):
+            return JsonResponse(
+                {"error": f"the {oauth.USE_MCP_PERMISSION} permission is required"}, status=403
+            )
         request.user = user
+        # Read back by every handler (builders._shared.get_django_request).
+        request.mcp_scopes = granted_scopes
         # /mcp/ takes no query parameters; handlers pass this request to admin
         # hooks (get_queryset, get_form…), which must not see caller-chosen GET.
         request.GET = QueryDict()
@@ -97,6 +111,24 @@ class MCPView(View):
 
     def delete(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseNotAllowed:
         return HttpResponseNotAllowed(["POST"])
+
+
+def _warn_unauthorized_mode(request: HttpRequest, user: Any) -> None:
+    """Warns on every request the dev-only escape hatch serves, and again
+    when the caller isn't on this machine — warns, never refuses: it's the
+    developer's own setting."""
+    log.mcp.warning("UNFOLD_AGENTIC_LAYER_UNAUTHORIZED: tokenless request runs as %s", user)
+    remote_addr = request.META.get("REMOTE_ADDR", "")
+    try:
+        loopback = ipaddress.ip_address(remote_addr).is_loopback
+    except ValueError:
+        loopback = False
+    if not loopback:
+        log.mcp.warning(
+            "UNFOLD_AGENTIC_LAYER_UNAUTHORIZED: tokenless request from non-loopback "
+            "address %r — this host is reachable from the network",
+            remote_addr,
+        )
 
 
 def _rpc_method(request: HttpRequest) -> str:

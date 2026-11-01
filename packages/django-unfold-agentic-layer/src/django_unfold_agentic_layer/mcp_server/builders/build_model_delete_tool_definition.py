@@ -1,12 +1,11 @@
-from itertools import islice
-
 from django.contrib.admin import ModelAdmin
 from django.db.models import ProtectedError, RestrictedError
 from fastmcp import Context, FastMCP
-from fastmcp.exceptions import ToolError
 from mcp.types import InputRequiredResult
 
+from django_unfold_agentic_layer import scopes
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
+from django_unfold_agentic_layer.errors import AgentError, describe_blockers
 from django_unfold_agentic_layer.mcp_server.builders._shared import (
     PK,
     confirmation_request,
@@ -19,8 +18,6 @@ from django_unfold_agentic_layer.resources.actions.get_admin_model_instance impo
     GetAdminModelInstance,
 )
 from django_unfold_agentic_layer.resources.schemas import AdminModelResource
-
-_MAX_LISTED_BLOCKERS = 10
 
 
 class BuildModelDeleteToolDefinition(BaseLogicAction):
@@ -46,7 +43,7 @@ class BuildModelDeleteToolDefinition(BaseLogicAction):
             return
 
         def run_body(pk: str, ctx: Context) -> str | InputRequiredResult:
-            request = get_django_request()
+            request = get_django_request(scopes.DESTRUCTIVE)
             instance = GetAdminModelInstance().execute(model_admin, request, pk)
 
             confirmed = is_confirmed(ctx)
@@ -63,16 +60,9 @@ class BuildModelDeleteToolDefinition(BaseLogicAction):
             try:
                 DeleteModelInstance().execute(model_admin, request, instance)
             except (ProtectedError, RestrictedError) as e:
-                blockers = getattr(e, "protected_objects", None) or e.restricted_objects
-                listed = ", ".join(
-                    f"{obj._meta.verbose_name} {obj} (pk={obj.pk})"
-                    for obj in islice(blockers, _MAX_LISTED_BLOCKERS)
-                )
-                if len(blockers) > _MAX_LISTED_BLOCKERS:
-                    listed = f"{listed} and {len(blockers) - _MAX_LISTED_BLOCKERS} more"
-                raise ToolError(
+                raise AgentError(
                     f"Cannot delete {model_resource.verbose_name} {instance} (pk={pk}): "
-                    f"still referenced by {listed}. Delete or reassign those first."
+                    f"still referenced by {describe_blockers(e)}. Delete or reassign those first."
                 ) from None
             return f"Deleted {model_resource.verbose_name} (pk={pk})."
 

@@ -24,7 +24,7 @@
     '_meta': dict({
       'io.modelcontextprotocol/serverInfo': dict({
         'name': 'django_unfold_agentic_layer',
-        'version': '4.0.5',
+        'version': '0.1.0',
       }),
     }),
     'inputRequests': dict({
@@ -57,7 +57,7 @@
       }),
       'io.modelcontextprotocol/serverInfo': dict({
         'name': 'django_unfold_agentic_layer',
-        'version': '4.0.5',
+        'version': '0.1.0',
       }),
     }),
     'content': list([
@@ -241,7 +241,7 @@
         'mimeType': 'application/json',
         'text': dict({
           'attachment': None,
-          'author': 'dj-admin://auth/user/<pk>/',
+          'author': 1,
           'body': 'Body text',
           'editor': None,
           'is_featured': False,
@@ -261,7 +261,7 @@
           
           - **title**: Hello contract
           - **body**: Body text
-          - **author**: dj-admin://auth/user/<pk>/
+          - **author**: 1
           - **editor**: *(empty)*
           - **status**: published
           - **is_featured**: False
@@ -286,7 +286,7 @@
         'text': list([
           dict({
             'attachment': None,
-            'author': 'dj-admin://auth/user/<pk>/',
+            'author': 1,
             'body': 'Body text',
             'editor': None,
             'is_featured': False,
@@ -307,7 +307,7 @@
           
           - **title**: Hello contract
           - **body**: Body text
-          - **author**: dj-admin://auth/user/<pk>/
+          - **author**: 1
           - **editor**: *(empty)*
           - **status**: published
           - **is_featured**: False
@@ -323,52 +323,6 @@
 # name: test_full_mcp_contract_lifecycle[resource-templates-list]
   dict({
     'resourceTemplates': list([
-      dict({
-        '_meta': dict({
-          'fastmcp': dict({
-            'tags': list([
-            ]),
-          }),
-        }),
-        'mimeType': 'application/json',
-        'name': 'group',
-        'uriTemplate': 'dj-admin://auth/group/{pk}/',
-      }),
-      dict({
-        '_meta': dict({
-          'fastmcp': dict({
-            'tags': list([
-            ]),
-          }),
-        }),
-        'description': 'First 20 groups. Filter, sort and paginate via dj-admin://auth/group/{?q,limit,offset,order_by} (meta.total is the full count); one record via dj-admin://auth/group/{pk}/.',
-        'mimeType': 'application/json',
-        'name': 'groups (list)',
-        'uriTemplate': 'dj-admin://auth/group/{?q,limit,offset,order_by}',
-      }),
-      dict({
-        '_meta': dict({
-          'fastmcp': dict({
-            'tags': list([
-            ]),
-          }),
-        }),
-        'mimeType': 'application/json',
-        'name': 'user',
-        'uriTemplate': 'dj-admin://auth/user/{pk}/',
-      }),
-      dict({
-        '_meta': dict({
-          'fastmcp': dict({
-            'tags': list([
-            ]),
-          }),
-        }),
-        'description': 'First 20 users. Filter, sort and paginate via dj-admin://auth/user/{?q,is_staff__exact,is_staff__isnull,is_superuser__exact,is_superuser__isnull,is_active__exact,is_active__isnull,limit,offset,order_by} (meta.total is the full count); one record via dj-admin://auth/user/{pk}/.',
-        'mimeType': 'application/json',
-        'name': 'users (list)',
-        'uriTemplate': 'dj-admin://auth/user/{?q,is_staff__exact,is_staff__isnull,is_superuser__exact,is_superuser__isnull,is_active__exact,is_active__isnull,limit,offset,order_by}',
-      }),
       dict({
         '_meta': dict({
           'fastmcp': dict({
@@ -428,30 +382,6 @@
             ]),
           }),
         }),
-        'description': 'First 20 groups. Filter, sort and paginate via dj-admin://auth/group/{?q,limit,offset,order_by} (meta.total is the full count); one record via dj-admin://auth/group/{pk}/.',
-        'mimeType': 'application/json',
-        'name': 'groups (list)',
-        'uri': 'dj-admin://auth/group/',
-      }),
-      dict({
-        '_meta': dict({
-          'fastmcp': dict({
-            'tags': list([
-            ]),
-          }),
-        }),
-        'description': 'First 20 users. Filter, sort and paginate via dj-admin://auth/user/{?q,is_staff__exact,is_staff__isnull,is_superuser__exact,is_superuser__isnull,is_active__exact,is_active__isnull,limit,offset,order_by} (meta.total is the full count); one record via dj-admin://auth/user/{pk}/.',
-        'mimeType': 'application/json',
-        'name': 'users (list)',
-        'uri': 'dj-admin://auth/user/',
-      }),
-      dict({
-        '_meta': dict({
-          'fastmcp': dict({
-            'tags': list([
-            ]),
-          }),
-        }),
         'description': 'First 20 blog posts. Filter, sort and paginate via dj-admin://blog/blogpost/{?q,djangoql,editor__id__exact,editor__isnull,has_editor,status__exact,status__isnull,is_featured__exact,is_featured__isnull,created_at__gte,created_at__lt,limit,offset,order_by} (meta.total is the full count); one record via dj-admin://blog/blogpost/{pk}/.',
         'mimeType': 'application/json',
         'name': 'blog posts (list)',
@@ -475,512 +405,6 @@
 # name: test_full_mcp_contract_lifecycle[tools-list]
   dict({
     'tools': list([
-      dict({
-        '_meta': dict({
-          'fastmcp': dict({
-            'tags': list([
-            ]),
-          }),
-        }),
-        'description': 'Create a new group.',
-        'inputSchema': dict({
-          'additionalProperties': False,
-          'properties': dict({
-            'name': dict({
-              'anyOf': list([
-                dict({
-                  'type': 'string',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'Name (required)',
-            }),
-            'permissions': dict({
-              'anyOf': list([
-                dict({
-                  'items': dict({
-                    'anyOf': list([
-                      dict({
-                        'type': 'string',
-                      }),
-                      dict({
-                        'type': 'integer',
-                      }),
-                    ]),
-                  }),
-                  'type': 'array',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'Permissions — Hold down “Control”, or “Command” on a Mac, to select more than one.. Pass a pk or its dj-admin://auth/permission/{pk}/ URI; browse valid values at dj-admin://auth/permission/',
-            }),
-          }),
-          'type': 'object',
-        }),
-        'name': 'create_auth_group',
-        'title': 'Create Auth Group',
-      }),
-      dict({
-        '_meta': dict({
-          'fastmcp': dict({
-            'tags': list([
-            ]),
-          }),
-        }),
-        'description': 'Update an existing group. Only send the fields you want to change; omitted fields keep their current values. A required field that is empty on the record must be sent too.',
-        'inputSchema': dict({
-          'additionalProperties': False,
-          'properties': dict({
-            'name': dict({
-              'anyOf': list([
-                dict({
-                  'type': 'string',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'Name (required)',
-            }),
-            'permissions': dict({
-              'anyOf': list([
-                dict({
-                  'items': dict({
-                    'anyOf': list([
-                      dict({
-                        'type': 'string',
-                      }),
-                      dict({
-                        'type': 'integer',
-                      }),
-                    ]),
-                  }),
-                  'type': 'array',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'Permissions — Hold down “Control”, or “Command” on a Mac, to select more than one.. Pass a pk or its dj-admin://auth/permission/{pk}/ URI; browse valid values at dj-admin://auth/permission/',
-            }),
-            'pk': dict({
-              'anyOf': list([
-                dict({
-                  'type': 'string',
-                }),
-                dict({
-                  'type': 'integer',
-                }),
-              ]),
-              'description': 'Primary key of the instance to update.',
-            }),
-          }),
-          'required': list([
-            'pk',
-          ]),
-          'type': 'object',
-        }),
-        'name': 'update_auth_group',
-        'title': 'Update Auth Group',
-      }),
-      dict({
-        '_meta': dict({
-          'fastmcp': dict({
-            'tags': list([
-            ]),
-          }),
-        }),
-        'annotations': dict({
-          'destructiveHint': True,
-        }),
-        'description': "Delete a group. Destructive: the server asks the client for the user's confirmation before deleting.",
-        'inputSchema': dict({
-          'additionalProperties': False,
-          'properties': dict({
-            'pk': dict({
-              'anyOf': list([
-                dict({
-                  'type': 'string',
-                }),
-                dict({
-                  'type': 'integer',
-                }),
-              ]),
-            }),
-          }),
-          'required': list([
-            'pk',
-          ]),
-          'type': 'object',
-        }),
-        'name': 'delete_auth_group',
-        'outputSchema': dict({
-          'properties': dict({
-            'result': dict({
-              'type': 'string',
-            }),
-          }),
-          'required': list([
-            'result',
-          ]),
-          'type': 'object',
-          'x-fastmcp-wrap-result': True,
-        }),
-        'title': 'Delete Auth Group',
-      }),
-      dict({
-        '_meta': dict({
-          'fastmcp': dict({
-            'tags': list([
-            ]),
-          }),
-        }),
-        'description': 'Create a new user.',
-        'inputSchema': dict({
-          'additionalProperties': False,
-          'properties': dict({
-            'password1': dict({
-              'anyOf': list([
-                dict({
-                  'type': 'string',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'Password (required)',
-            }),
-            'password2': dict({
-              'anyOf': list([
-                dict({
-                  'type': 'string',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'Password confirmation — Enter the same password as before, for verification. (required)',
-            }),
-            'usable_password': dict({
-              'anyOf': list([
-                dict({
-                  'enum': list([
-                    'true',
-                    'false',
-                  ]),
-                  'type': 'string',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'Password-based authentication — Whether the user will be able to authenticate using a password or not. If disabled, they may still be able to authenticate using other backends, such as Single Sign-On or LDAP.',
-            }),
-            'username': dict({
-              'anyOf': list([
-                dict({
-                  'type': 'string',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'Username — Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only. (required)',
-            }),
-          }),
-          'type': 'object',
-        }),
-        'name': 'create_auth_user',
-        'title': 'Create Auth User',
-      }),
-      dict({
-        '_meta': dict({
-          'fastmcp': dict({
-            'tags': list([
-            ]),
-          }),
-        }),
-        'description': 'Update an existing user. Only send the fields you want to change; omitted fields keep their current values. A required field that is empty on the record must be sent too.',
-        'inputSchema': dict({
-          'additionalProperties': False,
-          'properties': dict({
-            'date_joined': dict({
-              'anyOf': list([
-                dict({
-                  'maxItems': 2,
-                  'minItems': 2,
-                  'prefixItems': list([
-                    dict({
-                      'anyOf': list([
-                        dict({
-                          'type': 'string',
-                        }),
-                        dict({
-                          'type': 'null',
-                        }),
-                      ]),
-                    }),
-                    dict({
-                      'anyOf': list([
-                        dict({
-                          'type': 'string',
-                        }),
-                        dict({
-                          'type': 'null',
-                        }),
-                      ]),
-                    }),
-                  ]),
-                  'type': 'array',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'Date joined. Pass [date, time] (required)',
-            }),
-            'email': dict({
-              'anyOf': list([
-                dict({
-                  'type': 'string',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'Email address',
-            }),
-            'first_name': dict({
-              'anyOf': list([
-                dict({
-                  'type': 'string',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'First name',
-            }),
-            'groups': dict({
-              'anyOf': list([
-                dict({
-                  'items': dict({
-                    'anyOf': list([
-                      dict({
-                        'type': 'string',
-                      }),
-                      dict({
-                        'type': 'integer',
-                      }),
-                    ]),
-                  }),
-                  'type': 'array',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'Groups — The groups this user belongs to. A user will get all permissions granted to each of their groups. Hold down “Control”, or “Command” on a Mac, to select more than one.. Pass a pk or its dj-admin://auth/group/{pk}/ URI; browse valid values at dj-admin://auth/group/',
-            }),
-            'is_active': dict({
-              'anyOf': list([
-                dict({
-                  'type': 'boolean',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'Active — Designates whether this user should be treated as active. Unselect this instead of deleting accounts.',
-            }),
-            'is_staff': dict({
-              'anyOf': list([
-                dict({
-                  'type': 'boolean',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'Staff status — Designates whether the user can log into this admin site.',
-            }),
-            'is_superuser': dict({
-              'anyOf': list([
-                dict({
-                  'type': 'boolean',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'Superuser status — Designates that this user has all permissions without explicitly assigning them.',
-            }),
-            'last_login': dict({
-              'anyOf': list([
-                dict({
-                  'maxItems': 2,
-                  'minItems': 2,
-                  'prefixItems': list([
-                    dict({
-                      'anyOf': list([
-                        dict({
-                          'type': 'string',
-                        }),
-                        dict({
-                          'type': 'null',
-                        }),
-                      ]),
-                    }),
-                    dict({
-                      'anyOf': list([
-                        dict({
-                          'type': 'string',
-                        }),
-                        dict({
-                          'type': 'null',
-                        }),
-                      ]),
-                    }),
-                  ]),
-                  'type': 'array',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'Last login. Pass [date, time]',
-            }),
-            'last_name': dict({
-              'anyOf': list([
-                dict({
-                  'type': 'string',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'Last name',
-            }),
-            'pk': dict({
-              'anyOf': list([
-                dict({
-                  'type': 'string',
-                }),
-                dict({
-                  'type': 'integer',
-                }),
-              ]),
-              'description': 'Primary key of the instance to update.',
-            }),
-            'user_permissions': dict({
-              'anyOf': list([
-                dict({
-                  'items': dict({
-                    'anyOf': list([
-                      dict({
-                        'type': 'string',
-                      }),
-                      dict({
-                        'type': 'integer',
-                      }),
-                    ]),
-                  }),
-                  'type': 'array',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'User permissions — Specific permissions for this user. Hold down “Control”, or “Command” on a Mac, to select more than one.. Pass a pk or its dj-admin://auth/permission/{pk}/ URI; browse valid values at dj-admin://auth/permission/',
-            }),
-            'username': dict({
-              'anyOf': list([
-                dict({
-                  'type': 'string',
-                }),
-                dict({
-                  'type': 'null',
-                }),
-              ]),
-              'default': None,
-              'description': 'Username — Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only. (required)',
-            }),
-          }),
-          'required': list([
-            'pk',
-          ]),
-          'type': 'object',
-        }),
-        'name': 'update_auth_user',
-        'title': 'Update Auth User',
-      }),
-      dict({
-        '_meta': dict({
-          'fastmcp': dict({
-            'tags': list([
-            ]),
-          }),
-        }),
-        'annotations': dict({
-          'destructiveHint': True,
-        }),
-        'description': "Delete a user. Destructive: the server asks the client for the user's confirmation before deleting.",
-        'inputSchema': dict({
-          'additionalProperties': False,
-          'properties': dict({
-            'pk': dict({
-              'anyOf': list([
-                dict({
-                  'type': 'string',
-                }),
-                dict({
-                  'type': 'integer',
-                }),
-              ]),
-            }),
-          }),
-          'required': list([
-            'pk',
-          ]),
-          'type': 'object',
-        }),
-        'name': 'delete_auth_user',
-        'outputSchema': dict({
-          'properties': dict({
-            'result': dict({
-              'type': 'string',
-            }),
-          }),
-          'required': list([
-            'result',
-          ]),
-          'type': 'object',
-          'x-fastmcp-wrap-result': True,
-        }),
-        'title': 'Delete Auth User',
-      }),
       dict({
         '_meta': dict({
           'fastmcp': dict({
@@ -1031,7 +455,7 @@
                 }),
               ]),
               'default': None,
-              'description': 'Author (required). Pass a pk or its dj-admin://auth/user/{pk}/ URI; browse valid values at dj-admin://auth/user/',
+              'description': 'Author (required). Pass a pk',
             }),
             'body': dict({
               'anyOf': list([
@@ -1058,7 +482,7 @@
                 }),
               ]),
               'default': None,
-              'description': 'Editor. Pass a pk or its dj-admin://auth/user/{pk}/ URI; browse valid values at dj-admin://auth/user/',
+              'description': 'Editor. Pass a pk',
             }),
             'is_featured': dict({
               'anyOf': list([
@@ -1169,7 +593,7 @@
                 }),
               ]),
               'default': None,
-              'description': 'Author (required). Pass a pk or its dj-admin://auth/user/{pk}/ URI; browse valid values at dj-admin://auth/user/',
+              'description': 'Author (required). Pass a pk',
             }),
             'body': dict({
               'anyOf': list([
@@ -1196,7 +620,7 @@
                 }),
               ]),
               'default': None,
-              'description': 'Editor. Pass a pk or its dj-admin://auth/user/{pk}/ URI; browse valid values at dj-admin://auth/user/',
+              'description': 'Editor. Pass a pk',
             }),
             'is_featured': dict({
               'anyOf': list([
@@ -1340,7 +764,7 @@
                 }),
               ]),
               'default': None,
-              'description': 'editor. Pass a pk or its dj-admin://auth/user/{pk}/ URI; browse valid values at dj-admin://auth/user/',
+              'description': 'editor. Pass a pk',
             }),
             'pks': dict({
               'description': 'Primary keys of the instances to run the action on.',
@@ -1389,7 +813,7 @@
                 }),
               ]),
               'default': None,
-              'description': 'editor. Pass a pk or its dj-admin://auth/user/{pk}/ URI; browse valid values at dj-admin://auth/user/',
+              'description': 'editor. Pass a pk',
             }),
             'pks': dict({
               'description': 'Primary keys of the instances to run the action on.',
@@ -1441,7 +865,7 @@
                 }),
               ]),
               'default': None,
-              'description': 'editor. Pass a pk or its dj-admin://auth/user/{pk}/ URI; browse valid values at dj-admin://auth/user/',
+              'description': 'editor. Pass a pk',
             }),
             'pks': dict({
               'description': 'Primary keys of the instances to run the action on.',

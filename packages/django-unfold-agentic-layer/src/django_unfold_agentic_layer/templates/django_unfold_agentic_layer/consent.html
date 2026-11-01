@@ -15,15 +15,38 @@
                 <p class="font-semibold text-font-important-light truncate dark:text-font-important-dark">{{ client_name }}</p>
                 <p class="text-sm">{% translate "will return to" %}</p>
                 <p class="text-sm font-mono break-words">{{ redirect_uri }}</p>
+                <p class="flex items-center gap-1 mt-1 text-xs text-base-500">
+                    <span class="material-symbols-outlined text-sm">info</span>
+                    {% translate "Set by the client itself, not verified by this server." %}
+                </p>
             </div>
         </div>
 
-        {% if not redirect_is_local %}
-            {% blocktranslate trimmed asvar warning %}
-                This address is not on your computer. The access code goes to that server.
-                Allow access only if you trust it and you started this login yourself.
-            {% endblocktranslate %}
-            {% include "unfold/helpers/messages/warning.html" with message=warning class="mb-0" %}
+        {% if not redirect_is_local or redirect_scheme or request.user.is_superuser %}
+            {# Unfold's message helpers carry mb-3 (a passed mb-0 loses to it): they space each other, and -mb-3 cancels the last one. #}
+            <div class="-mb-3">
+                {% if not redirect_is_local %}
+                    {% blocktranslate trimmed asvar warning %}
+                        This address is not on your computer. The access code goes to that server.
+                        Allow access only if you trust it and you started this login yourself.
+                    {% endblocktranslate %}
+                    {% include "unfold/helpers/messages/warning.html" with message=warning %}
+                {% elif redirect_scheme %}
+                    {% blocktranslate trimmed asvar warning with scheme=redirect_scheme %}
+                        This address opens an app on your computer ({{ scheme }}://). Allow access only if
+                        you recognize that app.
+                    {% endblocktranslate %}
+                    {% include "unfold/helpers/messages/warning.html" with message=warning %}
+                {% endif %}
+
+                {% if request.user.is_superuser %}
+                    {% blocktranslate trimmed asvar superuser %}
+                        You are a superuser, so this client could do anything in the admin. Consider a
+                        separate user for MCP, with only the permissions the agent needs.
+                    {% endblocktranslate %}
+                    {% include "unfold/helpers/messages/info.html" with message=superuser %}
+                {% endif %}
+            </div>
         {% endif %}
 
         <p>
@@ -34,10 +57,6 @@
         </p>
 
         <ul class="flex flex-col gap-3 border border-base-200 rounded-default p-4 shadow-xs dark:border-base-800">
-            <li class="flex gap-3">
-                <span class="material-symbols-outlined text-primary-600 dark:text-primary-500">visibility</span>
-                <span>{% translate "See and change the data you can access in the admin" %}</span>
-            </li>
             <li class="flex gap-3">
                 <span class="material-symbols-outlined text-primary-600 dark:text-primary-500">shield_person</span>
                 <span>{% translate "Act only within your own permissions" %}</span>
@@ -50,6 +69,23 @@
 
         <form method="post" class="flex flex-col gap-3">
             {% csrf_token %}
+
+            <fieldset class="flex flex-col gap-3 border border-base-200 rounded-default p-4 shadow-xs dark:border-base-800">
+                <legend class="font-semibold px-1 text-font-important-light dark:text-font-important-dark">{% translate "Allow this client to" %}</legend>
+
+                {% for scope in scopes %}
+                    <label class="flex gap-3 items-start">
+                        <input type="checkbox" name="scope" value="{{ scope.name }}" class="{{ checkbox_classes }} mt-0.5" checked{% if scope.fixed %} disabled{% endif %}>
+                        <span class="flex flex-col">
+                            <span>{{ scope.description }}</span>
+                            <span class="text-xs font-mono">{{ scope.name }}{% if scope.fixed %} · {% translate "always included" %}{% endif %}</span>
+                            {% if scope.destructive %}
+                                <span class="text-xs">{% translate "Your MCP client asks you to confirm each destructive action before it runs." %}</span>
+                            {% endif %}
+                        </span>
+                    </label>
+                {% endfor %}
+            </fieldset>
 
             {% component "unfold/components/button.html" with submit=1 name="approve" variant="primary" class="w-full" %}
                 {% translate "Allow access" %} <span class="material-symbols-outlined relative right-0 transition-all group-hover:-right-1 text-sm">arrow_forward</span>

@@ -12,22 +12,22 @@ keywords = ["django", "unfold", "admin", "ai", "agentic", "mcp"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Framework :: Django",
-    "Framework :: Django :: 5.0",
-    "Framework :: Django :: 5.1",
     "Framework :: Django :: 5.2",
     "Framework :: Django :: 6.0",
+    "Framework :: Django :: 6.1",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "django>=5.0",
+    "django>=5.2",
     "django-unfold>=0.91.0",
-    "fastmcp>=4.0.0,<5",
+    "fastmcp>=4.1.4,<5",
     "pydantic>=2.0",
 ]
 
@@ -39,6 +39,15 @@ dev = [
     "pytest-django>=4.8.0",
     "pytest-freezer>=0.4.0",
     "syrupy>=4.0.0",
+]
+# One Django line per tox env (see [tool.tox]); 6.x needs Python 3.12+.
+django52 = ["django>=5.2,<6"]
+django60 = ["django>=6.0,<6.1; python_version >= '3.12'"]
+django61 = ["django>=6.1,<6.2; python_version >= '3.12'"]
+
+[tool.uv]
+conflicts = [
+    [{ group = "django52" }, { group = "django60" }, { group = "django61" }],
 ]
 
 [project.urls]
@@ -57,3 +66,25 @@ packages = ["src/django_unfold_agentic_layer"]
 DJANGO_SETTINGS_MODULE = "server.settings"
 testpaths = ["tests"]
 pythonpath = [".", "django_test_app",]
+
+# tox-uv's lock runner installs exactly uv.lock (uv sync --locked) into each
+# env, with the env's own Python and its Django group.
+[tool.tox]
+legacy_tox_ini = """
+    [tox]
+    requires = tox-uv>=1.29
+    envlist =
+        py{311,312,313,314}-django52
+        py{312,313,314}-django{60,61}
+    [testenv]
+    runner = uv-venv-lock-runner
+    dependency_groups =
+        dev
+        django52: django52
+        django60: django60
+        django61: django61
+    set_env =
+        PYTHONDEVMODE = 1
+    commands =
+        pytest {posargs}
+"""

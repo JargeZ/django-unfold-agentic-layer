@@ -8,6 +8,7 @@ from django.http import HttpRequest
 from django.utils.html import strip_tags
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
+from django_unfold_agentic_layer.errors import AgentError
 from django_unfold_agentic_layer.resources.actions._shared import CollectedMessages
 
 
@@ -43,7 +44,7 @@ class RunAdminChangelistQuery(BaseLogicAction):
         cl = model_admin.get_changelist_instance(request)
         problems = [strip_tags(str(m.message)).strip() for m in messages if m.level >= WARNING]
         if problems:
-            raise ValueError(" ".join(problems))
+            raise AgentError(" ".join(problems))
         self._check_filters_applied(cl, request)
         queryset = cl.queryset
         if order_by and order_by.removeprefix("-") == "pk":
@@ -86,6 +87,6 @@ class RunAdminChangelistQuery(BaseLogicAction):
 
     def _raise(self, provided: dict[str, Any], hint: str = "") -> None:
         params = ", ".join(f"{param}={value!r}" for param, value in provided.items())
-        raise ValueError(
+        raise AgentError(
             f"Filter ignored {params}: the value is invalid or not supported. {hint}".strip()
         )

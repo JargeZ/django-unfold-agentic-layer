@@ -1,7 +1,8 @@
 """Admin over MCP OAuth state; deleting a row is how you revoke it.
 
 Nothing is editable: clients register themselves (RFC 7591) and tokens come
-from the login flow. Deleting a client cascades to (revokes) all of its
+from the login flow. Each changelist explains this in a short note above it
+(``list_before_template``). Deleting a client cascades to (revokes) all of its
 tokens. Clients can also be *added* by hand — the only way in once
 ``CLOSED_CLIENT_REGISTRATION`` is on.
 """
@@ -70,6 +71,7 @@ class OAuthClientAddForm(forms.ModelForm):
 
 @admin.register(OAuthClient)
 class OAuthClientAdmin(_ViewAndDeleteOnly, ModelAdmin):
+    list_before_template = "django_unfold_agentic_layer/admin/oauthclient_changelist_before.html"
     list_display = ("client_name", "client_id", "active_tokens", "created_at")
     search_fields = ("client_id", "info__client_name")
     readonly_fields = ("client_id", "info", "created_at")
@@ -106,7 +108,8 @@ class OAuthClientAdmin(_ViewAndDeleteOnly, ModelAdmin):
 
 @admin.register(OAuthToken)
 class OAuthTokenAdmin(_ViewAndDeleteOnly, ModelAdmin):
-    list_display = ("user", "client", "is_active", "expires_at")
+    list_before_template = "django_unfold_agentic_layer/admin/oauthtoken_changelist_before.html"
+    list_display = ("user", "client", "granted_scopes", "is_active", "expires_at")
     list_filter = ("client",)
     list_select_related = ("user", "client")
     search_fields = (f"user__{get_user_model().USERNAME_FIELD}", "client__info__client_name")
@@ -116,6 +119,10 @@ class OAuthTokenAdmin(_ViewAndDeleteOnly, ModelAdmin):
     def get_queryset(self, request):
         # Authorization codes live for minutes and aren't sessions; hide them.
         return super().get_queryset(request).filter(kind=OAuthToken.Kind.ACCESS)
+
+    @admin.display(description="scopes")
+    def granted_scopes(self, obj: OAuthToken) -> str:
+        return " ".join(obj.data.get("scopes") or []) or "—"
 
     @admin.display(description="active", boolean=True)
     def is_active(self, obj: OAuthToken) -> bool:
