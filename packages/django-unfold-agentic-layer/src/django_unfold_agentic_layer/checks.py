@@ -3,6 +3,7 @@ from django.core.cache import caches
 from django.core.cache.backends.locmem import LocMemCache
 from django.core.checks import Warning, register
 
+from django_unfold_agentic_layer import log
 from django_unfold_agentic_layer.conf import Settings, get_config
 
 
@@ -34,3 +35,16 @@ def check_unauthorized_mode(app_configs, **kwargs):
             id="django_unfold_agentic_layer.W002",
         )
     ]
+
+
+def log_startup_warnings() -> None:
+    """Logs this app's check warnings once, at startup: ``runserver`` and
+    ``migrate`` run system checks, but gunicorn and uvicorn do not. Deploy
+    checks join in when ``DEBUG`` is off; ``SILENCED_SYSTEM_CHECKS`` applies."""
+    checks = [check_unauthorized_mode]
+    if not settings.DEBUG:
+        checks.append(check_confirmation_cache)
+    for check in checks:
+        for message in check(None):
+            if message.id not in settings.SILENCED_SYSTEM_CHECKS:
+                log.config.warning("%s %s %s", message.id, message.msg, message.hint)

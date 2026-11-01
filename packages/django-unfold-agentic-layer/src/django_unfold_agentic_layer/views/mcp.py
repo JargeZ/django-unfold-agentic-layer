@@ -1,3 +1,4 @@
+import ipaddress
 import json
 from typing import Any
 
@@ -71,6 +72,7 @@ class MCPView(View):
                 .order_by("pk")
                 .first()
             )
+            _warn_unauthorized_mode(request, user)
 
         if user is None:
             # RFC 9728: points MCP clients at the metadata that starts their
@@ -97,6 +99,24 @@ class MCPView(View):
 
     def delete(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseNotAllowed:
         return HttpResponseNotAllowed(["POST"])
+
+
+def _warn_unauthorized_mode(request: HttpRequest, user: Any) -> None:
+    """Warns on every request the dev-only escape hatch serves, and again
+    when the caller isn't on this machine — warns, never refuses: it's the
+    developer's own setting."""
+    log.mcp.warning("UNFOLD_AGENTIC_LAYER_UNAUTHORIZED: tokenless request runs as %s", user)
+    remote_addr = request.META.get("REMOTE_ADDR", "")
+    try:
+        loopback = ipaddress.ip_address(remote_addr).is_loopback
+    except ValueError:
+        loopback = False
+    if not loopback:
+        log.mcp.warning(
+            "UNFOLD_AGENTIC_LAYER_UNAUTHORIZED: tokenless request from non-loopback "
+            "address %r — this host is reachable from the network",
+            remote_addr,
+        )
 
 
 def _rpc_method(request: HttpRequest) -> str:

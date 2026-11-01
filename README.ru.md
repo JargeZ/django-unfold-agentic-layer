@@ -142,6 +142,9 @@ npx @modelcontextprotocol/inspector
 > ```
 >
 > Запросы без токена выполняются от первого активного суперпользователя; фильтрация по правам при этом сохраняется.
+>
+> Каждый такой запрос пишет warning в лог (`django_unfold_agentic_layer.mcp`), а запрос не с loopback-адреса — ещё один.
+> Кроме того, при старте приложение один раз пишет warning (`django_unfold_agentic_layer.config`): gunicorn и uvicorn не запускают system checks.
 
 ### HTTPS и reverse proxy
 
@@ -217,6 +220,7 @@ UNFOLD_AGENTIC_LAYER = {
 | `django_unfold_agentic_layer.oauth` | OAuth: discovery, логин, consent, токены |
 | `django_unfold_agentic_layer.tools` | Ошибки внутри обработчиков инструментов и ресурсов |
 | `django_unfold_agentic_layer.builder` | Сборка MCP-сервера пользователя из реестра админки |
+| `django_unfold_agentic_layer.config` | Небезопасные настройки, один раз при старте (warnings из system checks приложения) |
 
 ```python
 LOGGING = {

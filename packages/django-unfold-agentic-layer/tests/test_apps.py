@@ -35,3 +35,22 @@ def test_check_warns_while_unauthorized_mode_is_on(settings):
 
     settings.DEBUG = False
     assert "django_unfold_agentic_layer.W002" not in _warning_ids()
+
+
+def test_startup_logs_insecure_settings(settings, caplog):
+    """gunicorn and uvicorn run no system checks: the warnings are logged too."""
+    from django_unfold_agentic_layer.checks import log_startup_warnings
+
+    settings.DEBUG = True
+    settings.UNFOLD_AGENTIC_LAYER_UNAUTHORIZED = True
+    log_startup_warnings()
+    settings.SILENCED_SYSTEM_CHECKS = ["django_unfold_agentic_layer.W002"]
+    log_startup_warnings()
+
+    logged = [
+        r.getMessage() for r in caplog.records if r.name == "django_unfold_agentic_layer.config"
+    ]
+    assert len(logged) == 1
+    assert logged[0].startswith(
+        "django_unfold_agentic_layer.W002 UNFOLD_AGENTIC_LAYER_UNAUTHORIZED"
+    )

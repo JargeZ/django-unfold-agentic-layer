@@ -142,6 +142,9 @@ npx @modelcontextprotocol/inspector
 > ```
 >
 > Requests without a token act as the first active superuser; permission filtering still applies.
+>
+> Every such request logs a warning (`django_unfold_agentic_layer.mcp`), and a second one when it comes from a non-loopback address.
+> The app also logs a warning once at startup (`django_unfold_agentic_layer.config`), because gunicorn and uvicorn do not run system checks.
 
 ### HTTPS and reverse proxies
 
@@ -216,6 +219,7 @@ The library logs under `django_unfold_agentic_layer`, split by area. Configure t
 | `django_unfold_agentic_layer.oauth` | The OAuth flow: discovery, login, consent, tokens |
 | `django_unfold_agentic_layer.tools` | Errors inside tool and resource handlers |
 | `django_unfold_agentic_layer.builder` | Building the per-user server from the admin registry |
+| `django_unfold_agentic_layer.config` | Unsafe settings, once at startup (the app's system-check warnings) |
 
 ```python
 LOGGING = {

@@ -17,3 +17,5 @@ oauth = logging.getLogger(f"{ROOT}.oauth")
 tools = logging.getLogger(f"{ROOT}.tools")
 #: Building the per-user MCP server from the admin registry.
 builder = logging.getLogger(f"{ROOT}.builder")
+#: Settings that make a deployment less safe, logged once at startup.
+config = logging.getLogger(f"{ROOT}.config")
