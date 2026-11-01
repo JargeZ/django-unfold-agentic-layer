@@ -18,6 +18,7 @@ from pydantic import Field
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
 from django_unfold_agentic_layer.mcp_server.builders._shared import (
     PK,
+    action_scope,
     build_editable_field_parameter,
     confirmation_request,
     get_django_request,
@@ -73,7 +74,7 @@ class BuildModelActionToolDefinition(BaseLogicAction):
 
         def run_body(ctx: Context, kwargs: dict[str, Any]) -> ToolResult | InputRequiredResult:
             pk, pks = kwargs.pop("pk", None), kwargs.pop("pks", None)
-            request = get_django_request()
+            request = get_django_request(action_scope(action))
             if action.dangerous:
                 # Validate first, so the user never confirms a run that can't happen.
                 invalid = RunAdminAction().execute(

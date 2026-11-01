@@ -4,6 +4,7 @@ from typing import Any
 from django.contrib.admin import ModelAdmin
 from fastmcp import FastMCP
 
+from django_unfold_agentic_layer import scopes
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
 from django_unfold_agentic_layer.mcp_server.builders._shared import (
     build_editable_field_parameter,
@@ -38,7 +39,7 @@ class BuildModelCreateToolDefinition(BaseLogicAction):
         ]
 
         def run_body(kwargs: dict[str, Any]) -> dict[str, Any]:
-            request = get_django_request()
+            request = get_django_request(scopes.WRITE)
             obj, errors = CreateModelInstance().execute(model_admin, request, kwargs)
             if errors:
                 return {"success": False, "errors": errors}

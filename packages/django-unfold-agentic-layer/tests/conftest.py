@@ -12,6 +12,7 @@ import pytest
 from django.contrib.auth.models import Permission, User
 from django.utils import timezone
 from django_unfold_agentic_layer.models import OAuthClient, OAuthToken
+from django_unfold_agentic_layer.scopes import ALL as ALL_SCOPES
 
 
 @pytest.fixture(autouse=True)
@@ -103,21 +104,21 @@ def expose_auth_models(settings):
 
 @pytest.fixture
 def bearer_login(db):
-    """``bearer_login(client, user)`` — the MCP equivalent of ``client.force_login``:
+    """``bearer_login(client, user, scopes=ALL)`` — the MCP equivalent of ``client.force_login``:
     issues ``user`` a live OAuth access token (skipping the browser flow
     ``test_oauth.py`` covers) and sends it on every following request."""
     oauth_client, _ = OAuthClient.objects.get_or_create(
         client_id="test-client", defaults={"info": {}}
     )
 
-    def login(client, user: User) -> None:
+    def login(client, user: User, scopes: list[str] = ALL_SCOPES) -> None:
         token = secrets.token_urlsafe(32)
         OAuthToken.objects.create(
             token_hash=hashlib.sha256(token.encode()).hexdigest(),
             kind=OAuthToken.Kind.ACCESS,
             client=oauth_client,
             user=user,
-            data={"client_id": oauth_client.client_id, "scopes": []},
+            data={"client_id": oauth_client.client_id, "scopes": scopes},
             session_auth_hash=user.get_session_auth_hash(),
             expires_at=timezone.now() + timedelta(days=1),
         )

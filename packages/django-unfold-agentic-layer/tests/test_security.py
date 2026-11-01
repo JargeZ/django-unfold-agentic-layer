@@ -21,6 +21,7 @@ from django.contrib import admin
 from django.contrib.auth.models import Group, Permission, User
 from django.test import Client
 from django.utils import timezone
+from django_unfold_agentic_layer import scopes
 from django_unfold_agentic_layer.conf import is_model_exposed
 from django_unfold_agentic_layer.models import OAuthClient, OAuthToken
 from server.apps.blog.admin import BlogPostAdmin
@@ -223,7 +224,7 @@ def test_mcp_query_string_does_not_reach_admin_hooks(
 def _issue(user: User, *, kind=OAuthToken.Kind.ACCESS, resource=None, ttl=timedelta(days=1)):
     oauth_client, _ = OAuthClient.objects.get_or_create(client_id="sec", defaults={"info": {}})
     token = secrets.token_urlsafe(32)
-    data = {"client_id": "sec", "scopes": []}
+    data = {"client_id": "sec", "scopes": scopes.ALL}
     if resource is not None:
         data["resource"] = resource
     OAuthToken.objects.create(

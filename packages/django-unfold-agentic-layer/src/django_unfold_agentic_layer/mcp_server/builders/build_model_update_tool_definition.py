@@ -5,6 +5,7 @@ from django.contrib.admin import ModelAdmin
 from fastmcp import FastMCP
 from pydantic import Field
 
+from django_unfold_agentic_layer import scopes
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
 from django_unfold_agentic_layer.mcp_server.builders._shared import (
     PK,
@@ -46,7 +47,7 @@ class BuildModelUpdateToolDefinition(BaseLogicAction):
         ]
 
         def run_body(pk: str, kwargs: dict[str, Any]) -> dict[str, Any]:
-            request = get_django_request()
+            request = get_django_request(scopes.WRITE)
             instance = GetAdminModelInstance().execute(model_admin, request, pk)
             obj, errors = UpdateModelInstance().execute(model_admin, request, instance, kwargs)
             if errors:

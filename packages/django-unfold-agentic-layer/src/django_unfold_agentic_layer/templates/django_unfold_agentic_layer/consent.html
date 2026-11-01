@@ -35,10 +35,6 @@
 
         <ul class="flex flex-col gap-3 border border-base-200 rounded-default p-4 shadow-xs dark:border-base-800">
             <li class="flex gap-3">
-                <span class="material-symbols-outlined text-primary-600 dark:text-primary-500">visibility</span>
-                <span>{% translate "See and change the data you can access in the admin" %}</span>
-            </li>
-            <li class="flex gap-3">
                 <span class="material-symbols-outlined text-primary-600 dark:text-primary-500">shield_person</span>
                 <span>{% translate "Act only within your own permissions" %}</span>
             </li>
@@ -50,6 +46,23 @@
 
         <form method="post" class="flex flex-col gap-3">
             {% csrf_token %}
+
+            <fieldset class="flex flex-col gap-3 border border-base-200 rounded-default p-4 shadow-xs dark:border-base-800">
+                <legend class="font-semibold px-1 text-font-important-light dark:text-font-important-dark">{% translate "Allow this client to" %}</legend>
+
+                {% for scope in scopes %}
+                    <label class="flex gap-3 items-start">
+                        <input type="checkbox" name="scope" value="{{ scope.name }}" class="{{ checkbox_classes }} mt-0.5" checked{% if scope.fixed %} disabled{% endif %}>
+                        <span class="flex flex-col">
+                            <span>{{ scope.description }}</span>
+                            <span class="text-xs font-mono">{{ scope.name }}{% if scope.fixed %} · {% translate "always included" %}{% endif %}</span>
+                            {% if scope.destructive %}
+                                <span class="text-xs">{% translate "Your MCP client asks you to confirm each destructive action before it runs." %}</span>
+                            {% endif %}
+                        </span>
+                    </label>
+                {% endfor %}
+            </fieldset>
 
             {% component "unfold/components/button.html" with submit=1 name="approve" variant="primary" class="w-full" %}
                 {% translate "Allow access" %} <span class="material-symbols-outlined relative right-0 transition-all group-hover:-right-1 text-sm">arrow_forward</span>

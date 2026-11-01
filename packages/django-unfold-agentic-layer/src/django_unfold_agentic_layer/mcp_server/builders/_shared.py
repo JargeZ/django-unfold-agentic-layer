@@ -8,6 +8,7 @@ from typing import Annotated, Any, Literal, TypeVar
 
 from asgiref.sync import sync_to_async
 from django.core.cache import caches
+from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest
 from fastmcp import Context
 from fastmcp.exceptions import FastMCPError, ToolError
@@ -15,9 +16,14 @@ from fastmcp.server.dependencies import get_http_request
 from mcp.types import ElicitRequest, ElicitRequestFormParams, InputRequiredResult
 from pydantic import AfterValidator, Field
 
+from django_unfold_agentic_layer import scopes
 from django_unfold_agentic_layer.conf import Settings, get_config
 from django_unfold_agentic_layer.errors import format_error
-from django_unfold_agentic_layer.resources.schemas import EditableFieldInfo, FileUploadInput
+from django_unfold_agentic_layer.resources.schemas import (
+    ActionToolInfo,
+    EditableFieldInfo,
+    FileUploadInput,
+)
 
 _T = TypeVar("_T")
 
@@ -54,15 +60,25 @@ _BASE_TYPES: dict[str, type] = {
 }
 
 
-def get_django_request() -> HttpRequest:
-    """The live Django ``HttpRequest`` behind the current MCP call.
+def get_django_request(required_scope: str) -> HttpRequest:
+    """The live Django ``HttpRequest`` behind the current MCP call, once its
+    token is known to hold ``required_scope`` (see ``scopes.py``) — every
+    handler gets its request through here, so none can skip the check.
 
     Works because bridge.py hands the *same* scope dict all the way down to
     ``StreamableHTTPSessionManager``, which threads it through as
     ``RequestContext.request`` — see spec §6 for the full chain, verified
     end-to-end against a real HTTP POST through ``/mcp/``.
     """
-    return get_http_request().scope[REQUEST_SCOPE_KEY]
+    request = get_http_request().scope[REQUEST_SCOPE_KEY]
+    if required_scope not in getattr(request, "mcp_scopes", ()):
+        raise PermissionDenied(f"This login was not granted the {required_scope} scope.")
+    return request
+
+
+def action_scope(action: ActionToolInfo) -> str:
+    """The scope an admin action needs: ``DANGER`` ones are destructive."""
+    return scopes.DESTRUCTIVE if action.dangerous else scopes.WRITE
 
 
 async def run_in_django(

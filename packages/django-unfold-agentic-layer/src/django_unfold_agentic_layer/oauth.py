@@ -45,7 +45,7 @@ from mcp.shared.auth import OAuthToken as TokenResponse
 from pydantic import AnyHttpUrl
 from starlette.applications import Starlette
 
-from django_unfold_agentic_layer import log
+from django_unfold_agentic_layer import log, scopes
 from django_unfold_agentic_layer.conf import Settings, get_config
 from django_unfold_agentic_layer.models import OAuthClient, OAuthToken
 
@@ -125,7 +125,7 @@ class DjangoOAuthProvider(
 
     async def get_client(self, client_id: str) -> OAuthClientInformationFull | None:
         row = await OAuthClient.objects.filter(pk=client_id).afirst()
-        return row and OAuthClientInformationFull.model_validate(row.info)
+        return row and client_information(row)
 
     async def register_client(self, client_info: OAuthClientInformationFull) -> None:
         for uri in client_info.redirect_uris or []:
@@ -235,13 +235,31 @@ class DjangoOAuthProvider(
         await OAuthToken.objects.filter(token_hash=_hash(token.token)).adelete()
 
 
+def registration_options(enabled: bool) -> ClientRegistrationOptions:
+    """Registration with our scopes: a client asking for none gets them all
+    (the user narrows them on the consent page)."""
+    return ClientRegistrationOptions(
+        enabled=enabled, valid_scopes=scopes.ALL, default_scopes=scopes.ALL
+    )
+
+
+def client_information(row: OAuthClient) -> OAuthClientInformationFull:
+    """A stored client, allowed every scope when it registered without any
+    (added in the admin, or before scopes existed) — the consent page is
+    where scopes get narrowed, not registration."""
+    client = OAuthClientInformationFull.model_validate(row.info)
+    if client.scope is None:
+        client.scope = " ".join(scopes.ALL)
+    return client
+
+
 @lru_cache(maxsize=8)
 def _auth_app(issuer: str, consent_url: str) -> Starlette:
     return Starlette(
         routes=create_auth_routes(
             DjangoOAuthProvider(consent_url),
             AnyHttpUrl(issuer),
-            client_registration_options=ClientRegistrationOptions(enabled=True),
+            client_registration_options=registration_options(enabled=True),
             revocation_options=RevocationOptions(enabled=True),
         )
     )
@@ -264,20 +282,22 @@ def load_consent_request(
     client = OAuthClient.objects.filter(pk=payload["client_id"]).first()
     if client is None:
         return None
-    return (
-        OAuthClientInformationFull.model_validate(client.info),
-        AuthorizationParams.model_validate(payload["params"]),
-    )
+    return client_information(client), AuthorizationParams.model_validate(payload["params"])
 
 
 def approve(
-    user: AbstractBaseUser, client: OAuthClientInformationFull, params: AuthorizationParams
+    user: AbstractBaseUser,
+    client: OAuthClientInformationFull,
+    params: AuthorizationParams,
+    chosen_scopes: list[str],
 ) -> str:
-    """Issue an authorization code for ``user`` and return the client redirect URL."""
+    """Issue an authorization code for ``user`` with the scopes they chose
+    (within what the client asked for, see ``scopes.granted``) and return the
+    client redirect URL."""
     code = secrets.token_urlsafe(32)
     authorization_code = AuthorizationCode(
         code=code,
-        scopes=params.scopes or [],
+        scopes=scopes.granted(params.scopes, chosen_scopes),
         expires_at=time.time() + AUTHORIZATION_CODE_TTL,
         client_id=client.client_id,
         code_challenge=params.code_challenge,
@@ -313,8 +333,9 @@ def can_use_mcp(user: AbstractBaseUser) -> bool:
     return not get_config()[Settings.REQUIRED_PERMISSION] or user.has_perm(USE_MCP_PERMISSION)
 
 
-def authenticate_bearer(request: HttpRequest) -> AbstractBaseUser | None:
-    """The user behind a live ``Authorization: Bearer`` access token, if any."""
+def authenticate_bearer(request: HttpRequest) -> tuple[AbstractBaseUser, frozenset[str]] | None:
+    """The user and scopes behind a live ``Authorization: Bearer`` access
+    token, if any."""
     scheme, _, token = request.headers.get("Authorization", "").partition(" ")
     if scheme.lower() != "bearer" or not token:
         return None
@@ -328,7 +349,7 @@ def authenticate_bearer(request: HttpRequest) -> AbstractBaseUser | None:
         log.oauth.info("Revoking token of %s: password changed since login", row.user)
         row.delete()
         return None
-    return row.user
+    return row.user, frozenset(row.data.get("scopes") or ())
 
 
 def _session_hash_verified(row: OAuthToken) -> bool:

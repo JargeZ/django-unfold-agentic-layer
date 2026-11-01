@@ -48,7 +48,8 @@ Standard MCP authorization (OAuth 2.1, PKCE, RFC 7591 DCR) so clients (`claude m
 - No refresh tokens: `UNFOLD_AGENTIC_LAYER["SESSION_TTL"]` (default 1 day) is a hard cap on a login.
 - `OAuthToken.session_auth_hash` holds the user's `get_session_auth_hash()` from login (its own column, not in the SDK's `data`) and `authenticate_bearer` verifies it like `django.contrib.auth.get_user` verifies a session (fallback keys accepted, never re-stamped): a password change revokes (deletes) the token — no signals, no host hooks.
 - `admin.py` lists clients and access tokens, view + delete only — deleting is revoking (a client's delete cascades to its tokens). `BuildAdminMCPInstance` skips this app's own models so an agent can never see or revoke MCP sessions through MCP.
-- Not done: CIMD client IDs (spec 2025-11-25; `fastmcp.server.auth.cimd` has a fetcher), scopes.
+- Scopes (`scopes.py`): `mcp:read` (always granted), `mcp:write`, `mcp:destructive`, chosen on the consent page within what the client requested (`scopes.granted`). `BuildAdminMCPInstance` caches per scope set and registers only covered tools/resources; every handler gets its request from `get_django_request(required_scope)`, which refuses a token without that scope — keep it the only way handlers reach the request.
+- Not done: CIMD client IDs (spec 2025-11-25; `fastmcp.server.auth.cimd` has a fetcher).
 
 ## Testing conventions
 

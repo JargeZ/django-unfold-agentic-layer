@@ -17,10 +17,11 @@ from django.views import View
 from django.views.decorators.clickjacking import xframe_options_deny
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from mcp.server.auth.routes import build_metadata
-from mcp.server.auth.settings import ClientRegistrationOptions, RevocationOptions
+from mcp.server.auth.settings import RevocationOptions
 from mcp.shared.auth import ProtectedResourceMetadata
+from unfold.widgets import CHECKBOX_CLASSES
 
-from django_unfold_agentic_layer import log, oauth
+from django_unfold_agentic_layer import log, oauth, scopes
 from django_unfold_agentic_layer.conf import Settings, get_config
 from django_unfold_agentic_layer.mcp_server import bridge
 from django_unfold_agentic_layer.models import OAuthClient
@@ -58,6 +59,7 @@ def protected_resource_metadata(request: HttpRequest) -> JsonResponse:
     metadata = ProtectedResourceMetadata(
         resource=oauth.resource_url(request),
         authorization_servers=[oauth.issuer_url(request)],
+        scopes_supported=scopes.ALL,
     )
     return _cors_json(metadata.model_dump(mode="json", exclude_none=True))
 
@@ -72,7 +74,7 @@ def authorization_server_metadata(request: HttpRequest) -> JsonResponse:
         oauth.issuer_url(request),
         None,
         # No registration_endpoint when closed, so clients don't even try.
-        ClientRegistrationOptions(enabled=not _registration_closed()),
+        oauth.registration_options(enabled=not _registration_closed()),
         RevocationOptions(enabled=True),
     )
     metadata.grant_types_supported = ["authorization_code"]  # no refresh tokens
@@ -137,6 +139,22 @@ def _unknown_client(request: HttpRequest, client_id: str) -> HttpResponse:
         },
         status=400,
     )
+
+
+def _scope_choices(requested: list[str] | None) -> list[dict[str, Any]]:
+    """The consent page's scope checkboxes: the ones the client asked for
+    (all when it asked for none), pre-checked; ``mcp:read`` fixed on."""
+    allowed = scopes.ALL if requested is None else requested
+    return [
+        {
+            "name": scope,
+            "description": scopes.DESCRIPTIONS[scope],
+            "fixed": scope in scopes.ALWAYS_GRANTED,
+            "destructive": scope == scopes.DESTRUCTIVE,
+        }
+        for scope in scopes.ALL
+        if scope in allowed or scope in scopes.ALWAYS_GRANTED
+    ]
 
 
 def _is_local_redirect(url: ParseResult) -> bool:
@@ -204,6 +222,8 @@ class ConsentView(View):
                 "redirect_is_local": _is_local_redirect(urlparse(redirect_uri)),
                 "now": now,
                 "expires_at": now + get_config()[Settings.SESSION_TTL],
+                "scopes": _scope_choices(params.scopes),
+                "checkbox_classes": " ".join(CHECKBOX_CLASSES),
             },
         )
 
@@ -213,7 +233,7 @@ class ConsentView(View):
             return HttpResponseBadRequest("Authorization request is invalid or expired.")
         client, params = consent
         if "approve" in request.POST:
-            location = oauth.approve(request.user, client, params)
+            location = oauth.approve(request.user, client, params, request.POST.getlist("scope"))
         else:
             location = oauth.deny(params)
         # Not HttpResponseRedirect: it rejects custom schemes (cursor://,

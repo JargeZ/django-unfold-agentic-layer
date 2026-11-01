@@ -63,10 +63,11 @@ def _tools_list(client: Client, token: str | None = None):
 
 
 def _start_authorization(
-    browser: Client, base: str = "http://localhost"
+    browser: Client, base: str = "http://localhost", scope: str | None = None
 ) -> tuple[dict, str, str, str]:
-    """Discovery + registration + /authorize, exactly as a client would.
-    Returns (AS metadata, client_id, consent URL, PKCE verifier)."""
+    """Discovery + registration + /authorize, exactly as a client would
+    (asking for ``scope``, if given). Returns (AS metadata, client_id,
+    consent URL, PKCE verifier)."""
     unauthorized = _tools_list(browser)
     assert unauthorized.status_code == 401
     prm_url = unauthorized["WWW-Authenticate"].split('resource_metadata="')[1].rstrip('"')
@@ -110,6 +111,7 @@ def _start_authorization(
             "code_challenge_method": "S256",
             "state": "xyz",
             "resource": prm["resource"],
+            **({"scope": scope} if scope else {}),
         },
     )
     assert authorize.status_code == 302, authorize.content

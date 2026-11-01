@@ -8,11 +8,11 @@ from django.utils.crypto import salted_hmac
 from fastmcp import FastMCP
 from mcp.server.request_state import RequestStateSecurity
 
-from django_unfold_agentic_layer import log
+from django_unfold_agentic_layer import log, scopes
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
 from django_unfold_agentic_layer.apps import DjangoUnfoldAgenticLayerConfig
 from django_unfold_agentic_layer.conf import is_model_exposed
-from django_unfold_agentic_layer.mcp_server.builders._shared import REQUEST_STATE_TTL
+from django_unfold_agentic_layer.mcp_server.builders._shared import REQUEST_STATE_TTL, action_scope
 from django_unfold_agentic_layer.mcp_server.builders.build_model_action_tool_definition import (
     BuildModelActionToolDefinition,
 )
@@ -53,19 +53,25 @@ class BuildAdminMCPInstance(BaseLogicAction):
     def execute(self, request: HttpRequest, admin_site: AdminSite = default_admin_site) -> FastMCP:
         user = request.user
         permissions = (user.is_superuser, frozenset(user.get_all_permissions()))
-        return _build_admin_mcp_instance(user, admin_site, permissions)
+        return _build_admin_mcp_instance(user, admin_site, permissions, request.mcp_scopes)
 
 
 @lru_cache
 def _build_admin_mcp_instance(
-    user: AbstractBaseUser, admin_site: AdminSite, permissions: tuple[bool, frozenset[str]]
+    user: AbstractBaseUser,
+    admin_site: AdminSite,
+    permissions: tuple[bool, frozenset[str]],
+    granted_scopes: frozenset[str],
 ) -> FastMCP:
-    """Built once per ``(user, admin_site, permissions)`` and cached for the
+    """Built once per ``(user, admin_site, permissions, scopes)`` and cached for the
     life of the process (spec §1.1 — a worker-local cache is accepted as
     "build once"). ``permissions`` is only a cache key: the build itself asks
     the admin (``get_app_list``/``has_*_permission``), and every handler
     re-checks against the live request, since a ``ModelAdmin`` may override
     ``has_*_permission`` with logic no permission set captures.
+
+    Only what ``granted_scopes`` covers is registered (see ``scopes.py``),
+    and each handler re-checks its own scope on every call.
 
     Keyed on the ``user`` model instance itself, not ``user.pk``: Django's own
     ``Model.__eq__``/``__hash__`` already compare/hash by (concrete model,
@@ -127,7 +133,9 @@ def _build_admin_mcp_instance(
                 continue
             model_admin = admin_site._registry[model]
             if not is_django_model(model):
-                _register_non_model_actions(admin_mcp, model_admin, request, build_action_tool)
+                _register_non_model_actions(
+                    admin_mcp, model_admin, request, build_action_tool, granted_scopes
+                )
                 continue
             # One misconfigured ModelAdmin (e.g. add_fieldsets naming fields
             # its form doesn't have) must not take the whole endpoint down —
@@ -139,13 +147,17 @@ def _build_admin_mcp_instance(
                     "Skipping %s: could not introspect its ModelAdmin", model_admin
                 )
                 continue
-            build_detail_resource.execute(admin_mcp, model_admin, model_resource)
-            build_list_resource.execute(admin_mcp, model_admin, model_resource)
-            build_create_tool.execute(admin_mcp, model_admin, model_resource)
-            build_update_tool.execute(admin_mcp, model_admin, model_resource)
-            build_delete_tool.execute(admin_mcp, model_admin, model_resource)
+            if scopes.READ in granted_scopes:
+                build_detail_resource.execute(admin_mcp, model_admin, model_resource)
+                build_list_resource.execute(admin_mcp, model_admin, model_resource)
+            if scopes.WRITE in granted_scopes:
+                build_create_tool.execute(admin_mcp, model_admin, model_resource)
+                build_update_tool.execute(admin_mcp, model_admin, model_resource)
+            if scopes.DESTRUCTIVE in granted_scopes:
+                build_delete_tool.execute(admin_mcp, model_admin, model_resource)
             for action in model_resource.action_tools:
-                build_action_tool.execute(admin_mcp, model_admin, action)
+                if action_scope(action) in granted_scopes:
+                    build_action_tool.execute(admin_mcp, model_admin, action)
 
     return admin_mcp
 
@@ -155,6 +167,7 @@ def _register_non_model_actions(
     model_admin: ModelAdmin,
     request: HttpRequest,
     build_action_tool: BuildModelActionToolDefinition,
+    granted_scopes: frozenset[str],
 ) -> None:
     """An admin registered for a stand-in class rather than a Django model
     (e.g. django-constance's ``Config``) has no queryset, so no resources,
@@ -165,7 +178,8 @@ def _register_non_model_actions(
         "%s: not a Django model, exposing only its %d list action(s)", model_admin, len(actions)
     )
     for action in actions:
-        build_action_tool.execute(admin_mcp, model_admin, action)
+        if action_scope(action) in granted_scopes:
+            build_action_tool.execute(admin_mcp, model_admin, action)
 
 
 def _build_schema_request(user: AbstractBaseUser) -> HttpRequest:

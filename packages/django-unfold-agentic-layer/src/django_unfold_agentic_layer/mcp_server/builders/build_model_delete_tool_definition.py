@@ -3,6 +3,7 @@ from django.db.models import ProtectedError, RestrictedError
 from fastmcp import Context, FastMCP
 from mcp.types import InputRequiredResult
 
+from django_unfold_agentic_layer import scopes
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
 from django_unfold_agentic_layer.errors import AgentError, describe_blockers
 from django_unfold_agentic_layer.mcp_server.builders._shared import (
@@ -42,7 +43,7 @@ class BuildModelDeleteToolDefinition(BaseLogicAction):
             return
 
         def run_body(pk: str, ctx: Context) -> str | InputRequiredResult:
-            request = get_django_request()
+            request = get_django_request(scopes.DESTRUCTIVE)
             instance = GetAdminModelInstance().execute(model_admin, request, pk)
 
             confirmed = is_confirmed(ctx)

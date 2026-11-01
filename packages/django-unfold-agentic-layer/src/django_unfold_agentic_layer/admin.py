@@ -109,7 +109,7 @@ class OAuthClientAdmin(_ViewAndDeleteOnly, ModelAdmin):
 @admin.register(OAuthToken)
 class OAuthTokenAdmin(_ViewAndDeleteOnly, ModelAdmin):
     list_before_template = "django_unfold_agentic_layer/admin/oauthtoken_changelist_before.html"
-    list_display = ("user", "client", "is_active", "expires_at")
+    list_display = ("user", "client", "granted_scopes", "is_active", "expires_at")
     list_filter = ("client",)
     list_select_related = ("user", "client")
     search_fields = (f"user__{get_user_model().USERNAME_FIELD}", "client__info__client_name")
@@ -119,6 +119,10 @@ class OAuthTokenAdmin(_ViewAndDeleteOnly, ModelAdmin):
     def get_queryset(self, request):
         # Authorization codes live for minutes and aren't sessions; hide them.
         return super().get_queryset(request).filter(kind=OAuthToken.Kind.ACCESS)
+
+    @admin.display(description="scopes")
+    def granted_scopes(self, obj: OAuthToken) -> str:
+        return " ".join(obj.data.get("scopes") or []) or "—"
 
     @admin.display(description="active", boolean=True)
     def is_active(self, obj: OAuthToken) -> bool:

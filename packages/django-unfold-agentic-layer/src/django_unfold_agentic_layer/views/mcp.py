@@ -16,7 +16,7 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
-from django_unfold_agentic_layer import log, oauth
+from django_unfold_agentic_layer import log, oauth, scopes
 from django_unfold_agentic_layer.mcp_server import bridge
 from django_unfold_agentic_layer.views import login_not_required
 
@@ -56,7 +56,8 @@ class MCPView(View):
         return response
 
     def _post(self, request: HttpRequest) -> HttpResponse:
-        user = oauth.authenticate_bearer(request)
+        login = oauth.authenticate_bearer(request)
+        user, granted_scopes = login or (None, frozenset())
         # Dev-only escape hatch: with UNFOLD_AGENTIC_LAYER_UNAUTHORIZED = True
         # (and DEBUG), a request without a token acts as the first active
         # superuser. Swapping in a real user (rather than skipping the checks)
@@ -72,6 +73,7 @@ class MCPView(View):
                 .order_by("pk")
                 .first()
             )
+            granted_scopes = frozenset(scopes.ALL)
             _warn_unauthorized_mode(request, user)
 
         if user is None:
@@ -97,6 +99,8 @@ class MCPView(View):
                 {"error": f"the {oauth.USE_MCP_PERMISSION} permission is required"}, status=403
             )
         request.user = user
+        # Read back by every handler (builders._shared.get_django_request).
+        request.mcp_scopes = granted_scopes
         # /mcp/ takes no query parameters; handlers pass this request to admin
         # hooks (get_queryset, get_form…), which must not see caller-chosen GET.
         request.GET = QueryDict()
