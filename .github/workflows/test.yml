@@ -41,9 +41,10 @@ jobs:
         with:
           enable-cache: true
       - name: Run tox
-        working-directory: packages/django-unfold-agentic-layer
         env:
           TOX_ENV: py${{ matrix.python }}-django${{ matrix.django }}
-        # uv.lock is the only source of versions (--locked); tox-uv fetches
-        # the env's Python and syncs it from the same lock.
-        run: uv run --locked tox run -e "${TOX_ENV/./}"
+        # From the workspace root: tox is in the root's dev group, which uv
+        # does not install when run inside a member. uv.lock is the only
+        # source of versions (--locked); tox-uv fetches the env's Python and
+        # syncs it from the same lock.
+        run: uv run --locked tox run -c packages/django-unfold-agentic-layer -e "${TOX_ENV/./}"
