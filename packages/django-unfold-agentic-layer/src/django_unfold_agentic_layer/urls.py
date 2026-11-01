@@ -1,3 +1,4 @@
+from django.contrib import admin
 from django.urls import path, re_path
 
 from django_unfold_agentic_layer.views import oauth
@@ -35,7 +36,8 @@ urlpatterns = [
         oauth.authorization_server_metadata,
     ),
     re_path(r"^mcp/(?:o/)?jwks/?$", oauth.jwks, name="oauth-jwks"),
-    path("mcp/o/consent", oauth.ConsentView.as_view(), name="oauth-consent"),
+    # admin_view: the admin site's own has_permission decides who may log in.
+    path("mcp/o/consent", admin.site.admin_view(oauth.ConsentView.as_view()), name="oauth-consent"),
     re_path(
         r"^mcp/(?:o/)?(?P<endpoint>authorize|token|register|revoke)/?$",
         oauth.OAuthEndpointView.as_view(),

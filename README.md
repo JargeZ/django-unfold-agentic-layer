@@ -185,6 +185,7 @@ or does what its user can't do in the admin right now; granting or revoking a pe
 ## Access and sessions
 
 - Only active **staff** users can log in; `is_active`/`is_staff` is re-checked on every request — un-staffing someone cuts off their tokens immediately.
+- The login (consent) page goes through `admin.site.admin_view`, so your admin site's own `has_permission` applies — a custom site's 2FA or IP rules guard the MCP login exactly like the admin.
 - The Django session cookie does **not** authenticate `/mcp` — only the `Bearer` token does.
 - A login lasts `SESSION_TTL` (default 1 day), no refresh tokens.
 - Clients and tokens are visible in the admin — deleting one revokes it. A deleted client gets a page asking the person to

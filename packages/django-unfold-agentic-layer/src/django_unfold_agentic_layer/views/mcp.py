@@ -86,6 +86,10 @@ class MCPView(View):
                 headers={"WWW-Authenticate": f'Bearer resource_metadata="{metadata_url}"'},
             )
         # Checked on every request, so revoking staff status cuts off live tokens.
+        # Deliberately the base AdminSite.has_permission rule, not the site's
+        # own: a custom site may require state a bearer request can't carry
+        # (django-otp's verified device). That rule already ran at consent
+        # (urls.py's admin_view), before this token was issued.
         if not (user.is_active and user.is_staff):
             return JsonResponse({"error": "staff permission required"}, status=403)
         request.user = user

@@ -7,7 +7,6 @@ from urllib.parse import ParseResult, urlparse
 
 from asgiref.sync import async_to_sync
 from django.contrib import admin
-from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
@@ -156,7 +155,6 @@ def _is_local_redirect(url: ParseResult) -> bool:
         return False
 
 
-@method_decorator(staff_member_required, name="dispatch")
 @method_decorator(csrf_protect, name="dispatch")
 @method_decorator(xframe_options_deny, name="dispatch")
 class ConsentView(View):
@@ -165,6 +163,11 @@ class ConsentView(View):
     Mandatory even though the user just logged in: registration is open
     (RFC 7591), so without it any page could start a flow and silently get a
     code for an already-logged-in staff user.
+
+    Mounted through ``admin.site.admin_view`` (see ``urls.py``), so access
+    is decided by the admin site's own ``has_permission``: a host's custom
+    site (2FA, IP allowlist…) guards the login exactly as it guards the
+    admin, and a refused user lands on the admin's own login page.
     """
 
     def get(self, request: HttpRequest) -> HttpResponse:

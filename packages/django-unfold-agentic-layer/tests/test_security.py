@@ -17,6 +17,7 @@ from datetime import timedelta
 from urllib.parse import urlencode
 
 import pytest
+from django.contrib import admin
 from django.contrib.auth.models import Group, Permission, User
 from django.test import Client
 from django.utils import timezone
@@ -335,6 +336,22 @@ def test_stale_consent_request_is_rejected(browser, staff_user, freezer):
     freezer.tick(timedelta(minutes=10, seconds=1))
 
     assert browser.post(consent_url, {"approve": ""}).status_code == 400
+
+
+@pytest.mark.django_db
+def test_consent_is_guarded_by_the_admin_sites_own_permission_check(
+    browser, staff_user, monkeypatch
+):
+    """A host site's stricter has_permission (2FA, IP allowlist…) applies to
+    the MCP login too: a refused staff user is sent to the admin login."""
+    _, _, consent_url, _ = _start_authorization(browser)
+    browser.force_login(staff_user)
+    monkeypatch.setattr(admin.site, "has_permission", lambda request: False)
+
+    for response in (browser.get(consent_url), browser.post(consent_url, {"approve": ""})):
+        assert response.status_code == 302
+        assert response["Location"].startswith("/admin/login/")
+    assert not OAuthToken.objects.filter(kind=OAuthToken.Kind.CODE).exists()
 
 
 @pytest.mark.django_db
