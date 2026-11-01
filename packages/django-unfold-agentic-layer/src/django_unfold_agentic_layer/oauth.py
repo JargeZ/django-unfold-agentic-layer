@@ -43,6 +43,7 @@ from mcp.shared.auth import OAuthToken as TokenResponse
 from pydantic import AnyHttpUrl
 from starlette.applications import Starlette
 
+from django_unfold_agentic_layer import log
 from django_unfold_agentic_layer.conf import Settings, get_config
 from django_unfold_agentic_layer.models import OAuthClient, OAuthToken
 
@@ -100,6 +101,17 @@ def _live(kind: OAuthToken.Kind, token: str):
     )
 
 
+async def _revoke_issued_for(used_code: OAuthToken) -> None:
+    """Revokes the access token a used authorization code was exchanged for."""
+    log.oauth.warning(
+        "Authorization code reused (client %s, user %s): revoking its token",
+        used_code.client_id,
+        used_code.user_id,
+    )
+    await OAuthToken.objects.filter(token_hash=used_code.data["access_token_hash"]).adelete()
+    await used_code.adelete()
+
+
 class DjangoOAuthProvider(
     OAuthAuthorizationServerProvider[AuthorizationCode, RefreshToken, AccessToken]
 ):
@@ -137,23 +149,26 @@ class DjangoOAuthProvider(
         self, client: OAuthClientInformationFull, authorization_code: str
     ) -> AuthorizationCode | None:
         row = (
-            await _live(OAuthToken.Kind.CODE, authorization_code)
+            await OAuthToken.objects.filter(
+                token_hash=_hash(authorization_code),
+                kind__in=[OAuthToken.Kind.CODE, OAuthToken.Kind.USED_CODE],
+                expires_at__gt=timezone.now(),
+            )
             .filter(client_id=client.client_id)
             .afirst()
         )
-        return row and AuthorizationCode(code=authorization_code, **row.data)
+        if row is None:
+            return None
+        if row.kind == OAuthToken.Kind.USED_CODE:
+            # RFC 6749 §4.1.2: a code presented twice may have been stolen,
+            # so the token issued for it goes too.
+            await _revoke_issued_for(row)
+            return None
+        return AuthorizationCode(code=authorization_code, **row.data)
 
     async def exchange_authorization_code(
         self, client: OAuthClientInformationFull, authorization_code: AuthorizationCode
     ) -> TokenResponse:
-        deleted, _ = await OAuthToken.objects.filter(
-            token_hash=_hash(authorization_code.code), kind=OAuthToken.Kind.CODE
-        ).adelete()
-        if not deleted:  # lost a race with a concurrent exchange of the same code
-            raise TokenError(
-                error="invalid_grant", error_description="authorization code already used"
-            )
-
         ttl = get_config()[Settings.SESSION_TTL]
         expires_at = timezone.now() + ttl
         token = secrets.token_urlsafe(32)
@@ -166,7 +181,7 @@ class DjangoOAuthProvider(
             subject=authorization_code.subject,
         )
         await OAuthToken.objects.filter(expires_at__lt=timezone.now()).adelete()
-        await OAuthToken.objects.acreate(
+        access_row = await OAuthToken.objects.acreate(
             token_hash=_hash(token),
             kind=OAuthToken.Kind.ACCESS,
             client_id=client.client_id,
@@ -174,6 +189,24 @@ class DjangoOAuthProvider(
             data=access.model_dump(mode="json", exclude={"token"}),
             expires_at=expires_at,
         )
+        # Flip the code to "used", remembering its token for as long as that
+        # token lives: a later replay (see load_authorization_code) revokes it.
+        # The conditional update is atomic, so of two concurrent exchanges
+        # exactly one wins.
+        code_rows = OAuthToken.objects.filter(token_hash=_hash(authorization_code.code))
+        won = await code_rows.filter(kind=OAuthToken.Kind.CODE).aupdate(
+            kind=OAuthToken.Kind.USED_CODE,
+            data={"access_token_hash": access_row.token_hash},
+            expires_at=expires_at,
+        )
+        if not won:
+            await access_row.adelete()
+            used = await code_rows.filter(kind=OAuthToken.Kind.USED_CODE).afirst()
+            if used is not None:
+                await _revoke_issued_for(used)
+            raise TokenError(
+                error="invalid_grant", error_description="authorization code already used"
+            )
         return TokenResponse(
             access_token=token,
             expires_in=int(ttl.total_seconds()),

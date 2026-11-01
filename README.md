@@ -191,6 +191,7 @@ is refused when it would cascade onto objects the user can't delete.
 - The login (consent) page goes through `admin.site.admin_view`, so your admin site's own `has_permission` applies — a custom site's 2FA or IP rules guard the MCP login exactly like the admin.
 - The Django session cookie does **not** authenticate `/mcp` — only the `Bearer` token does.
 - A login lasts `SESSION_TTL` (default 1 day), no refresh tokens.
+- An authorization code works once; presenting it again also revokes the token it was exchanged for (RFC 6749 §4.1.2).
 - Clients and tokens are visible in the admin — deleting one revokes it. A deleted client gets a page asking the person to
   clear the saved authentication in their MCP client (Claude Code: `/mcp` → server → Clear authentication) and reconnect.
 

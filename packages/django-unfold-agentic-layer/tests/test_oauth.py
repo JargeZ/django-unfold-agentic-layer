@@ -16,7 +16,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 import django
 import pytest
 from django.test import Client
-from django_unfold_agentic_layer.models import OAuthClient
+from django_unfold_agentic_layer.models import OAuthClient, OAuthToken
 
 REDIRECT_URI = "http://localhost:33418/callback"
 
@@ -148,18 +148,41 @@ def test_full_oauth_login_flow(deployment, staff_user, freezer):
     assert body["expires_in"] == 86400
     assert "refresh_token" not in body
 
-    # Codes are single-use.
-    replay = browser.post(
-        token_url, urlencode(exchange), content_type="application/x-www-form-urlencoded"
-    )
-    assert replay.json()["error"] == "invalid_grant"
-
     # The cookie session alone no longer authenticates /mcp/ — only the token does.
     assert _tools_list(browser).status_code == 401
     assert _tools_list(browser, body["access_token"]).status_code == 200
 
     freezer.tick(86400 + 1)
     assert _tools_list(browser, body["access_token"]).status_code == 401
+
+
+@pytest.mark.django_db
+def test_replayed_authorization_code_revokes_the_token_issued_for_it(browser, staff_user):
+    """RFC 6749 §4.1.2: a code is single-use, and presenting it again
+    revokes the token it was already exchanged for — it may be stolen."""
+    metadata, client_id, consent_url, verifier = _start_authorization(browser)
+    browser.force_login(staff_user)
+    approved = browser.post(consent_url, {"approve": ""})
+    code = parse_qs(urlparse(approved["Location"]).query)["code"][0]
+    exchange = urlencode(
+        {
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": REDIRECT_URI,
+            "client_id": client_id,
+            "code_verifier": verifier,
+        }
+    )
+    token_url = _path(metadata["token_endpoint"])
+    form = "application/x-www-form-urlencoded"
+    token = browser.post(token_url, exchange, content_type=form).json()["access_token"]
+    assert _tools_list(browser, token).status_code == 200
+
+    replay = browser.post(token_url, exchange, content_type=form)
+
+    assert replay.json()["error"] == "invalid_grant"
+    assert _tools_list(browser, token).status_code == 401
+    assert not OAuthToken.objects.exists()
 
 
 @pytest.mark.django_db
