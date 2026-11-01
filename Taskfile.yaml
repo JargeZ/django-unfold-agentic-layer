@@ -22,9 +22,8 @@ tasks:
 
   test:matrix:
     desc: Run the CI matrix (Python × Django) through tox, in parallel.
-    dir: packages/django-unfold-agentic-layer
     cmds:
-      - uv run tox run-parallel {{.CLI_ARGS}}
+      - uv run tox run-parallel -c packages/django-unfold-agentic-layer {{.CLI_ARGS}}
 
   test:update:
     dir: packages/django-unfold-agentic-layer

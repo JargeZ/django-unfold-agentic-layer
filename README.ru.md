@@ -281,7 +281,8 @@ uv sync
 uv run pre-commit install   # проверка секретов (gitleaks, trufflehog), ruff и формата сообщений (Conventional Commits)
 cd packages/django-unfold-agentic-layer
 uv run pytest
-uv run tox run-parallel   # матрица CI: Python 3.11–3.14 × Django 5.2, 6.0, 6.1
+cd ../..
+uv run tox run-parallel -c packages/django-unfold-agentic-layer   # матрица CI: Python 3.11–3.14 × Django 5.2, 6.0, 6.1
 ```
 
 Тесты поднимают одноразовый Django-проект (`django_test_app/`) и гоняют реальные MCP-запросы через `/mcp`.

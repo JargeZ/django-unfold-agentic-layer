@@ -22,10 +22,10 @@ The root `pyproject.toml` is a *virtual* workspace root — no `[project]` table
 ```bash
 uv sync                                      # from repo root, syncs the workspace, one uv.lock
 cd packages/django-unfold-agentic-layer && uv run pytest
-cd packages/django-unfold-agentic-layer && uv run tox run-parallel   # Python × Django matrix
+uv run tox run-parallel -c packages/django-unfold-agentic-layer     # Python × Django matrix, from the root
 ```
 
-The matrix (`[tool.tox]` in the package's `pyproject.toml`) uses tox-uv's `uv-venv-lock-runner`: each env syncs from `uv.lock` (`--locked`) with its own Python and one `django52`/`django60`/`django61` dependency group (declared as uv `conflicts`). Env names must be `py3XX-…` — tox does not read the Python version from `python3XX`. `.github/workflows/test.yml` runs the same envs, only on pushes to `main` (public repo: no PR triggers, `permissions: {}`, actions pinned by SHA).
+The matrix (`[tool.tox]` in the package's `pyproject.toml`) uses tox-uv's `uv-venv-lock-runner`: each env syncs from `uv.lock` (`--locked`) with its own Python and one `django52`/`django60`/`django61` dependency group (declared as uv `conflicts`). Env names must be `py3XX-…` — tox does not read the Python version from `python3XX`. Run tox from the workspace root (`-c packages/…`): tox lives in the root's dev group, which `uv run` inside a member does not install. `.github/workflows/test.yml` runs the same envs, only on pushes to `main` (public repo: no PR triggers, `permissions: {}`, actions pinned by SHA).
 
 ## The MCP bridge (`mcp_server/`)
 
