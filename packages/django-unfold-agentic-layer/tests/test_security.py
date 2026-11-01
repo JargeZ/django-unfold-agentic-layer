@@ -476,3 +476,46 @@ def test_delete_confirmation_cannot_be_spent_by_another_user(client, bearer_logi
 
     assert status == 400
     assert BlogPost.objects.filter(pk=post.pk).exists()
+
+
+# --- error details -----------------------------------------------------------
+
+#: What a database error typically carries: internal table and column names.
+_DB_ERROR_DETAIL = "UNIQUE constraint failed: blog_internal_ledger.audit_hash"
+
+
+def _explode(*args, **kwargs):
+    raise RuntimeError(_DB_ERROR_DETAIL)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("patched", "method", "params"),
+    [
+        (
+            "save_model",
+            "tools/call",
+            lambda user: {
+                "name": "create_blog_blogpost",
+                "arguments": {"title": "T", "status": "draft", "author": user.pk},
+            },
+        ),
+        ("get_object", "resources/read", lambda user: {"uri": f"{LIST_URI}1/"}),
+    ],
+    ids=["tool", "resource"],
+)
+def test_unexpected_errors_reach_the_agent_only_as_a_reference(
+    client, bearer_login, staff_user, monkeypatch, caplog, patched, method, params
+):
+    monkeypatch.setattr(BlogPostAdmin, patched, _explode)
+    bearer_login(client, staff_user)
+
+    body = _raw(client, method, params(staff_user)).content.decode()
+
+    assert _DB_ERROR_DETAIL not in body
+    assert "RuntimeError" not in body
+    assert "Internal error in " in body
+    ref = body.split("(ref ")[1][:8]
+    # The operator finds the details under that reference.
+    logged = [r for r in caplog.records if r.name == "django_unfold_agentic_layer.tools"]
+    assert any(ref in r.getMessage() and r.exc_info for r in logged)

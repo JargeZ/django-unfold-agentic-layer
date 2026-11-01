@@ -95,6 +95,9 @@ def _build_admin_mcp_instance(
     request_state_key = salted_hmac("django_unfold_agentic_layer.request_state", "").hexdigest()
     admin_mcp = FastMCP(
         "django_unfold_agentic_layer",
+        # Backstop for an exception that escapes run_in_django's
+        # errors.format_error: fastmcp then says only which tool failed.
+        mask_error_details=True,
         request_state_security=RequestStateSecurity(
             keys=[request_state_key],
             ttl=REQUEST_STATE_TTL,

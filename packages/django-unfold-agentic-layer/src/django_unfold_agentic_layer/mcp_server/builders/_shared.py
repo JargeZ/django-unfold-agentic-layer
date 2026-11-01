@@ -15,8 +15,8 @@ from fastmcp.server.dependencies import get_http_request
 from mcp.types import ElicitRequest, ElicitRequestFormParams, InputRequiredResult
 from pydantic import AfterValidator, Field
 
-from django_unfold_agentic_layer import log
 from django_unfold_agentic_layer.conf import Settings, get_config
+from django_unfold_agentic_layer.errors import format_error
 from django_unfold_agentic_layer.resources.schemas import EditableFieldInfo, FileUploadInput
 
 _T = TypeVar("_T")
@@ -78,6 +78,9 @@ async def run_in_django(
     ``SynchronousOnlyOperation`` inside fastmcp's error handler, and the
     client gets a bare 500 instead of the error. ``from None`` drops the
     chain for the same reason: fastmcp logs it on the event loop too.
+
+    The message comes from :func:`errors.format_error`, the only place an
+    exception becomes agent-facing text.
     """
 
     def guarded() -> _T:
@@ -86,8 +89,7 @@ async def run_in_django(
         except FastMCPError:
             raise
         except Exception as e:
-            log.tools.exception("Error in %s", label)
-            raise error(f"{type(e).__name__} in {label}: {e}") from None
+            raise error(format_error(e, label)) from None
 
     return await sync_to_async(guarded, thread_sensitive=True)()
 

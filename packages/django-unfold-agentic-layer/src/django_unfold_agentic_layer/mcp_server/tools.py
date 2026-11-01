@@ -6,6 +6,7 @@ from .docs import ALL_SECTIONS, DOCS
 
 mcp = FastMCP(
     "django_unfold_agentic_layer",
+    mask_error_details=True,
     instructions=(
         "Django Unfold documentation server. "
         "Use these tools to get accurate documentation for implementing "
