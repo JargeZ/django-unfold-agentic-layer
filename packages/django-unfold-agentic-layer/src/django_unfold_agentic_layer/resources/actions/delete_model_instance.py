@@ -30,13 +30,6 @@ class DeleteModelInstance(BaseLogicAction):
                     f"Deleting it would also delete {', '.join(sorted(perms_needed))}, "
                     "which you do not have permission to delete."
                 )
-            _log_deletion(model_admin, request, instance)
+            # The history entry _delete_view writes, before deleting.
+            model_admin.log_deletions(request, [instance])
             model_admin.delete_model(request, instance)
-
-
-def _log_deletion(model_admin: ModelAdmin, request: HttpRequest, instance: Model) -> None:
-    """The history entry ``_delete_view`` writes, before deleting."""
-    if hasattr(model_admin, "log_deletions"):  # Django 5.1+
-        model_admin.log_deletions(request, [instance])
-    else:
-        model_admin.log_deletion(request, instance, str(instance))

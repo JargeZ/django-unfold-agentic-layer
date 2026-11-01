@@ -52,7 +52,7 @@ claude mcp add --transport http unfold-mcp-demo "https://django-formula-admin-ag
 
 ## Установка
 
-**Требования:** Python 3.11+, Django 5.0+, `django-unfold` 0.91+.
+**Требования:** Python 3.11+, Django 5.2+, `django-unfold` 0.91+.
 
 **1. Установите пакет** из git:
 

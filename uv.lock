@@ -504,7 +504,7 @@ django61 = [
 
 [package.metadata]
 requires-dist = [
-    { name = "django", specifier = ">=5.0" },
+    { name = "django", specifier = ">=5.2" },
     { name = "django-unfold", specifier = ">=0.91.0" },
     { name = "fastmcp", specifier = ">=4.1.4,<5" },
     { name = "pydantic", specifier = ">=2.0" },

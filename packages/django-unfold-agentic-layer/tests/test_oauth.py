@@ -13,7 +13,6 @@ import json
 import secrets
 from urllib.parse import parse_qs, urlencode, urlparse
 
-import django
 import pytest
 from django.test import Client
 from django_unfold_agentic_layer.models import OAuthClient, OAuthToken
@@ -271,7 +270,6 @@ def test_unknown_client_id_is_escaped_on_the_page(browser):
     assert "&lt;script&gt;" in response.content.decode()
 
 
-@pytest.mark.skipif(django.VERSION < (5, 1), reason="LoginRequiredMiddleware is Django 5.1+")
 @pytest.mark.django_db
 def test_oauth_and_mcp_endpoints_work_under_login_required_middleware(settings, browser):
     """Host projects that turn on LoginRequiredMiddleware must not redirect

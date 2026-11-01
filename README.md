@@ -52,7 +52,7 @@ No separate process, works under both WSGI and ASGI.
 
 ## Installation
 
-**Requirements:** Python 3.11+, Django 5.0+, `django-unfold` 0.91+.
+**Requirements:** Python 3.11+, Django 5.2+, `django-unfold` 0.91+.
 
 **1. Install the package** from git:
 
