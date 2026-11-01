@@ -252,6 +252,16 @@ LOGGING = {
 }
 ```
 
+## Чеклист для продакшна
+
+- Работайте по **https** (за прокси — `SECURE_PROXY_SSL_HEADER`) и держите `ALLOWED_HOSTS` строгим: OAuth-адреса строятся из заголовка `Host`.
+- Выдавайте `use_mcp` только тем, кто будет подключать агентов (`REQUIRED_PERMISSION`, включено по умолчанию), лучше отдельным пользователям ровно с теми правами, что нужны агенту, — не суперпользователям.
+- Не открывайте пользователей и группы через MCP (`MODELS`, по умолчанию так и есть) без явной необходимости; сузьте `MODELS["INCLUDE"]` до нужного агентам.
+- Для чувствительных данных подумайте о `CLOSED_CLIENT_REGISTRATION = True` и `CONFIRM_WRITES = True`.
+- Укажите в `CONFIRMATION_CACHE` кеш, общий для всех workers, и запустите `manage.py check --deploy`.
+- Никогда не включайте `UNFOLD_AGENTIC_LAYER_UNAUTHORIZED` вне локальной разработки.
+- Ограничьте частоту запросов к `/mcp/register` и `/mcp/token` на прокси; собирайте логи `django_unfold_agentic_layer.*`.
+
 ## Планы
 
 - [x] Admin actions (`@action`) как MCP-инструменты

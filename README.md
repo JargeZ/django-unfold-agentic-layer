@@ -251,6 +251,16 @@ LOGGING = {
 }
 ```
 
+## Production checklist
+
+- Serve over **https** (behind a proxy: `SECURE_PROXY_SSL_HEADER`) and keep `ALLOWED_HOSTS` strict — OAuth URLs are built from the `Host` header.
+- Grant `use_mcp` only to the people who should connect agents (`REQUIRED_PERMISSION`, on by default), ideally to dedicated users with just the permissions the agent needs — not superusers.
+- Keep users and groups out of MCP (`MODELS`, the default) unless you mean it; narrow `MODELS["INCLUDE"]` to what agents need.
+- Consider `CLOSED_CLIENT_REGISTRATION = True` and `CONFIRM_WRITES = True` for sensitive data.
+- Point `CONFIRMATION_CACHE` at a cache all workers share and run `manage.py check --deploy`.
+- Never set `UNFOLD_AGENTIC_LAYER_UNAUTHORIZED` outside local development.
+- Rate-limit `/mcp/register` and `/mcp/token` at your proxy; collect `django_unfold_agentic_layer.*` logs.
+
 ## Roadmap
 
 - [x] Admin actions (`@action`) as MCP tools
