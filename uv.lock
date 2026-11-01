@@ -7,6 +7,11 @@ resolution-markers = [
     "python_full_version >= '3.12' and python_full_version < '3.14'",
     "python_full_version < '3.12'",
 ]
+conflicts = [[
+    { package = "django-unfold-agentic-layer", group = "django52" },
+    { package = "django-unfold-agentic-layer", group = "django60" },
+    { package = "django-unfold-agentic-layer", group = "django61" },
+]]
 
 [manifest]
 members = [
@@ -17,6 +22,8 @@ members = [
 dev = [
     { name = "pre-commit", specifier = ">=4.6" },
     { name = "ruff", specifier = ">=0.6" },
+    { name = "tox", specifier = ">=4.67" },
+    { name = "tox-uv", specifier = ">=1.29" },
 ]
 
 [[package]]
@@ -46,7 +53,7 @@ version = "4.13.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "idna" },
-    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13' or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/19/14/2c5dd9f512b66549ae92767a9c7b330ae88e1932ca57876909410251fe13/anyio-4.13.0.tar.gz", hash = "sha256:334b70e641fd2221c1505b3890c69882fe4a2df910cba14d97019b90b24439dc", size = 231622, upload-time = "2026-03-24T12:59:09.671Z" }
 wheels = [
@@ -177,7 +184,7 @@ name = "cffi"
 version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pycparser", marker = "implementation_name != 'PyPy'" },
+    { name = "pycparser", marker = "implementation_name != 'PyPy' or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/eb/56/b1ba7935a17738ae8453301356628e8147c79dbb825bcbc73dc7401f9846/cffi-2.0.0.tar.gz", hash = "sha256:44d1b5909021139fe36001ae048dbdde8214afa20200eda0f64c068cac5d5529", size = 523588, upload-time = "2025-09-08T23:24:04.541Z" }
 wheels = [
@@ -256,7 +263,7 @@ name = "click"
 version = "8.3.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/57/75/31212c6bf2503fdf920d87fee5d7a86a2e3bcf444984126f13d8e4016804/click-8.3.2.tar.gz", hash = "sha256:14162b8b3b3550a7d479eafa77dfd3c38d9dc8951f6f69c78913a8f9a7540fd5", size = 302856, upload-time = "2026-04-03T19:14:45.118Z" }
 wheels = [
@@ -277,7 +284,7 @@ name = "cryptography"
 version = "46.0.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cffi", marker = "platform_python_implementation != 'PyPy'" },
+    { name = "cffi", marker = "platform_python_implementation != 'PyPy' or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a4/ba/04b1bd4218cbc58dc90ce967106d51582371b898690f3ae0402876cc4f34/cryptography-46.0.6.tar.gz", hash = "sha256:27550628a518c5c6c903d84f637fbecf287f6cb9ced3804838a1295dc1fd0759", size = 750542, upload-time = "2026-03-25T23:34:53.396Z" }
 wheels = [
@@ -360,12 +367,15 @@ name = "django"
 version = "5.2.16"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
+    "python_full_version >= '3.15'",
+    "python_full_version == '3.14.*'",
+    "python_full_version >= '3.12' and python_full_version < '3.14'",
     "python_full_version < '3.12'",
 ]
 dependencies = [
-    { name = "asgiref" },
-    { name = "sqlparse" },
-    { name = "tzdata", marker = "sys_platform == 'win32'" },
+    { name = "asgiref", marker = "python_full_version < '3.12' or extra == 'group-27-django-unfold-agentic-layer-django52' or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
+    { name = "sqlparse", marker = "python_full_version < '3.12' or extra == 'group-27-django-unfold-agentic-layer-django52' or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
+    { name = "tzdata", marker = "(python_full_version < '3.12' and sys_platform == 'win32') or (python_full_version >= '3.12' and extra != 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61') or (sys_platform == 'win32' and extra == 'group-27-django-unfold-agentic-layer-django52') or (sys_platform != 'win32' and extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (sys_platform != 'win32' and extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (sys_platform != 'win32' and extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a9/26/889449d521ae508b26de715954faecd8bcf3f740affb81b2d146a83b42a5/django-5.2.16.tar.gz", hash = "sha256:59ea02020c3136fce14bef0bbece21a10a4febef5eed1c51c22ae468efa22200", size = 10890894, upload-time = "2026-07-07T13:52:17.005Z" }
 wheels = [
@@ -382,9 +392,9 @@ resolution-markers = [
     "python_full_version >= '3.12' and python_full_version < '3.14'",
 ]
 dependencies = [
-    { name = "asgiref" },
-    { name = "sqlparse" },
-    { name = "tzdata", marker = "sys_platform == 'win32'" },
+    { name = "asgiref", marker = "(python_full_version >= '3.12' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
+    { name = "sqlparse", marker = "(python_full_version >= '3.12' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
+    { name = "tzdata", marker = "(python_full_version >= '3.12' and sys_platform == 'win32' and extra == 'group-27-django-unfold-agentic-layer-django60') or (python_full_version < '3.12' and extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61') or (sys_platform != 'win32' and extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/89/55/664f24ff81c9ea19cb7dfc851afeae1f3c2390c7aee01d4ded68b5c1580d/django-6.0.7.tar.gz", hash = "sha256:2998503fc083124fb58037084bfa00de323c7c743f05f1b4284e77bff0ab8890", size = 10921299, upload-time = "2026-07-07T13:51:26.485Z" }
 wheels = [
@@ -392,12 +402,32 @@ wheels = [
 ]
 
 [[package]]
+name = "django"
+version = "6.1.2"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.15'",
+    "python_full_version == '3.14.*'",
+    "python_full_version >= '3.12' and python_full_version < '3.14'",
+]
+dependencies = [
+    { name = "asgiref", marker = "(python_full_version >= '3.12' and extra != 'group-27-django-unfold-agentic-layer-django52' and extra != 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
+    { name = "sqlparse", marker = "(python_full_version >= '3.12' and extra != 'group-27-django-unfold-agentic-layer-django52' and extra != 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
+    { name = "tzdata", marker = "(python_full_version >= '3.12' and sys_platform == 'win32' and extra != 'group-27-django-unfold-agentic-layer-django52' and extra != 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/89/24/20d187a22ac821288b53c53b8f696019dcb0c7b4f973f052ade19392c74d/django-6.1.2.tar.gz", hash = "sha256:a1e92451ccb8b514e91bbb3b6d186d20b4030558f116b5d9de6535455ff210b7", size = 11251425, upload-time = "2026-10-06T12:53:29.622Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c9/83/90ff2dbfac7b519ed77620bdbb827cd2d1a83faf00d076bf95056428bce7/django-6.1.2-py3-none-any.whl", hash = "sha256:141efee6ec64d1db6db90683bf734c550102450f444fb099063b0be1bd27d991", size = 8420684, upload-time = "2026-10-06T12:53:17.381Z" },
+]
+
+[[package]]
 name = "django-money"
 version = "3.6.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "django", version = "5.2.16", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "django", version = "6.0.7", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "django", version = "5.2.16", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or extra == 'group-27-django-unfold-agentic-layer-django52' or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
+    { name = "django", version = "6.0.7", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
+    { name = "django", version = "6.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra != 'group-27-django-unfold-agentic-layer-django52' and extra != 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
     { name = "py-moneyed" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/5e/a1/2a86adff207bd7562a26da2319746fba516978a946fe0864fad96640ecae/django_money-3.6.1.tar.gz", hash = "sha256:9b25d992a457af932eef1e5fef0098dd3ff0c92f4255d2d6d452af772b2fdde5", size = 45020, upload-time = "2026-06-07T10:52:34.363Z" }
@@ -413,7 +443,7 @@ resolution-markers = [
     "python_full_version < '3.12'",
 ]
 dependencies = [
-    { name = "django", version = "5.2.16", source = { registry = "https://pypi.org/simple" } },
+    { name = "django", version = "5.2.16", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a4/cd/a2fdc41f2eed90242338982e2afadccdab4db7043a829b41a9ec54baaa35/django_unfold-0.91.0.tar.gz", hash = "sha256:98543cf149f9b363ad83c77747ff7e9e89323324b10e6afa4d3a672cb0c4f86d", size = 1121543, upload-time = "2026-04-27T13:25:30.417Z" }
 wheels = [
@@ -430,7 +460,9 @@ resolution-markers = [
     "python_full_version >= '3.12' and python_full_version < '3.14'",
 ]
 dependencies = [
-    { name = "django", version = "6.0.7", source = { registry = "https://pypi.org/simple" } },
+    { name = "django", version = "5.2.16", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'group-27-django-unfold-agentic-layer-django52') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
+    { name = "django", version = "6.0.7", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
+    { name = "django", version = "6.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra != 'group-27-django-unfold-agentic-layer-django52' and extra != 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/6f/97/55babd6f07f510bb94adb95998fc302d28eaa33c4ef8a1e8015645b5c0ab/django_unfold-0.102.0.tar.gz", hash = "sha256:85162f48e402588863d9ae3c963d589535499f7326965899108c705f6b2586cf", size = 1125669, upload-time = "2026-07-27T08:49:55.239Z" }
 wheels = [
@@ -442,10 +474,11 @@ name = "django-unfold-agentic-layer"
 version = "0.1.0"
 source = { editable = "packages/django-unfold-agentic-layer" }
 dependencies = [
-    { name = "django", version = "5.2.16", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "django", version = "6.0.7", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "django-unfold", version = "0.91.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "django-unfold", version = "0.102.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "django", version = "5.2.16", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or extra == 'group-27-django-unfold-agentic-layer-django52' or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
+    { name = "django", version = "6.0.7", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
+    { name = "django", version = "6.1.2", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra != 'group-27-django-unfold-agentic-layer-django52' and extra != 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
+    { name = "django-unfold", version = "0.91.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
+    { name = "django-unfold", version = "0.102.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
     { name = "fastmcp" },
     { name = "pydantic" },
 ]
@@ -458,6 +491,15 @@ dev = [
     { name = "pytest-django" },
     { name = "pytest-freezer" },
     { name = "syrupy" },
+]
+django52 = [
+    { name = "django", version = "5.2.16", source = { registry = "https://pypi.org/simple" } },
+]
+django60 = [
+    { name = "django", version = "6.0.7", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+]
+django61 = [
+    { name = "django", version = "6.1.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
 
 [package.metadata]
@@ -477,6 +519,9 @@ dev = [
     { name = "pytest-freezer", specifier = ">=0.4.0" },
     { name = "syrupy", specifier = ">=4.0.0" },
 ]
+django52 = [{ name = "django", specifier = ">=5.2,<6" }]
+django60 = [{ name = "django", marker = "python_full_version >= '3.12'", specifier = ">=6.0,<6.1" }]
+django61 = [{ name = "django", marker = "python_full_version >= '3.12'", specifier = ">=6.1,<6.2" }]
 
 [[package]]
 name = "djangoql"
@@ -526,7 +571,7 @@ name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13' or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/79/66800aadf48771f6b62f7eb014e352e5d06856655206165d775e675a02c9/exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219", size = 30371, upload-time = "2025-11-21T23:01:54.787Z" }
 wheels = [
@@ -566,7 +611,7 @@ wheels = [
 [package.optional-dependencies]
 client = [
     { name = "authlib" },
-    { name = "beartype", version = "0.23.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.15'" },
+    { name = "beartype", version = "0.23.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.15' or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
     { name = "exceptiongroup" },
     { name = "httpx2" },
     { name = "mcp" },
@@ -576,7 +621,7 @@ client = [
 ]
 server = [
     { name = "authlib" },
-    { name = "beartype", version = "0.23.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.15'" },
+    { name = "beartype", version = "0.23.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.15' or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
     { name = "certifi" },
     { name = "cyclopts" },
     { name = "exceptiongroup" },
@@ -657,12 +702,12 @@ name = "httpx2"
 version = "2.12.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "anyio", marker = "sys_platform != 'emscripten'" },
-    { name = "httpcore2", marker = "sys_platform != 'emscripten'" },
-    { name = "httpx2-jsfetch", marker = "python_full_version >= '3.12' and sys_platform == 'emscripten'" },
+    { name = "anyio", marker = "sys_platform != 'emscripten' or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
+    { name = "httpcore2", marker = "sys_platform != 'emscripten' or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
+    { name = "httpx2-jsfetch", marker = "(python_full_version >= '3.12' and sys_platform == 'emscripten') or (python_full_version < '3.12' and extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (python_full_version < '3.12' and extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (python_full_version < '3.12' and extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61') or (sys_platform != 'emscripten' and extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (sys_platform != 'emscripten' and extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (sys_platform != 'emscripten' and extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
     { name = "idna" },
-    { name = "truststore", marker = "sys_platform != 'emscripten'" },
-    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+    { name = "truststore", marker = "sys_platform != 'emscripten' or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13' or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/7f/f8/579a8b51e42e38ee32647df9f08aa25643ae788e275cc625b199829c4671/httpx2-2.12.0.tar.gz", hash = "sha256:7631fe9887a8a2275f4a2540e053aa670fcc50742864a9ae7c66e609fdcf12cf", size = 100040, upload-time = "2026-08-18T13:22:09.086Z" }
 wheels = [
@@ -793,12 +838,12 @@ dependencies = [
     { name = "pydantic" },
     { name = "pyjwt", extra = ["crypto"] },
     { name = "python-multipart" },
-    { name = "pywin32", marker = "sys_platform == 'win32'" },
+    { name = "pywin32", marker = "sys_platform == 'win32' or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
     { name = "sse-starlette" },
     { name = "starlette" },
     { name = "typing-extensions" },
     { name = "typing-inspection" },
-    { name = "uvicorn", marker = "sys_platform != 'emscripten'" },
+    { name = "uvicorn", marker = "sys_platform != 'emscripten' or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/9d/8d/e0d339616f4810e9051d4aba6887afab289ab1f81875fe908b606cdfd0e3/mcp-2.3.0.tar.gz", hash = "sha256:8b147a50441cf059dc88c684e0aeed3687f0aa0f39c6cde7b90330effd2b34d8", size = 4171955, upload-time = "2026-10-02T22:06:56.091Z" }
 wheels = [
@@ -926,8 +971,8 @@ name = "py-key-value-aio"
 version = "0.4.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "beartype", version = "0.22.9", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.15'" },
-    { name = "beartype", version = "0.23.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.15'" },
+    { name = "beartype", version = "0.22.9", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.15' or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
+    { name = "beartype", version = "0.23.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.15' or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
     { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/fb/e2/d689d922894a7ecde73b6daeaf9b13dab5aae06fe6aaaf7514722644d382/py_key_value_aio-0.4.5.tar.gz", hash = "sha256:c6563a2c6abe5da5e20f4f9e875c2a9b425a2244a54fadbf46cf140a9eea45d7", size = 107547, upload-time = "2026-05-27T16:37:08.107Z" }
@@ -1130,11 +1175,23 @@ wheels = [
 ]
 
 [[package]]
+name = "pyproject-api"
+version = "1.12.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "packaging" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a6/af/5ac3c74655469fd52c6d496d728a85e5db454abb15682be5e620735a2349/pyproject_api-1.12.2.tar.gz", hash = "sha256:ad2a72516abcc950877222e9eff760c9120d2086f0d9fce6aef4f16985a3e946", size = 64095, upload-time = "2026-10-28T01:32:31.862Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e6/21/fffda71ec623408a54db66e1892bb2e76de729f9170f157c47ed9d677299/pyproject_api-1.12.2-py3-none-any.whl", hash = "sha256:b832f139e5b5e6a01a67e55e38603e8a99cd43556fc2f6fc5659946da25c5f54", size = 14230, upload-time = "2026-10-28T01:32:30.488Z" },
+]
+
+[[package]]
 name = "pytest"
 version = "9.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
     { name = "iniconfig" },
     { name = "packaging" },
     { name = "pluggy" },
@@ -1293,7 +1350,7 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "attrs" },
     { name = "rpds-py" },
-    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13' or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/22/f5/df4e9027acead3ecc63e50fe1e36aca1523e1719559c499951bb4b53188f/referencing-0.37.0.tar.gz", hash = "sha256:44aefc3142c5b842538163acb373e24cce6632bd54bdb01b21ad5863489f50d8", size = 78036, upload-time = "2025-10-13T15:30:48.871Z" }
 wheels = [
@@ -1496,7 +1553,7 @@ version = "1.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
-    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13' or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/b5/b4/205b0d5241d934e8add0c38aa924c4f9fb7330834ff11e5444db964ec3f9/starlette-1.6.0.tar.gz", hash = "sha256:d4e3ac5e546444960c710297a3c9fc3f7ebae1b7e963f3d36173b49da535be9b", size = 2716969, upload-time = "2026-08-08T18:27:57.512Z" }
 wheels = [
@@ -1513,6 +1570,62 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/e7/39/17dde9f0c76cc5abcdeef1b2243791bb850d498f784147b8e460dd23abe8/syrupy-5.5.3.tar.gz", hash = "sha256:fa21e4ae77c89ec5abfca513338d8a7eb916da6618ca0f8db301476e0768e57a", size = 91614, upload-time = "2026-07-11T15:54:31.46Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ae/f9/617a194c1a4203279998e1859426cf2635042533a99a93d63d3ee1fb967e/syrupy-5.5.3-py3-none-any.whl", hash = "sha256:0b260a0c9dad55e1fb83818973dc36fbc1aea3fd5381592f442a986686c4171a", size = 54959, upload-time = "2026-07-11T15:54:29.836Z" },
+]
+
+[[package]]
+name = "tomli-w"
+version = "1.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/19/75/241269d1da26b624c0d5e110e8149093c759b7a286138f4efd61a60e75fe/tomli_w-1.2.0.tar.gz", hash = "sha256:2dd14fac5a47c27be9cd4c976af5a12d87fb1f0b4512f81d69cce3b35ae25021", size = 7184, upload-time = "2025-01-15T12:07:24.262Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c7/18/c86eb8e0202e32dd3df50d43d7ff9854f8e0603945ff398974c1d91ac1ef/tomli_w-1.2.0-py3-none-any.whl", hash = "sha256:188306098d013b691fcadc011abd66727d3c414c571bb01b1a174ba8c983cf90", size = 6675, upload-time = "2025-01-15T12:07:22.074Z" },
+]
+
+[[package]]
+name = "tox"
+version = "4.67.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cachetools" },
+    { name = "colorama" },
+    { name = "filelock" },
+    { name = "packaging" },
+    { name = "platformdirs" },
+    { name = "pluggy" },
+    { name = "pyproject-api" },
+    { name = "python-discovery" },
+    { name = "tomli-w" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13' or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django60') or (extra == 'group-27-django-unfold-agentic-layer-django52' and extra == 'group-27-django-unfold-agentic-layer-django61') or (extra == 'group-27-django-unfold-agentic-layer-django60' and extra == 'group-27-django-unfold-agentic-layer-django61')" },
+    { name = "virtualenv" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/33/d4/58a31918cbae4aea4a3c0f320fe94e616f0c0ca53c0d2fc87b578a8e1dc7/tox-4.67.5.tar.gz", hash = "sha256:f1872e30d89c8d18cbdf3b93c4c7dc04d4f3928c0af413e9ae5b71ba3f1c438d", size = 416551, upload-time = "2026-10-31T04:31:01.987Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/35/ee/331b99edc9a23c4b9af08f8a0f4d6925e78255fac9a3398e46b1af6a05fd/tox-4.67.5-py3-none-any.whl", hash = "sha256:2ce2844114ff4c50024d9bbdea19a2f3cabe66736d8cf6a3398ad9a3b3ce60fd", size = 259515, upload-time = "2026-10-31T04:31:00.214Z" },
+]
+
+[[package]]
+name = "tox-uv"
+version = "1.37.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "tox-uv-bare" },
+    { name = "uv" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2b/69/a678d2cea9c765c1b89a3c6d2b530d396e5bc59d1869f49030a43f952290/tox_uv-1.37.3-py3-none-any.whl", hash = "sha256:efe907955b53c8a48faf4543e645cdd6296e42f7a39b55d26fbf0e8e46c987fc", size = 7741, upload-time = "2026-10-31T15:11:08.424Z" },
+]
+
+[[package]]
+name = "tox-uv-bare"
+version = "1.37.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "packaging" },
+    { name = "tox" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/95/a5/23841dce225732c58a2094da5e0a8cf268680bb1ea8b0a7387257fd76df9/tox_uv_bare-1.37.3.tar.gz", hash = "sha256:33bbbea7fc3a23d136f81638d87c320822796f6a76dd61b526ee7c2a1585a948", size = 34202, upload-time = "2026-10-31T15:11:11.207Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5b/aa/606c4c5d7357b7a141a636224265148f2bf1991e09274ecd51e965d86b98/tox_uv_bare-1.37.3-py3-none-any.whl", hash = "sha256:1b999ed029feda594e0b6e391a7915a2c24ab5f91c16194926a18bec0285cdb8", size = 22682, upload-time = "2026-10-31T15:11:09.911Z" },
 ]
 
 [[package]]
@@ -1561,6 +1674,32 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/6b/5a/92ce0b3ea5481915f55da994c2c2c5f7a3c09949afde196ee89f8ab961aa/uncalled_for-0.4.0.tar.gz", hash = "sha256:335b95bd2422332ec210d518f314a16e4c640921c39fc8bf2ad095bd3538f4af", size = 56979, upload-time = "2026-08-10T14:51:46.247Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a2/40/97cec87c077eb3291fc7905e6633e08b7ca593c57d30238444bcb6bb3d53/uncalled_for-0.4.0-py3-none-any.whl", hash = "sha256:16c4bb3337532e4bd5569adc192285976f3ad5305402256d34c67a12b5c968bd", size = 15502, upload-time = "2026-08-10T14:51:45.068Z" },
+]
+
+[[package]]
+name = "uv"
+version = "0.13.6"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/08/d5/88d43310d425f6e3a43997ad771658ded3237d0ed78c16a89b2353eddf56/uv-0.13.6.tar.gz", hash = "sha256:d762215478854f6cf20c3faed8f1eb30c8101d568e7bc32a3abafc063929d5c5", size = 7545242, upload-time = "2026-10-27T00:45:57.605Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e4/05/74c9ae1b59e0aa49f1fa84f31ea4ee0ec930825681d3af8430c017faa848/uv-0.13.6-py3-none-linux_armv6l.whl", hash = "sha256:4d20de8a3ed6c3d39b4e2f8f7d0411cd13a3959f5191b2b5d0209344034ed056", size = 18118786, upload-time = "2026-10-27T00:45:02.635Z" },
+    { url = "https://files.pythonhosted.org/packages/33/55/ff10d3f756c39a239e492e57262bd22fcda412a9f85a268175447cf33b09/uv-0.13.6-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:95f042b95e67ef8c3d3569bb6e9d895e592002c5e871cf3f1afe407c9d77a294", size = 17172613, upload-time = "2026-10-27T00:45:06.331Z" },
+    { url = "https://files.pythonhosted.org/packages/f4/14/77230cc4f6a73a31578cb8070a5f67f58a76946ead643ae8a4155620d6da/uv-0.13.6-py3-none-macosx_11_0_arm64.whl", hash = "sha256:51361029b7cf91185d0092c4b356d110b4ad629e9cb11593f1e006ac72a72ca9", size = 14344205, upload-time = "2026-10-27T00:45:09.125Z" },
+    { url = "https://files.pythonhosted.org/packages/05/3b/f78583af6504f1270da95fd0d0935e381f58330c007260f450e81a1e5e1b/uv-0.13.6-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.musllinux_1_1_aarch64.whl", hash = "sha256:7ec5486476d67a4214c460b5492393ee2300d84e1de17b293100a019b413568b", size = 17764510, upload-time = "2026-10-27T00:45:12.133Z" },
+    { url = "https://files.pythonhosted.org/packages/2b/c3/ee263d5c8e0f0bbd553b19692b1de2ce5860baf0f9653c6217535ff27833/uv-0.13.6-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.musllinux_1_1_armv7l.whl", hash = "sha256:710c68ea4853aaf70ab2d0ccf2e147dee59449f035a1f8fe7759f087a31cdbf5", size = 17679194, upload-time = "2026-10-27T00:45:15.052Z" },
+    { url = "https://files.pythonhosted.org/packages/27/33/172e323f6e424f7bf4aef0480b514132dce6350b2acf14235d9b0671fa82/uv-0.13.6-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:d4d7026c7327dd11fc2c0d4bae4735ff6944293d370644f35d2e6e917cdcae04", size = 17699951, upload-time = "2026-10-27T00:45:18.118Z" },
+    { url = "https://files.pythonhosted.org/packages/96/e6/29fa137fe3699a9f61f0e05640caff4713ac485cdf09b005f99f9bd595d4/uv-0.13.6-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:46c2ef1f744f20007be0cdd66db3022bb1ddcac477c754efda875e401a48d810", size = 18467553, upload-time = "2026-10-27T00:45:21.104Z" },
+    { url = "https://files.pythonhosted.org/packages/2f/8c/bf3672027b68bd930e6764122147fcbd1f2dd9d76fc8e02707916c3e0727/uv-0.13.6-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:b2d25a49d135a441f688a6869d6d8062fb6f0a2e3e32e18b72c9de1d0eb9521e", size = 19763440, upload-time = "2026-10-27T00:45:25.536Z" },
+    { url = "https://files.pythonhosted.org/packages/a3/c0/77c56a78a94b488cf0b54e505df5ecfae65b90b08cddb8e018bb2ae66268/uv-0.13.6-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:b9f57153fc98b7aa41dd6720e3de7578747f60b7bff22f50b76dcc47205bdde3", size = 19616511, upload-time = "2026-10-27T00:45:28.505Z" },
+    { url = "https://files.pythonhosted.org/packages/5c/43/0688ff5142934238f2812e348f4a24e09b57d48bfb38dd8f850325a0d9de/uv-0.13.6-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:22759b8895e1103578de6fb4cd27e94b4399d021023378d29f01333717751fba", size = 17333810, upload-time = "2026-10-27T00:45:31.291Z" },
+    { url = "https://files.pythonhosted.org/packages/99/3a/451b544e105b3595b27f74535c0d6b1105b1b2dcb9b49ca5282dd27bcbc3/uv-0.13.6-py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:2e9a99100abe4f99605366974c4f9fe27f236615e05de8e78c0f357e38f09f97", size = 16527707, upload-time = "2026-10-27T00:45:34.282Z" },
+    { url = "https://files.pythonhosted.org/packages/ab/59/9483985fadf5b2e60e64ca89e215f9e2da45a54d7323b9765ba03a5ebd80/uv-0.13.6-py3-none-manylinux_2_31_riscv64.musllinux_1_1_riscv64.whl", hash = "sha256:1cd4b0a35fa599b83da5437748150319ae0917c522da60898327645382942faa", size = 18014028, upload-time = "2026-10-27T00:45:37.33Z" },
+    { url = "https://files.pythonhosted.org/packages/8d/c9/a412c2aa0494b307fce8c9c8234827f2fedb888954d3b3c8930a32a047c9/uv-0.13.6-py3-none-manylinux_2_31_riscv64.whl", hash = "sha256:8542dcf118ce8a7cf2e4ba1fea7f5cc1638bc02b5b30dab1ead7e9034dc62fd3", size = 17906467, upload-time = "2026-10-27T00:45:40.424Z" },
+    { url = "https://files.pythonhosted.org/packages/28/51/4fecb1d7a32ebf5c444643a4da9d1ae0878de0c71284792dbcdaaf61a5b8/uv-0.13.6-py3-none-musllinux_1_1_i686.whl", hash = "sha256:feb0f1d555798f68f28719cab437ab1dfb5d918db86ab4554215cbf9d940f63b", size = 17822518, upload-time = "2026-10-27T00:45:43.335Z" },
+    { url = "https://files.pythonhosted.org/packages/3a/10/7a4c287b1d377353c939f451881529528c78815d57f36097a6607187ab1a/uv-0.13.6-py3-none-musllinux_1_1_x86_64.whl", hash = "sha256:d1efed1d15102ffdbf5e0fd49a440643dda2d921a2ad856792ae42ccd43c253f", size = 18932884, upload-time = "2026-10-27T00:45:46.227Z" },
+    { url = "https://files.pythonhosted.org/packages/c8/b3/288467a6d1fdd99aca73dec3d4a919b80c201ec0d680093cd494d5b8efc7/uv-0.13.6-py3-none-win32.whl", hash = "sha256:29135609166960c74539abdaf4264f9819a0381be18b224125418356d67dd208", size = 16215356, upload-time = "2026-10-27T00:45:49.078Z" },
+    { url = "https://files.pythonhosted.org/packages/7c/9d/714523188aea3054644d8e69ae8089aac70325a3cee2d3d05509d4f23398/uv-0.13.6-py3-none-win_amd64.whl", hash = "sha256:7c9bc35ccb65932d8dc10a0669f9c805eaa3c9827ce18ecbecb1bd67944b2cdf", size = 15334118, upload-time = "2026-10-27T00:45:52.086Z" },
+    { url = "https://files.pythonhosted.org/packages/6a/7d/5ebb4cccbb11ae9e10f6cda704ce382722ab9dc68c9280a5b810378aee3e/uv-0.13.6-py3-none-win_arm64.whl", hash = "sha256:722c7f96803f115e53918b8ee8858d1680ea6077c614b6db750747d709ab8d9a", size = 15533875, upload-time = "2026-10-27T00:45:55.013Z" },
 ]
 
 [[package]]

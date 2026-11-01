@@ -1,4 +1,9 @@
+import pytest
 from django.apps import apps
+
+# run_checks() includes model checks: Django 6.1's JSONField check asks the
+# database for its features.
+pytestmark = pytest.mark.django_db
 
 
 def test_app_is_registered():
