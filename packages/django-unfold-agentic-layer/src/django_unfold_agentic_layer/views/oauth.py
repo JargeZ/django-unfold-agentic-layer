@@ -1,7 +1,6 @@
 """Django side of the MCP OAuth flow — see ``oauth.py`` for the design."""
 
 import ipaddress
-import logging
 from functools import wraps
 from typing import Any
 from urllib.parse import ParseResult, urlparse
@@ -22,13 +21,11 @@ from mcp.server.auth.routes import build_metadata
 from mcp.server.auth.settings import ClientRegistrationOptions, RevocationOptions
 from mcp.shared.auth import ProtectedResourceMetadata
 
-from django_unfold_agentic_layer import oauth
+from django_unfold_agentic_layer import log, oauth
 from django_unfold_agentic_layer.conf import Settings, get_config
 from django_unfold_agentic_layer.mcp_server import bridge
 from django_unfold_agentic_layer.models import OAuthClient
 from django_unfold_agentic_layer.views import login_not_required
-
-logger = logging.getLogger(__name__)
 
 
 def _cors_json(data: dict[str, Any], status: int = 200) -> JsonResponse:
@@ -48,7 +45,7 @@ def _requires_https_issuer(view):
     def wrapped(request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         error = oauth.issuer_error(request)
         if error is not None:
-            logger.error(error)
+            log.oauth.error(error)
             return _cors_json({"error": "server_error", "error_description": error}, status=500)
         return view(request, *args, **kwargs)
 

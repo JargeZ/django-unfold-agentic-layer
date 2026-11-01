@@ -9,6 +9,7 @@ request needs no preceding initialize handshake.
 """
 
 import json
+import logging
 
 import pytest
 
@@ -42,12 +43,20 @@ def test_tools_list_returns_all_docs_tools_for_staff_user(client, bearer_login, 
 
 @pytest.mark.django_db
 def test_anonymous_request_is_rejected_before_reaching_mcp(client, caplog):
+    caplog.set_level(logging.DEBUG, logger="django_unfold_agentic_layer")
+
     response = _rpc(client, {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}})
 
     assert response.status_code == 401
     # Every rejected call leaves a trace: clients only show "Error POSTing".
-    assert [r.getMessage() for r in caplog.records if r.name.endswith("views.mcp")] == [
-        'MCP tools/list -> 401: {"error": "authentication required"}'
+    # The body (which may hold admin data) goes to DEBUG only.
+    assert [
+        (r.levelname, r.getMessage())
+        for r in caplog.records
+        if r.name == "django_unfold_agentic_layer.mcp"
+    ] == [
+        ("WARNING", "MCP tools/list -> 401"),
+        ("DEBUG", 'MCP tools/list -> 401 body: {"error": "authentication required"}'),
     ]
 
 

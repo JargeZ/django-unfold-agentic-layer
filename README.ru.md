@@ -206,6 +206,30 @@ UNFOLD_AGENTIC_LAYER = {
 
 Полный список — в [`conf.py`](packages/django-unfold-agentic-layer/src/django_unfold_agentic_layer/conf.py).
 
+### Логирование
+
+Библиотека пишет логи в `django_unfold_agentic_layer` с разбивкой по областям. Настраиваются стандартным
+[`LOGGING`](https://docs.djangoproject.com/en/stable/topics/logging/) Django — все сразу по родительскому имени или одна область по полному имени:
+
+| Логгер | Что пишет |
+|---|---|
+| `django_unfold_agentic_layer.mcp` | Отклонённые вызовы `/mcp` (метод и статус на `WARNING`, тело ответа на `DEBUG`), предупреждения dev-режима |
+| `django_unfold_agentic_layer.oauth` | OAuth: discovery, логин, consent, токены |
+| `django_unfold_agentic_layer.tools` | Ошибки внутри обработчиков инструментов и ресурсов |
+| `django_unfold_agentic_layer.builder` | Сборка MCP-сервера пользователя из реестра админки |
+
+```python
+LOGGING = {
+    "version": 1,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "loggers": {
+        "django_unfold_agentic_layer": {"handlers": ["console"], "level": "INFO"},
+        # В теле ответа могут быть данные админки: DEBUG включайте только на время отладки.
+        "django_unfold_agentic_layer.mcp": {"level": "DEBUG"},
+    },
+}
+```
+
 ## Планы
 
 - [x] Admin actions (`@action`) как MCP-инструменты

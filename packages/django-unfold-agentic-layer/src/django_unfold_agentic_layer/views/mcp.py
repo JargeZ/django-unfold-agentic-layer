@@ -1,5 +1,4 @@
 import json
-import logging
 from typing import Any
 
 from django.conf import settings
@@ -16,11 +15,9 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
-from django_unfold_agentic_layer import oauth
+from django_unfold_agentic_layer import log, oauth
 from django_unfold_agentic_layer.mcp_server import bridge
 from django_unfold_agentic_layer.views import login_not_required
-
-logger = logging.getLogger(__name__)
 
 
 # MCP clients send a Bearer token, never a session cookie: a host's
@@ -46,9 +43,12 @@ class MCPView(View):
             if not response.content:
                 response.content = json.dumps({"error": response.reason_phrase})
                 response["Content-Type"] = "application/json"
-            logger.warning(
-                "MCP %s -> %s: %s",
-                _rpc_method(request),
+            # The body may hold admin data, so only DEBUG carries it.
+            method = _rpc_method(request)
+            log.mcp.warning("MCP %s -> %s", method, response.status_code)
+            log.mcp.debug(
+                "MCP %s -> %s body: %s",
+                method,
                 response.status_code,
                 response.content[:500].decode(errors="replace"),
             )

@@ -205,6 +205,30 @@ UNFOLD_AGENTIC_LAYER = {
 
 The full list is in [`conf.py`](packages/django-unfold-agentic-layer/src/django_unfold_agentic_layer/conf.py).
 
+### Logging
+
+The library logs under `django_unfold_agentic_layer`, split by area. Configure them with Django's standard
+[`LOGGING`](https://docs.djangoproject.com/en/stable/topics/logging/) setting — all at once by the parent name, or one area by its full name:
+
+| Logger | What it reports |
+|---|---|
+| `django_unfold_agentic_layer.mcp` | Rejected `/mcp` calls (method + status at `WARNING`, response body at `DEBUG`), dev-mode warnings |
+| `django_unfold_agentic_layer.oauth` | The OAuth flow: discovery, login, consent, tokens |
+| `django_unfold_agentic_layer.tools` | Errors inside tool and resource handlers |
+| `django_unfold_agentic_layer.builder` | Building the per-user server from the admin registry |
+
+```python
+LOGGING = {
+    "version": 1,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "loggers": {
+        "django_unfold_agentic_layer": {"handlers": ["console"], "level": "INFO"},
+        # Response bodies can hold admin data: enable DEBUG only while debugging.
+        "django_unfold_agentic_layer.mcp": {"level": "DEBUG"},
+    },
+}
+```
+
 ## Roadmap
 
 - [x] Admin actions (`@action`) as MCP tools

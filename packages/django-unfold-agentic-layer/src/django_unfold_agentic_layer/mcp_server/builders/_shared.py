@@ -2,7 +2,6 @@
 
 import hashlib
 import inspect
-import logging
 import uuid
 from collections.abc import Callable
 from typing import Annotated, Any, Literal, TypeVar
@@ -16,10 +15,9 @@ from fastmcp.server.dependencies import get_http_request
 from mcp.types import ElicitRequest, ElicitRequestFormParams, InputRequiredResult
 from pydantic import AfterValidator, Field
 
+from django_unfold_agentic_layer import log
 from django_unfold_agentic_layer.conf import Settings, get_config
 from django_unfold_agentic_layer.resources.schemas import EditableFieldInfo, FileUploadInput
-
-logger = logging.getLogger(__name__)
 
 _T = TypeVar("_T")
 
@@ -88,7 +86,7 @@ async def run_in_django(
         except FastMCPError:
             raise
         except Exception as e:
-            logger.exception("Error in %s", label)
+            log.tools.exception("Error in %s", label)
             raise error(f"{type(e).__name__} in {label}: {e}") from None
 
     return await sync_to_async(guarded, thread_sensitive=True)()

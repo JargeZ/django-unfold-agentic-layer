@@ -1,4 +1,3 @@
-import logging
 from functools import lru_cache
 
 from django.contrib.admin import AdminSite, ModelAdmin
@@ -9,6 +8,7 @@ from django.utils.crypto import salted_hmac
 from fastmcp import FastMCP
 from mcp.server.request_state import RequestStateSecurity
 
+from django_unfold_agentic_layer import log
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
 from django_unfold_agentic_layer.apps import DjangoUnfoldAgenticLayerConfig
 from django_unfold_agentic_layer.mcp_server.builders._shared import REQUEST_STATE_TTL
@@ -36,8 +36,6 @@ from django_unfold_agentic_layer.resources.actions.build_admin_model_resource im
     BuildAdminModelResource,
 )
 from django_unfold_agentic_layer.resources.actions.extract_action_tools import ExtractActionTools
-
-logger = logging.getLogger(__name__)
 
 
 class BuildAdminMCPInstance(BaseLogicAction):
@@ -130,7 +128,9 @@ def _build_admin_mcp_instance(
             try:
                 model_resource = build_model_resource.execute(model_admin, request)
             except Exception:
-                logger.exception("Skipping %s: could not introspect its ModelAdmin", model_admin)
+                log.builder.exception(
+                    "Skipping %s: could not introspect its ModelAdmin", model_admin
+                )
                 continue
             build_detail_resource.execute(admin_mcp, model_admin, model_resource)
             build_list_resource.execute(admin_mcp, model_admin, model_resource)
@@ -154,7 +154,7 @@ def _register_non_model_actions(
     CRUD tools, or bulk/instance actions — only its ``actions_list``, which
     need no instance."""
     actions = ExtractActionTools().execute(model_admin, request, model_scope_only=True)
-    logger.warning(
+    log.builder.warning(
         "%s: not a Django model, exposing only its %d list action(s)", model_admin, len(actions)
     )
     for action in actions:
