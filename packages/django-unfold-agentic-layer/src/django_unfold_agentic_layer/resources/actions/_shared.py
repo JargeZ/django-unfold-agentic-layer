@@ -12,6 +12,7 @@ from django import forms
 from django.contrib.admin import ModelAdmin
 from django.contrib.admin.utils import model_format_dict
 from django.contrib.messages.storage.base import BaseStorage
+from django.db import router, transaction
 from django.db.models import Model
 from django.http import HttpRequest
 
@@ -25,6 +26,13 @@ def is_django_model(model: Any) -> bool:
     """Admins may register a stand-in class instead of a model (e.g.
     django-constance's ``Config``): it has ``_meta`` but no queryset."""
     return isinstance(model, type) and issubclass(model, Model)
+
+
+def admin_atomic(model_admin: ModelAdmin) -> transaction.Atomic:
+    """The transaction the admin wraps ``changeform_view``/``delete_view`` in
+    (``options.py``). Changelist and Unfold actions get none there, so none
+    here either."""
+    return transaction.atomic(using=router.db_for_write(model_admin.model))
 
 
 def django_action_to_info(model_admin: ModelAdmin, resolved: ResolvedDjangoAction) -> ActionInfo:
