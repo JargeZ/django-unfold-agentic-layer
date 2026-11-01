@@ -8,7 +8,7 @@ from django.utils.crypto import salted_hmac
 from fastmcp import FastMCP
 from mcp.server.request_state import RequestStateSecurity
 
-from django_unfold_agentic_layer import log, scopes
+from django_unfold_agentic_layer import __version__, log, scopes
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
 from django_unfold_agentic_layer.apps import DjangoUnfoldAgenticLayerConfig
 from django_unfold_agentic_layer.conf import is_model_exposed
@@ -102,6 +102,8 @@ def _build_admin_mcp_instance(
     request_state_key = salted_hmac("django_unfold_agentic_layer.request_state", "").hexdigest()
     admin_mcp = FastMCP(
         "django_unfold_agentic_layer",
+        # serverInfo.version names this package's release, not fastmcp's.
+        version=__version__,
         # Backstop for an exception that escapes run_in_django's
         # errors.format_error: fastmcp then says only which tool failed.
         mask_error_details=True,

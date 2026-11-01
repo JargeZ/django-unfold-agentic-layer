@@ -24,7 +24,7 @@
     '_meta': dict({
       'io.modelcontextprotocol/serverInfo': dict({
         'name': 'django_unfold_agentic_layer',
-        'version': '4.0.5',
+        'version': '0.1.0',
       }),
     }),
     'inputRequests': dict({
@@ -57,7 +57,7 @@
       }),
       'io.modelcontextprotocol/serverInfo': dict({
         'name': 'django_unfold_agentic_layer',
-        'version': '4.0.5',
+        'version': '0.1.0',
       }),
     }),
     'content': list([
