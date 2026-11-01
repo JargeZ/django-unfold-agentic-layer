@@ -7,6 +7,8 @@ import json
 from urllib.parse import quote
 
 import pytest
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
 from server.apps.blog.models import BlogPost
 
 MCP_URL = "/mcp/"
@@ -103,6 +105,36 @@ def test_read_detail_resource_omits_fields_the_admin_hides(client, bearer_login,
     for content in result["contents"]:
         assert "password" not in content["text"]
         assert staff_user.password not in content["text"]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(("granted", "truncated"), [(100, False), (101, True)])
+def test_read_detail_resource_lists_at_most_100_many_to_many_links(
+    client, bearer_login, staff_user, granted, truncated
+):
+    content_type = ContentType.objects.get_for_model(BlogPost)
+    staff_user.user_permissions.set(
+        Permission.objects.bulk_create(
+            Permission(codename=f"extra_{i}", name=f"Extra {i}", content_type=content_type)
+            for i in range(granted)
+        )
+    )
+    bearer_login(client, staff_user)
+
+    result = _read_resource(client, f"dj-admin://auth/user/{staff_user.pk}/")
+
+    contents = {c["mimeType"]: c["text"] for c in result["contents"]}
+    data = json.loads(contents["application/json"])
+    assert len(data["user_permissions"]) == 100
+    note = (
+        "Only the first 100 are listed; there are more. "
+        "Query dj-admin://auth/permission/ for the rest."
+    )
+    if truncated:
+        assert data["_truncated"] == {"user_permissions": note}
+        assert f"> **user_permissions**: {note}" in contents["text/markdown"]
+    else:
+        assert "_truncated" not in data
 
 
 @pytest.mark.django_db

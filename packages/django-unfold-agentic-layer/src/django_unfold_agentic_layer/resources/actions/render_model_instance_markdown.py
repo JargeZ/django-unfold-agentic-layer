@@ -1,6 +1,9 @@
 from typing import Any
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
+from django_unfold_agentic_layer.resources.actions.get_model_json_representation import (
+    TRUNCATED_KEY,
+)
 from django_unfold_agentic_layer.resources.schemas import AdminModelResource
 
 
@@ -17,8 +20,12 @@ class RenderModelInstanceMarkdown(BaseLogicAction):
     def execute(self, value: dict[str, Any], model_resource: AdminModelResource) -> str:
         lines = [f"# {model_resource.verbose_name} #{value.get('pk')}", ""]
         lines.extend(
-            f"- **{key}**: {self._format(val)}" for key, val in value.items() if key != "pk"
+            f"- **{key}**: {self._format(val)}"
+            for key, val in value.items()
+            if key not in ("pk", TRUNCATED_KEY)
         )
+        for key, note in value.get(TRUNCATED_KEY, {}).items():
+            lines.append(f"> **{key}**: {note}")
         return "\n".join(lines)
 
     def _format(self, value: Any) -> str:

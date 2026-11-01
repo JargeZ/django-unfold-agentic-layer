@@ -167,7 +167,7 @@ exactly this fix instead of advertising unusable `http://` URLs.
 | Primitive | Example | What it does |
 |---|---|---|
 | Doc tools | `unfold_filters`, `unfold_search_docs` | Django Unfold docs, including all third-party integrations |
-| Detail resource | `dj-admin://blog/blogpost/42/` | One object's fields as JSON + Markdown; FK/M2M as links |
+| Detail resource | `dj-admin://blog/blogpost/42/` | One object's fields as JSON + Markdown; FK/M2M as links (up to 100 per M2M field, with a note when there are more) |
 | List resource | `dj-admin://blog/blogpost/{?params}` | Your `list_filter`/search params, `limit`/`offset`/`order_by` |
 | Tools | `create_blog_blogpost`, `update_blog_blogpost` | Through the admin form; errors come back per field |
 | Tool | `delete_blog_blogpost` | Asks for confirmation before deleting |

@@ -167,7 +167,7 @@ USE_X_FORWARDED_HOST = True  # только если прокси перепис
 | Примитив | Пример | Что делает |
 |---|---|---|
 | Инструменты документации | `unfold_filters`, `unfold_search_docs` | Документация Django Unfold, включая все сторонние интеграции |
-| Ресурс объекта | `dj-admin://blog/blogpost/42/` | Поля объекта в JSON + Markdown; FK/M2M — ссылками |
+| Ресурс объекта | `dj-admin://blog/blogpost/42/` | Поля объекта в JSON + Markdown; FK/M2M — ссылками (до 100 на M2M-поле, с пометкой, если их больше) |
 | Ресурс списка | `dj-admin://blog/blogpost/{?params}` | Ваши параметры `list_filter`/поиска, `limit`/`offset`/`order_by` |
 | Инструменты | `create_blog_blogpost`, `update_blog_blogpost` | Через форму админки; ошибки возвращаются по полям |
 | Инструмент | `delete_blog_blogpost` | Запрашивает подтверждение перед удалением |
