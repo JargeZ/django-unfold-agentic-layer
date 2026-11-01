@@ -338,6 +338,24 @@ def test_consent_page_shows_redirect_uri_and_warns_when_not_local(
 
     assert redirect_uri.replace("&", "&amp;") in page
     assert ("This address is not on your computer" in page) is warned
+    # An app's own scheme is local, but named so the user can recognize it.
+    assert ("opens an app on your computer (cursor://)" in page) is redirect_uri.startswith(
+        "cursor:"
+    )
+    assert "Set by the client itself, not verified by this server." in page
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(("user_fixture", "hinted"), [("staff_user", True), ("blog_editor", False)])
+def test_consent_page_suggests_a_separate_user_to_superusers(
+    request, browser, user_fixture, hinted
+):
+    _, _, consent_url, _ = _start_authorization(browser)
+    browser.force_login(request.getfixturevalue(user_fixture))
+
+    page = " ".join(browser.get(consent_url).content.decode().split())
+
+    assert ("Consider a separate user for MCP" in page) is hinted
 
 
 @pytest.mark.django_db

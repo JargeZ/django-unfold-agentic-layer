@@ -208,6 +208,7 @@ class ConsentView(View):
             return HttpResponseBadRequest("Authorization request is invalid or expired.")
         client, params = consent
         redirect_uri = str(params.redirect_uri)
+        parsed_redirect = urlparse(redirect_uri)
         now = timezone.now()
         return render(
             request,
@@ -219,7 +220,13 @@ class ConsentView(View):
                 "client_name": client.client_name or client.client_id,
                 # What the user can sanity-check: where the code is about to be sent.
                 "redirect_uri": redirect_uri,
-                "redirect_is_local": _is_local_redirect(urlparse(redirect_uri)),
+                "redirect_is_local": _is_local_redirect(parsed_redirect),
+                # An app's own scheme (cursor://): local, but worth naming.
+                "redirect_scheme": (
+                    parsed_redirect.scheme
+                    if parsed_redirect.scheme not in ("http", "https")
+                    else None
+                ),
                 "now": now,
                 "expires_at": now + get_config()[Settings.SESSION_TTL],
                 "scopes": _scope_choices(params.scopes),

@@ -15,15 +15,38 @@
                 <p class="font-semibold text-font-important-light truncate dark:text-font-important-dark">{{ client_name }}</p>
                 <p class="text-sm">{% translate "will return to" %}</p>
                 <p class="text-sm font-mono break-words">{{ redirect_uri }}</p>
+                <p class="flex items-center gap-1 mt-1 text-xs text-base-500">
+                    <span class="material-symbols-outlined text-sm">info</span>
+                    {% translate "Set by the client itself, not verified by this server." %}
+                </p>
             </div>
         </div>
 
-        {% if not redirect_is_local %}
-            {% blocktranslate trimmed asvar warning %}
-                This address is not on your computer. The access code goes to that server.
-                Allow access only if you trust it and you started this login yourself.
-            {% endblocktranslate %}
-            {% include "unfold/helpers/messages/warning.html" with message=warning class="mb-0" %}
+        {% if not redirect_is_local or redirect_scheme or request.user.is_superuser %}
+            {# Unfold's message helpers carry mb-3 (a passed mb-0 loses to it): they space each other, and -mb-3 cancels the last one. #}
+            <div class="-mb-3">
+                {% if not redirect_is_local %}
+                    {% blocktranslate trimmed asvar warning %}
+                        This address is not on your computer. The access code goes to that server.
+                        Allow access only if you trust it and you started this login yourself.
+                    {% endblocktranslate %}
+                    {% include "unfold/helpers/messages/warning.html" with message=warning %}
+                {% elif redirect_scheme %}
+                    {% blocktranslate trimmed asvar warning with scheme=redirect_scheme %}
+                        This address opens an app on your computer ({{ scheme }}://). Allow access only if
+                        you recognize that app.
+                    {% endblocktranslate %}
+                    {% include "unfold/helpers/messages/warning.html" with message=warning %}
+                {% endif %}
+
+                {% if request.user.is_superuser %}
+                    {% blocktranslate trimmed asvar superuser %}
+                        You are a superuser, so this client could do anything in the admin. Consider a
+                        separate user for MCP, with only the permissions the agent needs.
+                    {% endblocktranslate %}
+                    {% include "unfold/helpers/messages/info.html" with message=superuser %}
+                {% endif %}
+            </div>
         {% endif %}
 
         <p>
