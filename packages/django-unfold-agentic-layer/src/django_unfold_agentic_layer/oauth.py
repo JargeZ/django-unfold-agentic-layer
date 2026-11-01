@@ -303,6 +303,16 @@ def deny(params: AuthorizationParams) -> str:
     )
 
 
+#: The permission ``REQUIRED_PERMISSION`` asks for (see ``models.MCPAccess``).
+USE_MCP_PERMISSION = "django_unfold_agentic_layer.use_mcp"
+
+
+def can_use_mcp(user: AbstractBaseUser) -> bool:
+    """Whether ``user`` may log in to and use ``/mcp`` at all, on top of
+    being active staff."""
+    return not get_config()[Settings.REQUIRED_PERMISSION] or user.has_perm(USE_MCP_PERMISSION)
+
+
 def authenticate_bearer(request: HttpRequest) -> AbstractBaseUser | None:
     """The user behind a live ``Authorization: Bearer`` access token, if any."""
     scheme, _, token = request.headers.get("Authorization", "").partition(" ")

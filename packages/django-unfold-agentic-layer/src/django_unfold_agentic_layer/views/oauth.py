@@ -170,6 +170,20 @@ class ConsentView(View):
     admin, and a refused user lands on the admin's own login page.
     """
 
+    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        if not oauth.can_use_mcp(request.user):
+            return render(
+                request,
+                "django_unfold_agentic_layer/permission_required.html",
+                {
+                    **admin.site.each_context(request),
+                    "title": _("MCP access not granted"),
+                    "permission": oauth.USE_MCP_PERMISSION,
+                },
+                status=403,
+            )
+        return super().dispatch(request, *args, **kwargs)
+
     def get(self, request: HttpRequest) -> HttpResponse:
         consent = oauth.load_consent_request(request.GET.get("request", ""))
         if consent is None:

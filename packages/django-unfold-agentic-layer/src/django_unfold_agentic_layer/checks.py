@@ -37,13 +37,27 @@ def check_unauthorized_mode(app_configs, **kwargs):
     ]
 
 
+@register(deploy=True)
+def check_required_permission(app_configs, **kwargs):
+    if get_config()[Settings.REQUIRED_PERMISSION]:
+        return []
+    return [
+        Warning(
+            "UNFOLD_AGENTIC_LAYER['REQUIRED_PERMISSION'] is False: every active staff user "
+            "may log in to MCP, not only users with django_unfold_agentic_layer.use_mcp.",
+            hint="Keep it True and grant use_mcp to the users or groups that need MCP.",
+            id="django_unfold_agentic_layer.W003",
+        )
+    ]
+
+
 def log_startup_warnings() -> None:
     """Logs this app's check warnings once, at startup: ``runserver`` and
     ``migrate`` run system checks, but gunicorn and uvicorn do not. Deploy
     checks join in when ``DEBUG`` is off; ``SILENCED_SYSTEM_CHECKS`` applies."""
     checks = [check_unauthorized_mode]
     if not settings.DEBUG:
-        checks.append(check_confirmation_cache)
+        checks += [check_confirmation_cache, check_required_permission]
     for check in checks:
         for message in check(None):
             if message.id not in settings.SILENCED_SYSTEM_CHECKS:

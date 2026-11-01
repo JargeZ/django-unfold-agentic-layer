@@ -37,6 +37,10 @@ class Settings(enum.StrEnum):
     #: and an admin adds each MCP client by hand (admin → MCP clients → Add),
     #: then gives its client ID to the person who connects.
     CLOSED_CLIENT_REGISTRATION = "CLOSED_CLIENT_REGISTRATION"
+    #: ``True``: only users holding ``django_unfold_agentic_layer.use_mcp``
+    #: (superusers always do) may log in and use ``/mcp``. ``False``: every
+    #: active staff user may.
+    REQUIRED_PERMISSION = "REQUIRED_PERMISSION"
 
 
 class SettingsDict(TypedDict, total=False):
@@ -46,6 +50,7 @@ class SettingsDict(TypedDict, total=False):
     SESSION_TTL: timedelta
     CONFIRMATION_CACHE: str
     CLOSED_CLIENT_REGISTRATION: bool
+    REQUIRED_PERMISSION: bool
 
 
 assert SettingsDict.__optional_keys__ == set(Settings), (
@@ -58,6 +63,7 @@ DEFAULTS: Final[Mapping[Settings, Any]] = {
     Settings.SESSION_TTL: timedelta(days=1),
     Settings.CONFIRMATION_CACHE: "default",
     Settings.CLOSED_CLIENT_REGISTRATION: False,
+    Settings.REQUIRED_PERMISSION: True,
 }
 
 assert all(setting_key in DEFAULTS for setting_key in Settings), (

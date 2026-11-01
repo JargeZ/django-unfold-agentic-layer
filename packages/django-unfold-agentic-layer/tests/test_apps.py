@@ -37,6 +37,14 @@ def test_check_warns_while_unauthorized_mode_is_on(settings):
     assert "django_unfold_agentic_layer.W002" not in _warning_ids()
 
 
+def test_deploy_check_warns_when_use_mcp_is_not_required(settings):
+    settings.UNFOLD_AGENTIC_LAYER = {"REQUIRED_PERMISSION": False}
+    assert "django_unfold_agentic_layer.W003" in _warning_ids(include_deployment_checks=True)
+
+    settings.UNFOLD_AGENTIC_LAYER = {}
+    assert "django_unfold_agentic_layer.W003" not in _warning_ids(include_deployment_checks=True)
+
+
 def test_startup_logs_insecure_settings(settings, caplog):
     """gunicorn and uvicorn run no system checks: the warnings are logged too."""
     from django_unfold_agentic_layer.checks import log_startup_warnings

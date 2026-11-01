@@ -9,6 +9,7 @@ from django.contrib.auth.models import Permission, User
 from server.apps.blog.admin import BlogPostAdmin
 from server.apps.blog.models import BlogPost
 
+from tests.conftest import grant_mcp_access
 from tests.test_mcp_admin_actions_edge_cases import ACCEPT
 from tests.test_mcp_admin_tools import _call_tool, _modern_rpc
 
@@ -31,7 +32,7 @@ def user_deleter(db) -> User:
     """Staff who may delete users — but not the blog posts they authored."""
     user = User.objects.create_user(username="user-deleter", is_staff=True)
     user.user_permissions.set(Permission.objects.filter(codename__in=["view_user", "delete_user"]))
-    return user
+    return grant_mcp_access(user)
 
 
 @pytest.mark.django_db

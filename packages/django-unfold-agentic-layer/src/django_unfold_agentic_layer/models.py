@@ -41,3 +41,14 @@ class OAuthToken(models.Model):
 
     class Meta:
         verbose_name = "MCP access token"
+
+
+class MCPAccess(models.Model):
+    """No table: only carries the ``use_mcp`` permission, so it is granted
+    like any other — per user or group, in the admin. See
+    ``conf.Settings.REQUIRED_PERMISSION``."""
+
+    class Meta:
+        managed = False
+        default_permissions = ()
+        permissions = [("use_mcp", "Can use the admin through MCP")]

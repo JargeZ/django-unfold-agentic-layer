@@ -25,6 +25,7 @@ from django_unfold_agentic_layer.models import OAuthClient, OAuthToken
 from server.apps.blog.admin import BlogPostAdmin
 from server.apps.blog.models import BlogPost
 
+from tests.conftest import grant_mcp_access
 from tests.test_mcp_admin_actions_edge_cases import ACCEPT, _modern_raw
 from tests.test_mcp_admin_tools import _modern_rpc, _rpc
 from tests.test_oauth import REDIRECT_URI, _path, _start_authorization
@@ -88,11 +89,11 @@ def blog_group_member(db) -> User:
     group.permissions.set(Permission.objects.filter(content_type__app_label="blog"))
     user = User.objects.create_user(username="grouped", is_staff=True)
     user.groups.add(group)
-    return user
+    return grant_mcp_access(user)
 
 
 def _remove_direct_permissions(user: User) -> None:
-    user.user_permissions.clear()
+    user.user_permissions.remove(*Permission.objects.filter(content_type__app_label="blog"))
 
 
 def _leave_groups(user: User) -> None:
@@ -344,6 +345,50 @@ def test_secret_key_rotation_keeps_tokens_valid(staff_user, settings):
     assert _status(f"Bearer {token}") == 200
     settings.SECRET_KEY_FALLBACKS = []
     assert _status(f"Bearer {token}") == 401
+
+
+# --- the use_mcp permission -------------------------------------------------
+
+
+@pytest.fixture
+def staff_without_mcp_access(db) -> User:
+    user = User.objects.create_user(username="no-mcp", is_staff=True)
+    user.user_permissions.set(Permission.objects.filter(content_type__app_label="blog"))
+    return user
+
+
+@pytest.mark.django_db
+def test_staff_without_use_mcp_is_refused_on_every_request(staff_without_mcp_access):
+    assert _status(f"Bearer {_issue(staff_without_mcp_access)}") == 403
+
+
+@pytest.mark.django_db
+def test_use_mcp_can_come_from_a_group(staff_without_mcp_access):
+    group = Group.objects.create(name="mcp users")
+    group.permissions.add(Permission.objects.get(codename="use_mcp"))
+    staff_without_mcp_access.groups.add(group)
+
+    assert _status(f"Bearer {_issue(staff_without_mcp_access)}") == 200
+
+
+@pytest.mark.django_db
+def test_required_permission_can_be_turned_off(staff_without_mcp_access, settings):
+    settings.UNFOLD_AGENTIC_LAYER = {"REQUIRED_PERMISSION": False}
+
+    assert _status(f"Bearer {_issue(staff_without_mcp_access)}") == 200
+
+
+@pytest.mark.django_db
+def test_staff_without_use_mcp_cannot_approve_a_login(browser, staff_without_mcp_access):
+    _, _, consent_url, _ = _start_authorization(browser)
+    browser.force_login(staff_without_mcp_access)
+
+    page = browser.get(consent_url)
+    approved = browser.post(consent_url, {"approve": ""})
+
+    assert page.status_code == approved.status_code == 403
+    assert b"django_unfold_agentic_layer.use_mcp" in page.content
+    assert not OAuthToken.objects.filter(kind=OAuthToken.Kind.CODE).exists()
 
 
 # --- OAuth consent ------------------------------------------------------------

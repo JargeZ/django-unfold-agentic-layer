@@ -1,0 +1,25 @@
+{% extends "unfold/layouts/unauthenticated.html" %}
+
+{% load i18n %}
+
+{% block content %}
+    {% include "unfold/helpers/unauthenticated_title.html" with title=site_title|default:_("Django site admin") subtitle=_("MCP access not granted") %}
+
+    <div class="flex flex-col gap-6">
+        <div class="flex items-center gap-4">
+            <div class="flex items-center justify-center rounded-default bg-red-100 text-red-600 h-10 w-10 shrink-0 dark:bg-red-500/20 dark:text-red-500">
+                <span class="material-symbols-outlined">block</span>
+            </div>
+
+            <p class="min-w-0">
+                {% blocktranslate trimmed with username=request.user.get_username %}
+                    <strong class="font-semibold text-font-important-light dark:text-font-important-dark">{{ username }}</strong>
+                    may not connect MCP clients to this admin.
+                {% endblocktranslate %}
+            </p>
+        </div>
+
+        <p>{% translate "Ask an administrator to grant you this permission, directly or through a group:" %}</p>
+        <p class="text-sm font-mono break-words">{{ permission }}</p>
+    </div>
+{% endblock %}

@@ -187,7 +187,7 @@ is refused when it would cascade onto objects the user can't delete.
 
 ## Access and sessions
 
-- Only active **staff** users can log in; `is_active`/`is_staff` is re-checked on every request — un-staffing someone cuts off their tokens immediately.
+- Only active **staff** users holding the **`django_unfold_agentic_layer.use_mcp`** permission ("Can use the admin through MCP" — grant it per user or group; superusers always have it) can log in; `is_active`/`is_staff` and the permission are re-checked on every request — un-staffing someone or taking the permission away cuts off their tokens immediately. `REQUIRED_PERMISSION = False` lets every active staff user in.
 - Changing a user's password revokes their MCP tokens, the same way Django logs out their browser sessions (the session auth hash; `SECRET_KEY_FALLBACKS` keeps them valid until the old key leaves it).
 - The login (consent) page goes through `admin.site.admin_view`, so your admin site's own `has_permission` applies — a custom site's 2FA or IP rules guard the MCP login exactly like the admin.
 - The Django session cookie does **not** authenticate `/mcp` — only the `Bearer` token does.
@@ -209,6 +209,8 @@ UNFOLD_AGENTIC_LAYER = {
     # confirmation can't be replayed into many runs. Default "default" — with several
     # worker processes it must be a shared backend (Redis, DB, Memcached), not LocMem.
     "CONFIRMATION_CACHE": "default",
+    # Only users with the use_mcp permission (superusers always) may use MCP. Default True.
+    "REQUIRED_PERMISSION": True,
 }
 ```
 

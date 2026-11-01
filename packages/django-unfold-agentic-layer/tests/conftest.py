@@ -38,9 +38,24 @@ def _clear_admin_mcp_instance_cache():
     _build_admin_mcp_instance.cache_clear()
 
 
+def grant_mcp_access(user: User) -> User:
+    """Directly grants ``use_mcp`` (REQUIRED_PERMISSION is on by default),
+    so tests that change a user's model permissions or groups keep it."""
+    user.user_permissions.add(
+        Permission.objects.get(
+            content_type__app_label="django_unfold_agentic_layer", codename="use_mcp"
+        )
+    )
+    return user
+
+
 @pytest.fixture
 def staff_user(db) -> User:
-    return User.objects.create_superuser(username="staff", password="s3cret")  # noqa: S106
+    # Superusers hold every permission; the direct grant only matters to
+    # tests that demote this user.
+    return grant_mcp_access(
+        User.objects.create_superuser(username="staff", password="s3cret")  # noqa: S106
+    )
 
 
 @pytest.fixture
@@ -52,10 +67,12 @@ def regular_user(db) -> User:
 def staff_user_without_permissions(db) -> User:
     """Staff (can log into the admin at all), but zero model permissions —
     for asserting that permission-based filtering hides everything else."""
-    return User.objects.create_user(
-        username="staff-no-perms",
-        password="s3cret",  # noqa: S106
-        is_staff=True,
+    return grant_mcp_access(
+        User.objects.create_user(
+            username="staff-no-perms",
+            password="s3cret",  # noqa: S106
+            is_staff=True,
+        )
     )
 
 
@@ -65,7 +82,7 @@ def blog_editor(db) -> User:
     all permission-gated admin actions except superuser-only ones."""
     user = User.objects.create_user(username="blog-editor", password="s3cret", is_staff=True)  # noqa: S106
     user.user_permissions.set(Permission.objects.filter(content_type__app_label="blog"))
-    return user
+    return grant_mcp_access(user)
 
 
 @pytest.fixture
@@ -74,7 +91,7 @@ def blog_viewer(db) -> User:
     change posts through the regular change form."""
     user = User.objects.create_user(username="blog-viewer", password="s3cret", is_staff=True)  # noqa: S106
     user.user_permissions.set(Permission.objects.filter(codename="view_blogpost"))
-    return user
+    return grant_mcp_access(user)
 
 
 @pytest.fixture

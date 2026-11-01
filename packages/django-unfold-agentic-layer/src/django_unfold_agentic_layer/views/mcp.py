@@ -92,6 +92,10 @@ class MCPView(View):
         # (urls.py's admin_view), before this token was issued.
         if not (user.is_active and user.is_staff):
             return JsonResponse({"error": "staff permission required"}, status=403)
+        if not oauth.can_use_mcp(user):
+            return JsonResponse(
+                {"error": f"the {oauth.USE_MCP_PERMISSION} permission is required"}, status=403
+            )
         request.user = user
         # /mcp/ takes no query parameters; handlers pass this request to admin
         # hooks (get_queryset, get_form…), which must not see caller-chosen GET.
