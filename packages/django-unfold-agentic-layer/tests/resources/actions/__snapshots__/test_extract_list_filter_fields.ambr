@@ -18,7 +18,7 @@
       ]),
       'format': 'RelatedFieldListFilter',
       'key': 'author__id__exact',
-      'related_resource_uri': 'dj-admin://auth/user/',
+      'related_resource_uri': None,
       'title': 'author',
     }),
     dict({
@@ -38,21 +38,21 @@
       ]),
       'format': 'RelatedFieldListFilter',
       'key': 'author__isnull',
-      'related_resource_uri': 'dj-admin://auth/user/',
+      'related_resource_uri': None,
       'title': 'author',
     }),
     dict({
       'choices': None,
       'format': 'AutocompleteSelectFilter',
       'key': 'editor__id__exact',
-      'related_resource_uri': 'dj-admin://auth/user/',
+      'related_resource_uri': None,
       'title': 'editor',
     }),
     dict({
       'choices': None,
       'format': 'AutocompleteSelectFilter',
       'key': 'editor__isnull',
-      'related_resource_uri': 'dj-admin://auth/user/',
+      'related_resource_uri': None,
       'title': 'editor',
     }),
     dict({
@@ -240,7 +240,7 @@
       ]),
       'format': 'RelatedFieldListFilter',
       'key': 'author__id__exact',
-      'related_resource_uri': 'dj-admin://auth/user/',
+      'related_resource_uri': None,
       'title': 'author',
     }),
     dict({
@@ -260,7 +260,7 @@
       ]),
       'format': 'RelatedFieldListFilter',
       'key': 'author__isnull',
-      'related_resource_uri': 'dj-admin://auth/user/',
+      'related_resource_uri': None,
       'title': 'author',
     }),
     dict({

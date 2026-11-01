@@ -9,6 +9,7 @@ from django.db.models import FileField, Model
 from django.http import HttpRequest
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
+from django_unfold_agentic_layer.resources.actions._shared import related_list_uri
 
 #: Many-to-many values listed per field; the rest are left to a list query.
 M2M_LIMIT = 100
@@ -86,20 +87,22 @@ class GetModelJsonRepresentation(BaseLogicAction):
             return value
 
         if field.many_to_many:
-            related_opts = field.related_model._meta
+            list_uri = related_list_uri(model_admin, request, field.related_model)
             # One extra row tells "exactly the limit" from "more than that".
             related = list(getattr(instance, field_name).all()[: M2M_LIMIT + 1])
             if len(related) > M2M_LIMIT:
                 truncated[field_name] = (
-                    f"Only the first {M2M_LIMIT} are listed; there are more. Query "
-                    f"dj-admin://{related_opts.app_label}/{related_opts.model_name}/ for the rest."
+                    f"Only the first {M2M_LIMIT} are listed; there are more."
+                    + (f" Query {list_uri} for the rest." if list_uri else "")
                 )
-            return [self._resource_uri(related_opts, obj.pk) for obj in related[:M2M_LIMIT]]
+            return [_reference(list_uri, obj.pk) for obj in related[:M2M_LIMIT]]
         if field.many_to_one or field.one_to_one:
             related = getattr(instance, field_name)
             if related is None:
                 return None
-            return self._resource_uri(field.related_model._meta, related.pk)
+            return _reference(
+                related_list_uri(model_admin, request, field.related_model), related.pk
+            )
 
         if isinstance(field, FileField):
             file = getattr(instance, field_name)
@@ -109,5 +112,8 @@ class GetModelJsonRepresentation(BaseLogicAction):
 
         return field.value_from_object(instance)
 
-    def _resource_uri(self, opts: Any, pk: Any) -> str:
-        return f"dj-admin://{opts.app_label}/{opts.model_name}/{pk}/"
+
+def _reference(list_uri: str | None, pk: Any) -> Any:
+    """A related object: its resource URI, or its pk when MCP has no
+    resource for its model."""
+    return f"{list_uri}{pk}/" if list_uri else pk

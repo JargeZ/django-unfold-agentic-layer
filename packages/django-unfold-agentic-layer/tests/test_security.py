@@ -21,6 +21,7 @@ from django.contrib import admin
 from django.contrib.auth.models import Group, Permission, User
 from django.test import Client
 from django.utils import timezone
+from django_unfold_agentic_layer.conf import is_model_exposed
 from django_unfold_agentic_layer.models import OAuthClient, OAuthToken
 from server.apps.blog.admin import BlogPostAdmin
 from server.apps.blog.models import BlogPost
@@ -345,6 +346,57 @@ def test_secret_key_rotation_keeps_tokens_valid(staff_user, settings):
     assert _status(f"Bearer {token}") == 200
     settings.SECRET_KEY_FALLBACKS = []
     assert _status(f"Bearer {token}") == 401
+
+
+# --- MODELS --------------------------------------------------------------------
+
+
+def _exposed_models(client) -> set[str]:
+    """``app_label.model`` of every model with a list resource."""
+    resources = _rpc(client, "resources/list")["resources"]
+    return {
+        ".".join(r["uri"].removeprefix("dj-admin://").strip("/").split("/"))
+        for r in resources
+        if r["uri"].startswith("dj-admin://")
+    }
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("models", "expected"),
+    [
+        (None, {"blog.blogpost", "blog.usagepackage"}),
+        ({"EXCLUDE": []}, {"auth.group", "auth.user", "blog.blogpost", "blog.usagepackage"}),
+        ({"INCLUDE": ["blog"]}, {"blog.blogpost", "blog.usagepackage"}),
+        ({"INCLUDE": ["blog.BlogPost", "auth"]}, {"blog.blogpost"}),
+        ({"EXCLUDE": ["blog.usagepackage"]}, {"auth.group", "auth.user", "blog.blogpost"}),
+    ],
+    ids=[
+        "default-hides-users-and-groups",
+        "exclude-none",
+        "include-app",
+        "include-model",
+        "exclude",
+    ],
+)
+def test_models_setting_decides_what_mcp_exposes(
+    client, bearer_login, staff_user, settings, models, expected
+):
+    if models is not None:
+        settings.UNFOLD_AGENTIC_LAYER = {"MODELS": models}
+    bearer_login(client, staff_user)
+
+    assert _exposed_models(client) == expected
+    tools = {t["name"] for t in _rpc(client, "tools/list")["tools"]}
+    assert ("update_auth_user" in tools) == ("auth.user" in expected)
+
+
+def test_default_exclusion_follows_a_swapped_user_model(settings):
+    settings.AUTH_USER_MODEL = "accounts.Member"
+
+    assert not is_model_exposed("accounts", "member")
+    assert not is_model_exposed("auth", "group")
+    assert is_model_exposed("auth", "user")
 
 
 # --- the use_mcp permission -------------------------------------------------

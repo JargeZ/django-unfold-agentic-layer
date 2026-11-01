@@ -70,7 +70,9 @@ class ExtractActionTools(BaseLogicAction):
     def _bulk_actions(self, model_admin: ModelAdmin, request: HttpRequest) -> list[ActionToolInfo]:
         form_fields = [
             field
-            for field in ExtractFormFields().execute(model_admin.action_form().fields)
+            for field in ExtractFormFields().execute(
+                model_admin, request, model_admin.action_form().fields
+            )
             if field.name not in _ACTION_FORM_PLUMBING
         ]
         return [
@@ -99,7 +101,7 @@ class ExtractActionTools(BaseLogicAction):
                 # An instance, not base_fields: dialog forms often build their
                 # fields in __init__ from the request.
                 form = form_class(request=request, object_id=None)
-                fields = ExtractFormFields().execute(form.fields)
+                fields = ExtractFormFields().execute(model_admin, request, form.fields)
             tools.append(
                 self._tool(
                     model_admin,

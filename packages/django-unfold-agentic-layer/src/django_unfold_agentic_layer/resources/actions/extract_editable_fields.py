@@ -21,4 +21,4 @@ class ExtractEditableFields(BaseLogicAction):
     ) -> list[EditableFieldInfo]:
         obj = model_admin.model() if change else None
         form_class = model_admin.get_form(request, obj, change=change)
-        return ExtractFormFields().execute(form_class.base_fields)
+        return ExtractFormFields().execute(model_admin, request, form_class.base_fields)

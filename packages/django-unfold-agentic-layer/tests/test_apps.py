@@ -45,6 +45,14 @@ def test_deploy_check_warns_when_use_mcp_is_not_required(settings):
     assert "django_unfold_agentic_layer.W003" not in _warning_ids(include_deployment_checks=True)
 
 
+def test_deploy_check_warns_when_auth_models_are_exposed(settings):
+    settings.UNFOLD_AGENTIC_LAYER = {"MODELS": {"EXCLUDE": []}}
+    assert "django_unfold_agentic_layer.W004" in _warning_ids(include_deployment_checks=True)
+
+    settings.UNFOLD_AGENTIC_LAYER = {"MODELS": {"INCLUDE": ["blog"], "EXCLUDE": []}}
+    assert "django_unfold_agentic_layer.W004" not in _warning_ids(include_deployment_checks=True)
+
+
 def test_startup_logs_insecure_settings(settings, caplog):
     """gunicorn and uvicorn run no system checks: the warnings are logged too."""
     from django_unfold_agentic_layer.checks import log_startup_warnings

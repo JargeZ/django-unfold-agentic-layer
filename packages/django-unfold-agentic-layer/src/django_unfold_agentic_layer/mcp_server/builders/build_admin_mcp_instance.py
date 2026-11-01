@@ -11,6 +11,7 @@ from mcp.server.request_state import RequestStateSecurity
 from django_unfold_agentic_layer import log
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
 from django_unfold_agentic_layer.apps import DjangoUnfoldAgenticLayerConfig
+from django_unfold_agentic_layer.conf import is_model_exposed
 from django_unfold_agentic_layer.mcp_server.builders._shared import REQUEST_STATE_TTL
 from django_unfold_agentic_layer.mcp_server.builders.build_model_action_tool_definition import (
     BuildModelActionToolDefinition,
@@ -121,6 +122,9 @@ def _build_admin_mcp_instance(
             continue
         for model_dict in app["models"]:
             model = model_dict["model"]
+            # Not even registered: an excluded model's tools can't be called.
+            if not is_model_exposed(app["app_label"], model._meta.model_name):
+                continue
             model_admin = admin_site._registry[model]
             if not is_django_model(model):
                 _register_non_model_actions(admin_mcp, model_admin, request, build_action_tool)

@@ -4,7 +4,7 @@ from django.core.cache.backends.locmem import LocMemCache
 from django.core.checks import Warning, register
 
 from django_unfold_agentic_layer import log
-from django_unfold_agentic_layer.conf import Settings, get_config
+from django_unfold_agentic_layer.conf import Settings, get_config, is_model_exposed
 
 
 @register(deploy=True)
@@ -51,13 +51,29 @@ def check_required_permission(app_configs, **kwargs):
     ]
 
 
+@register(deploy=True)
+def check_exposed_models(app_configs, **kwargs):
+    user_model = settings.AUTH_USER_MODEL.lower()
+    exposed = [label for label in (user_model, "auth.group") if is_model_exposed(*label.split("."))]
+    if not exposed:
+        return []
+    return [
+        Warning(
+            f"UNFOLD_AGENTIC_LAYER['MODELS'] exposes {', '.join(exposed)} to MCP: an agent "
+            "with change permission there can grant permissions or superuser status.",
+            hint="Leave MODELS['EXCLUDE'] at None, or list these models in it.",
+            id="django_unfold_agentic_layer.W004",
+        )
+    ]
+
+
 def log_startup_warnings() -> None:
     """Logs this app's check warnings once, at startup: ``runserver`` and
     ``migrate`` run system checks, but gunicorn and uvicorn do not. Deploy
     checks join in when ``DEBUG`` is off; ``SILENCED_SYSTEM_CHECKS`` applies."""
     checks = [check_unauthorized_mode]
     if not settings.DEBUG:
-        checks += [check_confirmation_cache, check_required_permission]
+        checks += [check_confirmation_cache, check_required_permission, check_exposed_models]
     for check in checks:
         for message in check(None):
             if message.id not in settings.SILENCED_SYSTEM_CHECKS:

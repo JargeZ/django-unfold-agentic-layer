@@ -16,6 +16,8 @@ from django.db import router, transaction
 from django.db.models import Model
 from django.http import HttpRequest
 
+from django_unfold_agentic_layer.apps import DjangoUnfoldAgenticLayerConfig
+from django_unfold_agentic_layer.conf import is_model_exposed
 from django_unfold_agentic_layer.resources.schemas import ActionInfo
 
 #: What ``ModelAdmin.get_action()`` returns: (callable, name, description).
@@ -26,6 +28,24 @@ def is_django_model(model: Any) -> bool:
     """Admins may register a stand-in class instead of a model (e.g.
     django-constance's ``Config``): it has ``_meta`` but no queryset."""
     return isinstance(model, type) and issubclass(model, Model)
+
+
+def related_list_uri(model_admin: ModelAdmin, request: HttpRequest, model: Any) -> str | None:
+    """``dj-admin://app/model/`` of a related model, if this user's MCP
+    server lists it: registered on the same admin site, kept by ``MODELS``,
+    and viewable (``BuildAdminMCPInstance`` registers by the same rules).
+    ``None`` otherwise: the relation is then a bare pk, not a link to a
+    resource that does not exist."""
+    opts = model._meta
+    related_admin = model_admin.admin_site._registry.get(model)
+    if (
+        related_admin is None
+        or opts.app_label == DjangoUnfoldAgenticLayerConfig.label
+        or not is_model_exposed(opts.app_label, opts.model_name)
+        or not related_admin.has_view_or_change_permission(request)
+    ):
+        return None
+    return f"dj-admin://{opts.app_label}/{opts.model_name}/"
 
 
 def admin_atomic(model_admin: ModelAdmin) -> transaction.Atomic:

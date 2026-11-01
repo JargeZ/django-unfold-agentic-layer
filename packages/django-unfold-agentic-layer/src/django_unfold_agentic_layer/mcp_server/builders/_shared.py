@@ -121,6 +121,8 @@ def build_editable_field_parameter(field: EditableFieldInfo) -> inspect.Paramete
             f"{description}. Pass a pk or its {field.related_resource_uri}{{pk}}/ URI; "
             f"browse valid values at {field.related_resource_uri}"
         )
+    elif field.python_type in ("related", "multi_related"):
+        description = f"{description}. Pass a pk"
 
     return inspect.Parameter(
         field.name,
@@ -133,7 +135,11 @@ def build_editable_field_parameter(field: EditableFieldInfo) -> inspect.Paramete
 def _value_type(field: EditableFieldInfo) -> Any:
     if field.python_type in ("related", "multi_related"):
         # Resources render relations as dj-admin:// URIs; accept them back.
-        related_pk = Annotated[str | int, AfterValidator(_uri_to_pk(field.related_resource_uri))]
+        related_pk = str | int
+        if field.related_resource_uri:
+            related_pk = Annotated[
+                related_pk, AfterValidator(_uri_to_pk(field.related_resource_uri))
+            ]
         return list[related_pk] if field.python_type == "multi_related" else related_pk
     if field.python_type == "multi":
         # One item per subwidget, in order; Django's form validates each one.

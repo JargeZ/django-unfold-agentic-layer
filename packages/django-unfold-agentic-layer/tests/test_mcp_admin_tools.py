@@ -98,6 +98,7 @@ def test_create_tool_creates_instance(client, bearer_login, staff_user):
     assert result["resource_uri"] == f"dj-admin://blog/blogpost/{post.pk}/"
 
 
+@pytest.mark.usefixtures("expose_auth_models")
 @pytest.mark.django_db
 def test_related_fields_accept_resource_uris(client, bearer_login, staff_user, regular_user):
     # Resources render relations as dj-admin:// URIs; agents paste them back.
@@ -361,4 +362,20 @@ def test_broken_model_admin_is_skipped_not_fatal(client, bearer_login, staff_use
     names = {tool["name"] for tool in _rpc(client, "tools/list")["tools"]}
 
     assert "create_blog_blogpost" not in names
-    assert "create_auth_user" in names
+    assert "create_blog_usagepackage" in names
+
+
+@pytest.mark.django_db
+def test_relations_to_a_hidden_model_are_bare_pks(client, bearer_login, staff_user):
+    """MODELS hides auth.user: no link may point at a resource that does not
+    exist, in tool descriptions or in what resources return."""
+    bearer_login(client, staff_user)
+    post = BlogPost.objects.create(title="Post", author=staff_user)
+
+    tools = {t["name"]: t for t in _rpc(client, "tools/list")["tools"]}
+    author = tools["create_blog_blogpost"]["inputSchema"]["properties"]["author"]
+    detail = _rpc(client, "resources/read", {"uri": f"dj-admin://blog/blogpost/{post.pk}/"})
+
+    assert "dj-admin://auth" not in json.dumps(tools)
+    assert author["description"] == "Author (required). Pass a pk"
+    assert json.loads(detail["contents"][0]["text"])["author"] == staff_user.pk

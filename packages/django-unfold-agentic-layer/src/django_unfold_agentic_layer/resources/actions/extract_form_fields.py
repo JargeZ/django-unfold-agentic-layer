@@ -1,9 +1,14 @@
 from collections.abc import Mapping
 
 from django import forms
+from django.contrib.admin import ModelAdmin
+from django.http import HttpRequest
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
-from django_unfold_agentic_layer.resources.actions._shared import splits_into_subwidgets
+from django_unfold_agentic_layer.resources.actions._shared import (
+    related_list_uri,
+    splits_into_subwidgets,
+)
 from django_unfold_agentic_layer.resources.schemas import EditableFieldInfo
 
 
@@ -18,7 +23,11 @@ class ExtractFormFields(BaseLogicAction):
     ``BaseDialogForm._form_submitted`` marker).
     """
 
-    def execute(self, fields: Mapping[str, forms.Field]) -> list[EditableFieldInfo]:
+    def execute(
+        self, model_admin: ModelAdmin, request: HttpRequest, fields: Mapping[str, forms.Field]
+    ) -> list[EditableFieldInfo]:
+        # Relations link to a resource only where this user's server has one.
+        self._related_uri = lambda model: related_list_uri(model_admin, request, model)
         return [
             self._field_info(name, field)
             for name, field in fields.items()
@@ -59,9 +68,9 @@ class ExtractFormFields(BaseLogicAction):
         # ModelMultipleChoiceField/ModelChoiceField subclass ChoiceField, so
         # they must be checked before the generic ChoiceField case below.
         if isinstance(field, forms.ModelMultipleChoiceField):
-            return "multi_related", None, self._related_resource_uri(field)
+            return "multi_related", None, self._related_uri(field.queryset.model)
         if isinstance(field, forms.ModelChoiceField):
-            return "related", None, self._related_resource_uri(field)
+            return "related", None, self._related_uri(field.queryset.model)
         if isinstance(field, forms.MultiValueField) and splits_into_subwidgets(field.widget):
             return "multi", None, None
         if isinstance(field, forms.FileField):
@@ -76,7 +85,3 @@ class ExtractFormFields(BaseLogicAction):
         if isinstance(field, forms.IntegerField):
             return "int", None, None
         return "str", None, None
-
-    def _related_resource_uri(self, field: forms.ModelChoiceField) -> str:
-        opts = field.queryset.model._meta
-        return f"dj-admin://{opts.app_label}/{opts.model_name}/"

@@ -95,6 +95,13 @@ def blog_viewer(db) -> User:
 
 
 @pytest.fixture
+def expose_auth_models(settings):
+    """MODELS hides the user model and groups by default; tests about them
+    opt back in."""
+    settings.UNFOLD_AGENTIC_LAYER = {"MODELS": {"EXCLUDE": []}}
+
+
+@pytest.fixture
 def bearer_login(db):
     """``bearer_login(client, user)`` — the MCP equivalent of ``client.force_login``:
     issues ``user`` a live OAuth access token (skipping the browser flow

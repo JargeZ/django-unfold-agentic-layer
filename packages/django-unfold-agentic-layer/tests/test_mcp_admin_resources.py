@@ -72,6 +72,7 @@ def test_resource_templates_include_blog_post_detail_and_list(
     }
 
 
+@pytest.mark.usefixtures("expose_auth_models")
 @pytest.mark.django_db
 def test_read_detail_resource_returns_json_and_markdown(client, bearer_login, staff_user):
     post = BlogPost.objects.create(title="Hello", body="World", author=staff_user)
@@ -95,6 +96,7 @@ def test_read_detail_resource_returns_json_and_markdown(client, bearer_login, st
     assert "_meta" not in result
 
 
+@pytest.mark.usefixtures("expose_auth_models")
 @pytest.mark.django_db
 def test_read_detail_resource_omits_fields_the_admin_hides(client, bearer_login, staff_user):
     # UserAdmin renders the password hash masked, so MCP must not leak it.
@@ -107,6 +109,7 @@ def test_read_detail_resource_omits_fields_the_admin_hides(client, bearer_login,
         assert staff_user.password not in content["text"]
 
 
+@pytest.mark.usefixtures("expose_auth_models")
 @pytest.mark.django_db
 @pytest.mark.parametrize(("granted", "truncated"), [(100, False), (101, True)])
 def test_read_detail_resource_lists_at_most_100_many_to_many_links(
@@ -126,10 +129,9 @@ def test_read_detail_resource_lists_at_most_100_many_to_many_links(
     contents = {c["mimeType"]: c["text"] for c in result["contents"]}
     data = json.loads(contents["application/json"])
     assert len(data["user_permissions"]) == 100
-    note = (
-        "Only the first 100 are listed; there are more. "
-        "Query dj-admin://auth/permission/ for the rest."
-    )
+    # auth.permission has no admin, so no resource to point at: bare pks.
+    assert all(isinstance(pk, int) for pk in data["user_permissions"])
+    note = "Only the first 100 are listed; there are more."
     if truncated:
         assert data["_truncated"] == {"user_permissions": note}
         assert f"> **user_permissions**: {note}" in contents["text/markdown"]

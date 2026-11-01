@@ -81,6 +81,7 @@ def test_update_rolls_back_when_a_later_admin_hook_fails(
     assert post.title == "Before"
 
 
+@pytest.mark.usefixtures("expose_auth_models")
 @pytest.mark.django_db
 def test_delete_refuses_a_cascade_onto_objects_the_user_cannot_delete(
     client, bearer_login, staff_user, user_deleter

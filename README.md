@@ -173,6 +173,7 @@ exactly this fix instead of advertising unusable `http://` URLs.
 | Tool | `delete_blog_blogpost` | Asks for confirmation before deleting |
 | Action tools | `run_blog_blogpost_publish_posts` | Every admin/Unfold action (bulk, list, row, detail) with its form; `DANGER` ones ask for confirmation |
 
+By default users and groups are **not** exposed (`MODELS` setting) — opt them in deliberately.
 Everything goes through the admin's own `has_*_permission` checks, re-run on every request — the agent never sees
 or does what its user can't do in the admin right now; granting or revoking a permission applies to the very next call.
 Writes run like the admin's own views: the same `save_model`/`save_related`/`delete_model` hooks in the same
@@ -211,6 +212,10 @@ UNFOLD_AGENTIC_LAYER = {
     "CONFIRMATION_CACHE": "default",
     # Only users with the use_mcp permission (superusers always) may use MCP. Default True.
     "REQUIRED_PERMISSION": True,
+    # Which admin models MCP exposes: "app_label" or "app_label.model" entries.
+    # INCLUDE None = all; EXCLUDE None = your user model and auth.group (so an agent can't
+    # grant itself permissions); [] = exclude nothing.
+    "MODELS": {"INCLUDE": None, "EXCLUDE": None},
 }
 ```
 
