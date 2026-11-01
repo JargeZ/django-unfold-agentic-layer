@@ -33,7 +33,8 @@ class CreateModelInstance(BaseLogicAction):
     ``form.is_valid()`` does all the validation, nothing is duplicated here
     (spec §9). Saving runs the same ``ModelAdmin`` hooks, in the same order
     and transaction, as the admin's ``_changeform_view``: ``save_form`` →
-    ``save_model`` → ``save_related``, so any admin-level override (e.g.
+    ``save_model`` → ``save_related`` → ``log_addition`` (the admin's
+    history entry, with its own change message), so any admin-level override (e.g.
     stamping the current user onto a field) still runs, exactly as it would
     from the browser — and a failure in a later hook rolls back the earlier
     ones.
@@ -55,4 +56,6 @@ class CreateModelInstance(BaseLogicAction):
             obj = model_admin.save_form(request, form, change=False)
             model_admin.save_model(request, obj, form, change=False)
             model_admin.save_related(request, form, formsets=[], change=False)
+            message = model_admin.construct_change_message(request, form, [], add=True)
+            model_admin.log_addition(request, obj, message)
             return obj, {}

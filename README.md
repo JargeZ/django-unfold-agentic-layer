@@ -175,6 +175,9 @@ exactly this fix instead of advertising unusable `http://` URLs.
 
 Everything goes through the admin's own `has_*_permission` checks, re-run on every request — the agent never sees
 or does what its user can't do in the admin right now; granting or revoking a permission applies to the very next call.
+Writes run like the admin's own views: the same `save_model`/`save_related`/`delete_model` hooks in the same
+transaction, the same history entries (an object's "History" shows what the agent changed, under its user), and a delete
+is refused when it would cascade onto objects the user can't delete.
 
 > [!IMPORTANT]
 > The agent gets **exactly** the admin's permissions — including the admin's blind spots. Before you connect agents, check

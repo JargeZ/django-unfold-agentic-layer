@@ -4,6 +4,7 @@ reasons (``django/contrib/admin/options.py``: ``_changeform_view``,
 ``_delete_view``)."""
 
 import pytest
+from django.contrib.admin.models import ADDITION, CHANGE, DELETION, LogEntry
 from django.contrib.auth.models import Permission, User
 from server.apps.blog.admin import BlogPostAdmin
 from server.apps.blog.models import BlogPost
@@ -118,3 +119,21 @@ def test_create_and_update_go_through_the_admin_save_hooks(
     _call_tool(client, "update_blog_blogpost", {"pk": created["pk"], "title": "Renamed"})
 
     assert calls == ["save_form", "save_model", "save_related"] * 2
+
+
+@pytest.mark.django_db
+def test_writes_leave_the_same_history_entries_as_the_admin(client, bearer_login, staff_user):
+    bearer_login(client, staff_user)
+
+    created = _call_tool(
+        client, "create_blog_blogpost", {**POST_ARGUMENTS, "author": staff_user.pk}
+    )
+    _call_tool(client, "update_blog_blogpost", {"pk": created["pk"], "title": "Renamed"})
+    _delete(client, "delete_blog_blogpost", created["pk"])
+
+    entries = LogEntry.objects.filter(object_id=str(created["pk"])).order_by("pk")
+    assert [(e.action_flag, e.user, e.object_repr, e.get_change_message()) for e in entries] == [
+        (ADDITION, staff_user, "New", "Added."),
+        (CHANGE, staff_user, "Renamed", "Changed Title."),
+        (DELETION, staff_user, "Renamed", ""),
+    ]

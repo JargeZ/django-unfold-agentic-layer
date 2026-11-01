@@ -11,7 +11,7 @@ class DeleteModelInstance(BaseLogicAction):
     """Deletes one instance the way the admin's ``_delete_view`` does, in its
     transaction: ``has_delete_permission`` on the object, then
     ``get_deleted_objects`` — the cascade may not reach a model the user
-    cannot delete — then ``delete_model()``, so any admin-level override
+    cannot delete — then the history entry, then ``delete_model()``, so any admin-level override
     (e.g. a soft-delete) still runs.
 
     A protected cascade is left to ``delete_model()``'s ``ProtectedError``:
@@ -30,4 +30,13 @@ class DeleteModelInstance(BaseLogicAction):
                     f"Deleting it would also delete {', '.join(sorted(perms_needed))}, "
                     "which you do not have permission to delete."
                 )
+            _log_deletion(model_admin, request, instance)
             model_admin.delete_model(request, instance)
+
+
+def _log_deletion(model_admin: ModelAdmin, request: HttpRequest, instance: Model) -> None:
+    """The history entry ``_delete_view`` writes, before deleting."""
+    if hasattr(model_admin, "log_deletions"):  # Django 5.1+
+        model_admin.log_deletions(request, [instance])
+    else:
+        model_admin.log_deletion(request, instance, str(instance))

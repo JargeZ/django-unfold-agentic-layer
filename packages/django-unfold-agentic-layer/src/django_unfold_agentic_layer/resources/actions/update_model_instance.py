@@ -57,4 +57,6 @@ class UpdateModelInstance(BaseLogicAction):
             obj = model_admin.save_form(request, form, change=True)
             model_admin.save_model(request, obj, form, change=True)
             model_admin.save_related(request, form, formsets=[], change=True)
+            message = model_admin.construct_change_message(request, form, [], add=False)
+            model_admin.log_change(request, obj, message)
             return obj, {}
