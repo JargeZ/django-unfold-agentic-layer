@@ -31,7 +31,13 @@ class OAuthToken(models.Model):
     token_hash = models.CharField(primary_key=True, max_length=64)
     kind = models.CharField(max_length=6, choices=Kind.choices)
     client = models.ForeignKey(OAuthClient, on_delete=models.CASCADE)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    #: ``limit_choices_to``: who the consent page's autocomplete offers a
+    #: superuser to issue a token for (see ``views/oauth.py``).
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        limit_choices_to={"is_active": True, "is_staff": True},
+    )
     #: The SDK's ``AuthorizationCode`` / ``AccessToken`` model, dumped as JSON.
     data = models.JSONField()
     #: An access token's ``user.get_session_auth_hash()`` at login: it covers

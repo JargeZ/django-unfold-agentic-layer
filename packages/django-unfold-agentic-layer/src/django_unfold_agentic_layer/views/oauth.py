@@ -6,7 +6,11 @@ from typing import Any
 from urllib.parse import ParseResult, urlparse
 
 from asgiref.sync import async_to_sync
+from django import forms
 from django.contrib import admin
+from django.contrib.admin.widgets import AutocompleteSelect
+from django.contrib.auth import get_user_model
+from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
@@ -24,7 +28,7 @@ from unfold.widgets import CHECKBOX_CLASSES
 from django_unfold_agentic_layer import log, oauth, scopes
 from django_unfold_agentic_layer.conf import Settings, get_config
 from django_unfold_agentic_layer.mcp_server import bridge
-from django_unfold_agentic_layer.models import OAuthClient
+from django_unfold_agentic_layer.models import OAuthClient, OAuthToken
 from django_unfold_agentic_layer.views import login_not_required
 
 
@@ -173,6 +177,32 @@ def _is_local_redirect(url: ParseResult) -> bool:
         return False
 
 
+class ConsentUserForm(forms.Form):
+    """Superusers only: issue the token for another user instead of themselves.
+
+    The admin's own autocomplete, sourced from ``OAuthToken.user``: its
+    ``limit_choices_to`` keeps the suggestions to active staff, and the
+    host's User admin (its ``search_fields``) does the searching.
+    """
+
+    user = forms.ModelChoiceField(
+        queryset=get_user_model()._default_manager.filter(is_active=True, is_staff=True),
+        widget=AutocompleteSelect(OAuthToken._meta.get_field("user"), admin.site),
+        required=False,
+        label=_("Issue the token for"),
+        help_text=_("Leave empty to issue it for yourself."),
+    )
+
+    def clean_user(self):
+        user = self.cleaned_data["user"]
+        if user is not None and not oauth.can_use_mcp(user):
+            raise forms.ValidationError(
+                _("This user does not have the %(permission)s permission."),
+                params={"permission": oauth.USE_MCP_PERMISSION},
+            )
+        return user
+
+
 @method_decorator(csrf_protect, name="dispatch")
 @method_decorator(xframe_options_deny, name="dispatch")
 class ConsentView(View):
@@ -231,6 +261,9 @@ class ConsentView(View):
                 "expires_at": now + get_config()[Settings.SESSION_TTL],
                 "scopes": _scope_choices(params.scopes),
                 "checkbox_classes": " ".join(CHECKBOX_CLASSES),
+                "user_form": ConsentUserForm() if request.user.is_superuser else None,
+                # The autocomplete searches through the host's User admin.
+                "user_admin_registered": admin.site.is_registered(get_user_model()),
             },
         )
 
@@ -240,7 +273,21 @@ class ConsentView(View):
             return HttpResponseBadRequest("Authorization request is invalid or expired.")
         client, params = consent
         if "approve" in request.POST:
-            location = oauth.approve(request.user, client, params, request.POST.getlist("scope"))
+            user = request.user
+            if request.POST.get("user"):
+                if not request.user.is_superuser:
+                    raise PermissionDenied
+                form = ConsentUserForm(request.POST)
+                if not form.is_valid():
+                    return HttpResponseBadRequest(form.errors.as_text())
+                user = form.cleaned_data["user"]
+                log.oauth.warning(
+                    "%s issued an MCP token for %s (client %s)",
+                    request.user,
+                    user,
+                    client.client_id,
+                )
+            location = oauth.approve(user, client, params, request.POST.getlist("scope"))
         else:
             location = oauth.deny(params)
         # Not HttpResponseRedirect: it rejects custom schemes (cursor://,

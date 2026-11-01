@@ -2,6 +2,8 @@
 
 {% load i18n unfold %}
 
+{% block extrahead %}{{ block.super }}{{ user_form.media }}{% endblock %}
+
 {% block content %}
     {% include "unfold/helpers/unauthenticated_title.html" with title=site_title|default:_("Django site admin") subtitle=_("Authorize access to") %}
 
@@ -86,6 +88,18 @@
                     </label>
                 {% endfor %}
             </fieldset>
+
+            {% if user_form %}
+                <div class="flex flex-col gap-2 border border-base-200 rounded-default p-4 shadow-xs dark:border-base-800">
+                    <label for="{{ user_form.user.id_for_label }}" class="font-semibold text-font-important-light dark:text-font-important-dark">{{ user_form.user.label }}</label>
+                    {% if user_admin_registered %}
+                        {{ user_form.user }}
+                        <span class="text-xs">{{ user_form.user.help_text }}</span>
+                    {% else %}
+                        <span class="text-xs">{% translate "Register the user model in the admin, with search_fields, to choose another user here." %}</span>
+                    {% endif %}
+                </div>
+            {% endif %}
 
             {% component "unfold/components/button.html" with submit=1 name="approve" variant="primary" class="w-full" %}
                 {% translate "Allow access" %} <span class="material-symbols-outlined relative right-0 transition-all group-hover:-right-1 text-sm">arrow_forward</span>

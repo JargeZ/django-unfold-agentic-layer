@@ -439,3 +439,46 @@ def test_registration_answers_on_legacy_and_slashed_urls(browser, path):
         content_type="application/json",
     )
     assert response.status_code == 201, response.content
+
+
+@pytest.mark.django_db
+def test_superuser_can_issue_the_token_for_another_staff_user(
+    browser, staff_user, blog_editor, regular_user
+):
+    """Only a superuser picks the user, from active staff with ``use_mcp`` —
+    checked on submit, not only in the autocomplete."""
+    metadata, client_id, consent_url, verifier = _start_authorization(browser)
+    users_url = "/admin/autocomplete/"
+    users_query = {
+        "app_label": "django_unfold_agentic_layer",
+        "model_name": "oauthtoken",
+        "field_name": "user",
+    }
+
+    browser.force_login(blog_editor)
+    assert b"Issue the token for" not in browser.get(consent_url).content
+    assert browser.get(users_url, users_query).status_code == 403  # no view_user
+    assert browser.post(consent_url, {"approve": "", "user": staff_user.pk}).status_code == 403
+
+    browser.force_login(staff_user)
+    assert b"Issue the token for" in browser.get(consent_url).content
+    found = browser.get(users_url, {**users_query, "term": "blog"}).json()["results"]
+    assert found == [{"id": str(blog_editor.pk), "text": "blog-editor"}]
+    assert browser.post(consent_url, {"approve": "", "user": regular_user.pk}).status_code == 400
+
+    approved = browser.post(consent_url, {"approve": "", "user": blog_editor.pk})
+    code = parse_qs(urlparse(approved["Location"]).query)["code"][0]
+    exchange = {
+        "grant_type": "authorization_code",
+        "code": code,
+        "redirect_uri": REDIRECT_URI,
+        "client_id": client_id,
+        "code_verifier": verifier,
+    }
+    tokens = browser.post(
+        _path(metadata["token_endpoint"]),
+        urlencode(exchange),
+        content_type="application/x-www-form-urlencoded",
+    )
+    assert tokens.status_code == 200, tokens.content
+    assert OAuthToken.objects.get(kind=OAuthToken.Kind.ACCESS).user == blog_editor
