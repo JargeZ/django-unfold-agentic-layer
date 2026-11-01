@@ -219,6 +219,9 @@ UNFOLD_AGENTIC_LAYER = {
     # INCLUDE None — все; EXCLUDE None — ваша модель пользователя и auth.group (чтобы агент
     # не мог выдать себе права); [] — ничего не исключать.
     "MODELS": {"INCLUDE": None, "EXCLUDE": None},
+    # True: инструменты create/update и все экшены сначала спрашивают подтверждение у
+    # пользователя — как всегда делают delete и DANGER-экшены. По умолчанию False.
+    "CONFIRM_WRITES": False,
 }
 ```
 

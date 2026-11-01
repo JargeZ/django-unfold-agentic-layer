@@ -46,6 +46,9 @@ class Settings(enum.StrEnum):
     #: every model; ``EXCLUDE: None`` is the user model and ``auth.group``, so an
     #: agent can't grant permissions or superuser status. ``[]`` excludes none.
     MODELS = "MODELS"
+    #: ``True``: create/update tools and every admin action ask the user to
+    #: confirm before they run, like delete tools and ``DANGER`` actions do.
+    CONFIRM_WRITES = "CONFIRM_WRITES"
 
 
 class ModelsDict(TypedDict, total=False):
@@ -64,6 +67,7 @@ class SettingsDict(TypedDict, total=False):
     CLOSED_CLIENT_REGISTRATION: bool
     REQUIRED_PERMISSION: bool
     MODELS: "ModelsDict"
+    CONFIRM_WRITES: bool
 
 
 assert SettingsDict.__optional_keys__ == set(Settings), (
@@ -78,6 +82,7 @@ DEFAULTS: Final[Mapping[Settings, Any]] = {
     Settings.CLOSED_CLIENT_REGISTRATION: False,
     Settings.REQUIRED_PERMISSION: True,
     Settings.MODELS: {"INCLUDE": None, "EXCLUDE": None},
+    Settings.CONFIRM_WRITES: False,
 }
 
 assert all(setting_key in DEFAULTS for setting_key in Settings), (

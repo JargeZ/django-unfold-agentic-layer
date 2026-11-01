@@ -2,12 +2,17 @@ import inspect
 from typing import Any
 
 from django.contrib.admin import ModelAdmin
-from fastmcp import FastMCP
+from fastmcp import Context, FastMCP
+from mcp.types import InputRequiredResult
 
 from django_unfold_agentic_layer import scopes
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
 from django_unfold_agentic_layer.mcp_server.builders._shared import (
+    CTX_PARAMETER,
     build_editable_field_parameter,
+    confirm_write,
+    confirm_writes,
+    describe_values,
     get_django_request,
     run_in_django,
 )
@@ -35,11 +40,26 @@ class BuildModelCreateToolDefinition(BaseLogicAction):
             return
 
         parameters = [
-            build_editable_field_parameter(field) for field in model_resource.create_fields
+            *(build_editable_field_parameter(field) for field in model_resource.create_fields),
+            CTX_PARAMETER,
         ]
 
-        def run_body(kwargs: dict[str, Any]) -> dict[str, Any]:
+        def run_body(ctx: Context, kwargs: dict[str, Any]) -> dict[str, Any] | InputRequiredResult:
             request = get_django_request(scopes.WRITE)
+            if confirm_writes():
+                # Validate first, so the user never confirms a save that can't happen.
+                _obj, errors = CreateModelInstance().execute(
+                    model_admin, request, kwargs, dry_run=True
+                )
+                if errors:
+                    return {"success": False, "errors": errors}
+                question = confirm_write(
+                    ctx,
+                    f"Create {model_resource.verbose_name} ({describe_values(kwargs)})?",
+                    request_state=run.__name__,
+                )
+                if question is not None:
+                    return question
             obj, errors = CreateModelInstance().execute(model_admin, request, kwargs)
             if errors:
                 return {"success": False, "errors": errors}
@@ -49,14 +69,14 @@ class BuildModelCreateToolDefinition(BaseLogicAction):
                 "resource_uri": f"dj-admin://{model_resource.app_label}/{model_resource.model_name}/{obj.pk}/",
             }
 
-        async def run(**kwargs: Any) -> dict[str, Any]:
-            return await run_in_django(run.__name__, run_body, kwargs)
+        async def run(*, ctx: Context, **kwargs: Any) -> dict[str, Any] | InputRequiredResult:
+            return await run_in_django(run.__name__, run_body, ctx, kwargs)
 
         run.__name__ = f"create_{model_resource.app_label}_{model_resource.model_name}"
         run.__doc__ = f"Create a new {model_resource.verbose_name}."
         run.__signature__ = inspect.Signature(parameters)
         run.__annotations__ = {p.name: p.annotation for p in parameters} | {
-            "return": dict[str, Any]
+            "return": dict[str, Any] | InputRequiredResult
         }
 
         mcp.tool(run, name=run.__name__, description=run.__doc__)

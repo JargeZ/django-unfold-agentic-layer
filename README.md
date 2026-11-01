@@ -218,6 +218,9 @@ UNFOLD_AGENTIC_LAYER = {
     # INCLUDE None = all; EXCLUDE None = your user model and auth.group (so an agent can't
     # grant itself permissions); [] = exclude nothing.
     "MODELS": {"INCLUDE": None, "EXCLUDE": None},
+    # True: create/update tools and every admin action ask the user to confirm first,
+    # like delete tools and DANGER actions always do. Default False.
+    "CONFIRM_WRITES": False,
 }
 ```
 

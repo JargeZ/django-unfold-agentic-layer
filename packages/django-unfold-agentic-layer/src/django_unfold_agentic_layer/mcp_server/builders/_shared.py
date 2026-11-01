@@ -181,6 +181,48 @@ def _choice_literal(field: EditableFieldInfo) -> type:
     return Literal[tuple(values)] if values else str
 
 
+#: The ``ctx`` keyword every confirmable tool takes (fastmcp injects it and
+#: keeps it out of the tool's input schema).
+CTX_PARAMETER = inspect.Parameter("ctx", kind=inspect.Parameter.KEYWORD_ONLY, annotation=Context)
+
+#: What a write tool returns when the user declines its confirmation.
+CANCELLED = {
+    "success": False,
+    "errors": {"__all__": [{"message": "Cancelled by the user.", "code": "cancelled"}]},
+}
+
+
+def confirm_writes() -> bool:
+    """``CONFIRM_WRITES``: every data-changing tool asks first, not only
+    the destructive ones."""
+    return get_config()[Settings.CONFIRM_WRITES]
+
+
+def confirm_write(
+    ctx: Context, message: str, request_state: str
+) -> InputRequiredResult | dict[str, Any] | None:
+    """One confirmation round for a write: the question while unanswered,
+    :data:`CANCELLED` once declined, ``None`` once confirmed — go ahead."""
+    confirmed = is_confirmed(ctx)
+    if confirmed is None:
+        return confirmation_request(message, title="Confirm change", request_state=request_state)
+    return None if confirmed else CANCELLED
+
+
+def describe_values(values: dict[str, Any]) -> str:
+    """``title='Hello', status='draft'`` — what a confirmation asks about."""
+
+    def short(value: Any) -> str:
+        if isinstance(value, FileUploadInput):
+            return f"file {value.name!r}"
+        text = repr(value)
+        return text if len(text) <= 60 else f"{text[:57]}..."
+
+    return ", ".join(
+        f"{name}={short(value)}" for name, value in values.items() if value is not None
+    )
+
+
 def confirmation_request(message: str, title: str, request_state: str) -> InputRequiredResult:
     """Ask the client to confirm before a destructive tool runs.
 

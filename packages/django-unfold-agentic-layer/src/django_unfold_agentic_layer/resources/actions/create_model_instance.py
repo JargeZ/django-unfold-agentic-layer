@@ -38,10 +38,17 @@ class CreateModelInstance(BaseLogicAction):
     stamping the current user onto a field) still runs, exactly as it would
     from the browser — and a failure in a later hook rolls back the earlier
     ones.
+
+    ``dry_run`` stops after validation (``(None, {})`` when valid), so a
+    caller can reject bad input before asking the user to confirm.
     """
 
     def execute(
-        self, model_admin: ModelAdmin, request: HttpRequest, data: dict[str, Any]
+        self,
+        model_admin: ModelAdmin,
+        request: HttpRequest,
+        data: dict[str, Any],
+        dry_run: bool = False,
     ) -> tuple[Model | None, FormErrors]:
         with admin_atomic(model_admin):
             if not model_admin.has_add_permission(request):
@@ -52,6 +59,8 @@ class CreateModelInstance(BaseLogicAction):
             form = form_class(data=to_form_data(form_class.base_fields, provided), files=files)
             if not form.is_valid():
                 return None, form.errors.get_json_data(escape_html=True)
+            if dry_run:
+                return None, {}
 
             obj = model_admin.save_form(request, form, change=False)
             model_admin.save_model(request, obj, form, change=False)

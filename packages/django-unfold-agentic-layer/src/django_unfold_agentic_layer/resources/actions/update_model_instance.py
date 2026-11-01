@@ -23,11 +23,17 @@ class UpdateModelInstance(BaseLogicAction):
     M2M fields as raw pks — exactly what the form's fields expect) and
     overlays whatever the agent actually provided, before validating the
     full form. Saving runs the same hooks in the same transaction as
-    ``CreateModelInstance`` (the admin's ``_changeform_view``).
+    ``CreateModelInstance`` (the admin's ``_changeform_view``), and
+    ``dry_run`` means the same.
     """
 
     def execute(
-        self, model_admin: ModelAdmin, request: HttpRequest, instance: Model, data: dict[str, Any]
+        self,
+        model_admin: ModelAdmin,
+        request: HttpRequest,
+        instance: Model,
+        data: dict[str, Any],
+        dry_run: bool = False,
     ) -> tuple[Model | None, FormErrors]:
         with admin_atomic(model_admin):
             if not model_admin.has_change_permission(request, instance):
@@ -53,6 +59,8 @@ class UpdateModelInstance(BaseLogicAction):
                                     "so it must be provided."
                                 )
                 return None, errors
+            if dry_run:
+                return None, {}
 
             obj = model_admin.save_form(request, form, change=True)
             model_admin.save_model(request, obj, form, change=True)
