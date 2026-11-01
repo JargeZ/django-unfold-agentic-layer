@@ -94,6 +94,7 @@ def bearer_login(db):
             client=oauth_client,
             user=user,
             data={"client_id": oauth_client.client_id, "scopes": []},
+            session_auth_hash=user.get_session_auth_hash(),
             expires_at=timezone.now() + timedelta(days=1),
         )
         client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {token}"

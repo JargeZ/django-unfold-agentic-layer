@@ -21,11 +21,13 @@ from datetime import timedelta
 from functools import lru_cache
 from urllib.parse import urlencode
 
+from django.contrib.auth import get_user_model
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.core import signing
 from django.http import HttpRequest
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.crypto import constant_time_compare
 from mcp.server.auth.provider import (
     AccessToken,
     AuthorizationCode,
@@ -180,13 +182,15 @@ class DjangoOAuthProvider(
             resource=authorization_code.resource,
             subject=authorization_code.subject,
         )
+        user = await get_user_model()._default_manager.aget(pk=authorization_code.subject)
         await OAuthToken.objects.filter(expires_at__lt=timezone.now()).adelete()
         access_row = await OAuthToken.objects.acreate(
             token_hash=_hash(token),
             kind=OAuthToken.Kind.ACCESS,
             client_id=client.client_id,
-            user_id=authorization_code.subject,
+            user=user,
             data=access.model_dump(mode="json", exclude={"token"}),
+            session_auth_hash=user.get_session_auth_hash(),
             expires_at=expires_at,
         )
         # Flip the code to "used", remembering its token for as long as that
@@ -310,4 +314,22 @@ def authenticate_bearer(request: HttpRequest) -> AbstractBaseUser | None:
     resource = row.data.get("resource")
     if resource is not None and resource.rstrip("/") != resource_url(request).rstrip("/"):
         return None  # issued for a different resource (RFC 8707 audience check)
+    if not _session_hash_verified(row):
+        log.oauth.info("Revoking token of %s: password changed since login", row.user)
+        row.delete()
+        return None
     return row.user
+
+
+def _session_hash_verified(row: OAuthToken) -> bool:
+    """Django's own check that a session is still valid
+    (``django.contrib.auth.get_user``): the hash taken at login must match
+    the user's current one, or one under ``SECRET_KEY_FALLBACKS``. Unlike a
+    session it is never re-stamped: a login lasts at most ``SESSION_TTL``,
+    so dropping the old key from the fallbacks ends it. It covers the password hash, so
+    changing the password logs MCP clients out, as it does browsers."""
+    user = row.user
+    if not hasattr(user, "get_session_auth_hash"):
+        return True
+    hashes = [user.get_session_auth_hash(), *user.get_session_auth_fallback_hash()]
+    return any(constant_time_compare(row.session_auth_hash, h) for h in hashes)

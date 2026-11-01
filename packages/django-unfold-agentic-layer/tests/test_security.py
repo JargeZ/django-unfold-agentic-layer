@@ -230,6 +230,7 @@ def _issue(user: User, *, kind=OAuthToken.Kind.ACCESS, resource=None, ttl=timede
         client=oauth_client,
         user=user,
         data=data,
+        session_auth_hash=user.get_session_auth_hash(),
         expires_at=timezone.now() + ttl,
     )
     return token
@@ -308,6 +309,41 @@ def test_live_token_is_cut_off_when_the_user_loses_staff_access(staff_user, fiel
     setattr(staff_user, field, False)
     staff_user.save()
     assert _status(f"Bearer {token}") == 403
+
+
+@pytest.mark.django_db
+def test_password_change_revokes_live_tokens(staff_user):
+    """Like Django sessions: the session auth hash covers the password."""
+    token = _issue(staff_user)
+    assert _status(f"Bearer {token}") == 200
+
+    staff_user.set_password("n3w-s3cret")  # noqa: S106
+    staff_user.save()
+
+    assert _status(f"Bearer {token}") == 401
+    assert not OAuthToken.objects.filter(kind=OAuthToken.Kind.ACCESS).exists()
+
+
+@pytest.mark.django_db
+def test_token_without_a_session_hash_is_revoked(staff_user):
+    token = _issue(staff_user)
+    OAuthToken.objects.update(session_auth_hash="")
+
+    assert _status(f"Bearer {token}") == 401
+    assert not OAuthToken.objects.exists()
+
+
+@pytest.mark.django_db
+def test_secret_key_rotation_keeps_tokens_valid(staff_user, settings):
+    """SECRET_KEY_FALLBACKS keeps logins alive, like it does for sessions;
+    dropping the old key ends them (no re-stamp: SESSION_TTL caps a login)."""
+    token = _issue(staff_user)
+    settings.SECRET_KEY_FALLBACKS = [settings.SECRET_KEY]
+    settings.SECRET_KEY = "rotated-secret-key"  # noqa: S105
+
+    assert _status(f"Bearer {token}") == 200
+    settings.SECRET_KEY_FALLBACKS = []
+    assert _status(f"Bearer {token}") == 401
 
 
 # --- OAuth consent ------------------------------------------------------------

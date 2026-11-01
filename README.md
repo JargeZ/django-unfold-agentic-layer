@@ -188,6 +188,7 @@ is refused when it would cascade onto objects the user can't delete.
 ## Access and sessions
 
 - Only active **staff** users can log in; `is_active`/`is_staff` is re-checked on every request — un-staffing someone cuts off their tokens immediately.
+- Changing a user's password revokes their MCP tokens, the same way Django logs out their browser sessions (the session auth hash; `SECRET_KEY_FALLBACKS` keeps them valid until the old key leaves it).
 - The login (consent) page goes through `admin.site.admin_view`, so your admin site's own `has_permission` applies — a custom site's 2FA or IP rules guard the MCP login exactly like the admin.
 - The Django session cookie does **not** authenticate `/mcp` — only the `Bearer` token does.
 - A login lasts `SESSION_TTL` (default 1 day), no refresh tokens.

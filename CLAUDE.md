@@ -45,6 +45,7 @@ Standard MCP authorization (OAuth 2.1, PKCE, RFC 7591 DCR) so clients (`claude m
 - The SDK only accepts an `https` issuer (http for loopback only); `views/oauth.py` answers a JSON `server_error` naming `SECURE_PROXY_SSL_HEADER` instead of crashing. Never bypass it — make the request look secure the standard Django way.
 - `ConsentView` carries its own `csrf_protect`/`xframe_options_deny` (like the admin's views), independent of the host's middleware.
 - No refresh tokens: `UNFOLD_AGENTIC_LAYER["SESSION_TTL"]` (default 1 day) is a hard cap on a login.
+- `OAuthToken.session_auth_hash` holds the user's `get_session_auth_hash()` from login (its own column, not in the SDK's `data`) and `authenticate_bearer` verifies it like `django.contrib.auth.get_user` verifies a session (fallback keys accepted, never re-stamped): a password change revokes (deletes) the token — no signals, no host hooks.
 - `admin.py` lists clients and access tokens, view + delete only — deleting is revoking (a client's delete cascades to its tokens). `BuildAdminMCPInstance` skips this app's own models so an agent can never see or revoke MCP sessions through MCP.
 - Not done: CIMD client IDs (spec 2025-11-25; `fastmcp.server.auth.cimd` has a fetcher), scopes.
 

@@ -48,6 +48,22 @@ def test_oauth_admin_lists_sessions_and_delete_revokes_them(client, bearer_login
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("model", "note"),
+    [
+        ("oauthclient", "Deleting a client revokes all of its tokens"),
+        ("oauthtoken", "when its user changes their password"),
+    ],
+)
+def test_oauth_changelists_explain_what_they_hold(client, staff_user, model, note):
+    client.force_login(staff_user)
+
+    page = client.get(reverse(f"admin:django_unfold_agentic_layer_{model}_changelist"))
+
+    assert note in " ".join(page.content.decode().split())
+
+
+@pytest.mark.django_db
 def test_oauth_models_are_never_exposed_over_mcp(bearer_login, staff_user):
     mcp = Client()
     bearer_login(mcp, staff_user)

@@ -1,0 +1,8 @@
+{% load i18n %}
+
+{% blocktranslate trimmed asvar message %}
+    MCP clients (Claude Code, Cursor, …) that can ask staff users to log in. They register themselves, unless
+    client registration is closed — then add them here. Deleting a client revokes all of its tokens: the person
+    has to clear the saved authentication in their MCP client and log in again.
+{% endblocktranslate %}
+{% include "unfold/helpers/messages/info.html" with message=message %}

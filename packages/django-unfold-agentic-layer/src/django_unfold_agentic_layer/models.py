@@ -34,6 +34,9 @@ class OAuthToken(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     #: The SDK's ``AuthorizationCode`` / ``AccessToken`` model, dumped as JSON.
     data = models.JSONField()
+    #: An access token's ``user.get_session_auth_hash()`` at login: it covers
+    #: the password, so a password change ends the login like it ends a session.
+    session_auth_hash = models.CharField(max_length=128, blank=True, editable=False)
     expires_at = models.DateTimeField(db_index=True)
 
     class Meta:
