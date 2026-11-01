@@ -221,7 +221,7 @@ The repo is a [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspa
 
 ```bash
 uv sync
-uvx pre-commit install   # secret scanning (gitleaks, trufflehog) + ruff on every commit
+uv run pre-commit install   # secret scanning (gitleaks, trufflehog) + ruff, and a Conventional Commits check on messages
 cd packages/django-unfold-agentic-layer
 uv run pytest
 ```
