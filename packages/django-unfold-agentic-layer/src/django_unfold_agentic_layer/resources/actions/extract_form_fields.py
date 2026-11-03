@@ -6,6 +6,7 @@ from django.http import HttpRequest
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
 from django_unfold_agentic_layer.resources.actions._shared import (
+    is_secret_widget,
     related_list_uri,
     splits_into_subwidgets,
 )
@@ -52,6 +53,7 @@ class ExtractFormFields(BaseLogicAction):
             choices=choices,
             related_resource_uri=related_resource_uri,
             parts=parts,
+            write_only=is_secret_widget(field.widget),
         )
 
     def _part_title(self, field: forms.Field, sub: forms.Field, subwidget: forms.Widget) -> str:

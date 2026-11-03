@@ -366,11 +366,17 @@ def _exposed_models(client) -> set[str]:
 @pytest.mark.parametrize(
     ("models", "expected"),
     [
-        (None, {"blog.blogpost", "blog.usagepackage"}),
-        ({"EXCLUDE": []}, {"auth.group", "auth.user", "blog.blogpost", "blog.usagepackage"}),
-        ({"INCLUDE": ["blog"]}, {"blog.blogpost", "blog.usagepackage"}),
+        (None, {"blog.apiconnection", "blog.blogpost", "blog.usagepackage"}),
+        (
+            {"EXCLUDE": []},
+            {"auth.group", "auth.user", "blog.apiconnection", "blog.blogpost", "blog.usagepackage"},
+        ),
+        ({"INCLUDE": ["blog"]}, {"blog.apiconnection", "blog.blogpost", "blog.usagepackage"}),
         ({"INCLUDE": ["blog.BlogPost", "auth"]}, {"blog.blogpost"}),
-        ({"EXCLUDE": ["blog.usagepackage"]}, {"auth.group", "auth.user", "blog.blogpost"}),
+        (
+            {"EXCLUDE": ["blog.usagepackage"]},
+            {"auth.group", "auth.user", "blog.apiconnection", "blog.blogpost"},
+        ),
     ],
     ids=[
         "default-hides-users-and-groups",

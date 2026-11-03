@@ -3,6 +3,7 @@ import csv
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
+from django.forms import PasswordInput
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect
 from django.urls import path, reverse
@@ -18,9 +19,10 @@ from .forms import (
     BlogPostActionForm,
     DraftDialogForm,
     RescheduleDialogForm,
+    RotateTokenDialogForm,
     SetStatusDialogForm,
 )
-from .models import BlogPost, UsagePackage
+from .models import ApiConnection, BlogPost, SecretCharField, UsagePackage
 
 admin.site.unregister(User)
 
@@ -225,6 +227,21 @@ class SiteSettingsAdmin(ModelAdmin):
     def clear_cache(self, request):
         self.message_user(request, "Cache cleared.", messages.SUCCESS)
         return redirect(request.headers["referer"])
+
+
+@admin.register(ApiConnection)
+class ApiConnectionAdmin(ModelAdmin):
+    # render_value=True: the browser gets the value, but MCP must not.
+    formfield_overrides = {SecretCharField: {"widget": PasswordInput(render_value=True)}}
+    actions_detail = ["rotate_token"]
+
+    @action(
+        description="Rotate token",
+        dialog={"title": "Rotate token", "form_class": RotateTokenDialogForm},
+    )
+    def rotate_token(self, request, form, object_id):
+        ApiConnection.objects.filter(pk=object_id).update(access_token=form.cleaned_data["token"])
+        return HttpResponseRedirect(reverse("admin:blog_apiconnection_change", args=[object_id]))
 
 
 @admin.register(UsagePackage)

@@ -55,7 +55,8 @@ class BuildModelCreateToolDefinition(BaseLogicAction):
                     return {"success": False, "errors": errors}
                 question = confirm_write(
                     ctx,
-                    f"Create {model_resource.verbose_name} ({describe_values(kwargs)})?",
+                    f"Create {model_resource.verbose_name} "
+                    f"({describe_values(kwargs, model_resource.create_fields)})?",
                     request_state=run.__name__,
                 )
                 if question is not None:

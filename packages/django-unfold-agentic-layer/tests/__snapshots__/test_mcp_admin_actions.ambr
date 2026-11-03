@@ -2,6 +2,42 @@
 # name: test_every_action_kind_becomes_a_tool_with_its_form_as_parameters
   list([
     dict({
+      'description': 'Rotate token. Runs on one api connection (pass its pk).',
+      'inputSchema': dict({
+        'additionalProperties': False,
+        'properties': dict({
+          'pk': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'integer',
+              }),
+            ]),
+            'description': 'Primary key of the instance to run the action on.',
+          }),
+          'token': dict({
+            'anyOf': list([
+              dict({
+                'type': 'string',
+              }),
+              dict({
+                'type': 'null',
+              }),
+            ]),
+            'default': None,
+            'description': 'token (required). Write-only secret: reads return only a mask. Send a new value to replace it. A blank value or the mask counts as not sent',
+          }),
+        }),
+        'required': list([
+          'pk',
+        ]),
+        'type': 'object',
+      }),
+      'name': 'run_blog_apiconnection_rotate_token',
+    }),
+    dict({
       'description': 'Publish selected blog posts. Runs on the selected blog posts (pass their pks).',
       'inputSchema': dict({
         'additionalProperties': False,

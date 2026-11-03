@@ -10,7 +10,11 @@ from django.utils.http import parse_header_parameters
 from unfold.forms import BaseDialogForm
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
-from django_unfold_agentic_layer.resources.actions._shared import CollectedMessages, to_form_data
+from django_unfold_agentic_layer.resources.actions._shared import (
+    CollectedMessages,
+    drop_secret_placeholders,
+    to_form_data,
+)
 from django_unfold_agentic_layer.resources.actions.get_admin_model_instance import (
     GetAdminModelInstance,
 )
@@ -63,7 +67,10 @@ class RunAdminAction(BaseLogicAction):
     ) -> ActionResult | None:
         if action.scope != "instance" and not model_admin.has_view_permission(request):
             raise PermissionDenied("You do not have permission to view this model.")
-        post = self._form_data(to_form_data(self._form_fields(model_admin, action), data))
+        form_fields = self._form_fields(model_admin, action)
+        post = self._form_data(
+            to_form_data(form_fields, drop_secret_placeholders(form_fields, data))
+        )
         action_request = copy.copy(request)
         action_request.method = "POST"
         action_request.POST = post

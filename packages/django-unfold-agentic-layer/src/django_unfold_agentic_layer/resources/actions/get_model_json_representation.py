@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from typing import Any
 
 from django import forms
@@ -9,7 +10,11 @@ from django.db.models import FileField, Model
 from django.http import HttpRequest
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
-from django_unfold_agentic_layer.resources.actions._shared import related_list_uri
+from django_unfold_agentic_layer.resources.actions._shared import (
+    is_secret_widget,
+    mask_secret,
+    related_list_uri,
+)
 
 #: Many-to-many values listed per field; the rest are left to a list query.
 M2M_LIMIT = 100
@@ -25,9 +30,10 @@ class GetModelJsonRepresentation(BaseLogicAction):
     ``exclude`` *and* ``fieldsets`` all hide a field here too
     (``get_fields()`` alone ignores ``fieldsets``).
 
-    A field the changeform renders through a value-hiding widget (Django's
-    masked password hash, a ``PasswordInput``) is dropped as well: the admin
-    never shows its raw value, so neither does MCP.
+    A field with a password widget is write-only: it reads as a mask (``None``
+    when empty), whatever the widget's ``render_value`` says, for a view-only
+    user and in ``readonly_fields`` too. Django's password hash is dropped: it
+    can't be written either, so a mask would tell an agent nothing.
 
     A non-model field (``readonly_fields`` entry: a ModelAdmin method, a
     callable, a model method/property) is resolved with the admin's own
@@ -48,24 +54,42 @@ class GetModelJsonRepresentation(BaseLogicAction):
         self, model_admin: ModelAdmin, request: HttpRequest, instance: Model
     ) -> dict[str, Any]:
         opts = instance._meta
-        form_fields = model_admin.get_form(request, instance, change=True).base_fields
+        # change=False: with change=True, get_form() excludes every field for a
+        # view-only user, so no widget would say that a field is secret.
+        form_fields = model_admin.get_form(request, instance, change=False).base_fields
         data: dict[str, Any] = {"pk": instance.pk}
         truncated: dict[str, str] = {}
         for field_name in flatten_fieldsets(model_admin.get_fieldsets(request, instance)):
-            form_field = form_fields.get(field_name)
-            if form_field is not None and self._hides_value(form_field.widget):
+            widget = self._widget(model_admin, request, opts, form_fields, field_name)
+            if isinstance(widget, ReadOnlyPasswordHashWidget):
                 continue
-            data[field_name] = self._field_value(
-                model_admin, request, opts, instance, field_name, truncated
-            )
+            value = self._field_value(model_admin, request, opts, instance, field_name, truncated)
+            data[field_name] = mask_secret(value) if is_secret_widget(widget) else value
         if truncated:
             data[TRUNCATED_KEY] = truncated
         return data
 
-    def _hides_value(self, widget: forms.Widget) -> bool:
-        if isinstance(widget, ReadOnlyPasswordHashWidget):
-            return True
-        return isinstance(widget, forms.PasswordInput) and not widget.render_value
+    def _widget(
+        self,
+        model_admin: ModelAdmin,
+        request: HttpRequest,
+        opts: Any,
+        form_fields: Mapping[str, forms.Field],
+        field_name: str,
+    ) -> forms.Widget | None:
+        """The field's widget. A ``readonly_fields`` entry is not in the form,
+        so a model column gets the widget its admin configures for that column
+        (``formfield_overrides``)."""
+        form_field = form_fields.get(field_name)
+        if form_field is None:
+            try:
+                db_field = opts.get_field(field_name)
+            except FieldDoesNotExist:
+                return None
+            if not db_field.concrete or db_field.is_relation:
+                return None
+            form_field = model_admin.formfield_for_dbfield(db_field, request)
+        return form_field.widget if form_field is not None else None
 
     def _field_value(
         self,

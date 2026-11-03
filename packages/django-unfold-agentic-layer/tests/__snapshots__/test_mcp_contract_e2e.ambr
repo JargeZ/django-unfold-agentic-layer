@@ -331,6 +331,29 @@
           }),
         }),
         'mimeType': 'application/json',
+        'name': 'api connection',
+        'uriTemplate': 'dj-admin://blog/apiconnection/{pk}/',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'First 20 api connections. Filter, sort and paginate via dj-admin://blog/apiconnection/{?limit,offset,order_by} (meta.total is the full count); one record via dj-admin://blog/apiconnection/{pk}/.',
+        'mimeType': 'application/json',
+        'name': 'api connections (list)',
+        'uriTemplate': 'dj-admin://blog/apiconnection/{?limit,offset,order_by}',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'mimeType': 'application/json',
         'name': 'blog post',
         'uriTemplate': 'dj-admin://blog/blogpost/{pk}/',
       }),
@@ -382,6 +405,18 @@
             ]),
           }),
         }),
+        'description': 'First 20 api connections. Filter, sort and paginate via dj-admin://blog/apiconnection/{?limit,offset,order_by} (meta.total is the full count); one record via dj-admin://blog/apiconnection/{pk}/.',
+        'mimeType': 'application/json',
+        'name': 'api connections (list)',
+        'uri': 'dj-admin://blog/apiconnection/',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
         'description': 'First 20 blog posts. Filter, sort and paginate via dj-admin://blog/blogpost/{?q,djangoql,editor__id__exact,editor__isnull,has_editor,status__exact,status__isnull,is_featured__exact,is_featured__isnull,created_at__gte,created_at__lt,limit,offset,order_by} (meta.total is the full count); one record via dj-admin://blog/blogpost/{pk}/.',
         'mimeType': 'application/json',
         'name': 'blog posts (list)',
@@ -405,6 +440,190 @@
 # name: test_full_mcp_contract_lifecycle[tools-list]
   dict({
     'tools': list([
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Create a new api connection.',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'access_token': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Access token (required). Write-only secret: reads return only a mask. Send a new value to replace it. A blank value or the mask counts as not sent',
+            }),
+            'name': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Name (required)',
+            }),
+          }),
+          'type': 'object',
+        }),
+        'name': 'create_blog_apiconnection',
+        'title': 'Create Blog Apiconnection',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Update an existing api connection. Only send the fields you want to change; omitted fields keep their current values. A required field that is empty on the record must be sent too.',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'access_token': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Access token (required). Write-only secret: reads return only a mask. Send a new value to replace it. A blank value or the mask counts as not sent',
+            }),
+            'name': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'Name (required)',
+            }),
+            'pk': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'integer',
+                }),
+              ]),
+              'description': 'Primary key of the instance to update.',
+            }),
+          }),
+          'required': list([
+            'pk',
+          ]),
+          'type': 'object',
+        }),
+        'name': 'update_blog_apiconnection',
+        'title': 'Update Blog Apiconnection',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'annotations': dict({
+          'destructiveHint': True,
+        }),
+        'description': "Delete a api connection. Destructive: the server asks the client for the user's confirmation before deleting.",
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'pk': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'integer',
+                }),
+              ]),
+            }),
+          }),
+          'required': list([
+            'pk',
+          ]),
+          'type': 'object',
+        }),
+        'name': 'delete_blog_apiconnection',
+        'outputSchema': dict({
+          'properties': dict({
+            'result': dict({
+              'type': 'string',
+            }),
+          }),
+          'required': list([
+            'result',
+          ]),
+          'type': 'object',
+          'x-fastmcp-wrap-result': True,
+        }),
+        'title': 'Delete Blog Apiconnection',
+      }),
+      dict({
+        '_meta': dict({
+          'fastmcp': dict({
+            'tags': list([
+            ]),
+          }),
+        }),
+        'description': 'Rotate token. Runs on one api connection (pass its pk).',
+        'inputSchema': dict({
+          'additionalProperties': False,
+          'properties': dict({
+            'pk': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'integer',
+                }),
+              ]),
+              'description': 'Primary key of the instance to run the action on.',
+            }),
+            'token': dict({
+              'anyOf': list([
+                dict({
+                  'type': 'string',
+                }),
+                dict({
+                  'type': 'null',
+                }),
+              ]),
+              'default': None,
+              'description': 'token (required). Write-only secret: reads return only a mask. Send a new value to replace it. A blank value or the mask counts as not sent',
+            }),
+          }),
+          'required': list([
+            'pk',
+          ]),
+          'type': 'object',
+        }),
+        'name': 'run_blog_apiconnection_rotate_token',
+        'title': 'Run Blog Apiconnection Rotate Token',
+      }),
       dict({
         '_meta': dict({
           'fastmcp': dict({

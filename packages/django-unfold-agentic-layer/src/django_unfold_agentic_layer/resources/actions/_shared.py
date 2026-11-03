@@ -12,6 +12,7 @@ from django import forms
 from django.contrib.admin import ModelAdmin
 from django.contrib.admin.utils import model_format_dict
 from django.contrib.messages.storage.base import BaseStorage
+from django.core.validators import EMPTY_VALUES
 from django.db import router, transaction
 from django.db.models import Model
 from django.http import HttpRequest
@@ -22,6 +23,10 @@ from django_unfold_agentic_layer.resources.schemas import ActionInfo
 
 #: What ``ModelAdmin.get_action()`` returns: (callable, name, description).
 ResolvedDjangoAction = tuple[Callable, str, str]
+
+SECRET_MASK_CHAR = "•"  # noqa: S105
+#: Fixed length and no suffix: it tells nothing about the value.
+SECRET_MASK = SECRET_MASK_CHAR * 8
 
 
 def is_django_model(model: Any) -> bool:
@@ -105,6 +110,50 @@ def splits_into_subwidgets(widget: forms.Widget) -> bool:
         isinstance(widget, forms.MultiWidget)
         and type(widget).value_from_datadict is forms.MultiWidget.value_from_datadict
     )
+
+
+def is_secret_widget(widget: forms.Widget | None) -> bool:
+    """A widget that renders ``<input type="password">``, in whole or in part:
+    the field is write-only over MCP, whatever its ``render_value`` says."""
+    if isinstance(widget, forms.MultiWidget):
+        return any(is_secret_widget(subwidget) for subwidget in widget.widgets)
+    return getattr(widget, "input_type", None) == "password"
+
+
+def mask_secret(value: Any) -> str | None:
+    """What a read returns for a write-only field: only whether it is set."""
+    return None if value in EMPTY_VALUES else SECRET_MASK
+
+
+def _is_secret_placeholder(value: Any) -> bool:
+    if isinstance(value, list | tuple):
+        return any(_is_secret_placeholder(part) for part in value)
+    return value is None or (
+        isinstance(value, str) and not value.replace(SECRET_MASK_CHAR, "").strip()
+    )
+
+
+def drop_secret_placeholders(
+    fields: Mapping[str, forms.Field], values: dict[str, Any]
+) -> dict[str, Any]:
+    """Removes write-only fields whose value is not a real one (blank, or the
+    mask a read returned), so they count as not sent: an agent can send back
+    what it read without overwriting the secret.
+
+    Only a value made entirely of the mask counts, so a real secret may
+    contain the mask character.
+    """
+    # ponytail: one placeholder part drops the whole composite field; overlay
+    # the current parts from decompress() if a real composite secret needs it.
+    return {
+        name: value
+        for name, value in values.items()
+        if not (
+            name in fields
+            and is_secret_widget(fields[name].widget)
+            and _is_secret_placeholder(value)
+        )
+    }
 
 
 def to_form_data(fields: Mapping[str, forms.Field], values: dict[str, Any]) -> dict[str, Any]:

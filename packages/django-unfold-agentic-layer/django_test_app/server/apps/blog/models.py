@@ -57,6 +57,20 @@ class Comment(models.Model):
         return f"{self.post.title}: {self.text}"
 
 
+class SecretCharField(models.CharField):
+    """Stands in for an encrypted field: an admin picks its widget by this type."""
+
+
+class ApiConnection(models.Model):
+    """A stored secret that the admin shows through a password widget."""
+
+    name = models.CharField(max_length=255)
+    access_token = SecretCharField(max_length=255)
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class UsagePackage(models.Model):
     """Composite form fields: Unfold renders both through a ``MultiWidget``
     (``UnfoldAdminMoneyWidget``, ``UnfoldAdminSplitDateTimeWidget``), whose

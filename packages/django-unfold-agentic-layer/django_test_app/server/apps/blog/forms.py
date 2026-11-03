@@ -26,3 +26,7 @@ class AppendNoteDialogForm(BaseDialogForm):
 
 class RescheduleDialogForm(BaseDialogForm):
     starts_at = forms.SplitDateTimeField()
+
+
+class RotateTokenDialogForm(BaseDialogForm):
+    token = forms.CharField(widget=forms.PasswordInput)

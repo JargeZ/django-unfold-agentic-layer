@@ -7,7 +7,11 @@ from django.db.models import Model
 from django.http import HttpRequest
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
-from django_unfold_agentic_layer.resources.actions._shared import admin_atomic, to_form_data
+from django_unfold_agentic_layer.resources.actions._shared import (
+    admin_atomic,
+    drop_secret_placeholders,
+    to_form_data,
+)
 from django_unfold_agentic_layer.resources.schemas import FileUploadInput
 
 #: Shape of Django's own ``form.errors.get_json_data()`` — reused verbatim
@@ -56,6 +60,7 @@ class CreateModelInstance(BaseLogicAction):
 
             form_class = model_admin.get_form(request, None, change=False)
             provided, files = split_uploads(data)
+            provided = drop_secret_placeholders(form_class.base_fields, provided)
             form = form_class(data=to_form_data(form_class.base_fields, provided), files=files)
             if not form.is_valid():
                 return None, form.errors.get_json_data(escape_html=True)

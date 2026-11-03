@@ -19,6 +19,7 @@ from pydantic import AfterValidator, Field
 from django_unfold_agentic_layer import scopes
 from django_unfold_agentic_layer.conf import Settings, get_config
 from django_unfold_agentic_layer.errors import format_error
+from django_unfold_agentic_layer.resources.actions._shared import SECRET_MASK
 from django_unfold_agentic_layer.resources.schemas import (
     ActionToolInfo,
     EditableFieldInfo,
@@ -139,6 +140,11 @@ def build_editable_field_parameter(field: EditableFieldInfo) -> inspect.Paramete
         )
     elif field.python_type in ("related", "multi_related"):
         description = f"{description}. Pass a pk"
+    if field.write_only:
+        description = (
+            f"{description}. Write-only secret: reads return only a mask. "
+            "Send a new value to replace it. A blank value or the mask counts as not sent"
+        )
 
     return inspect.Parameter(
         field.name,
@@ -209,8 +215,10 @@ def confirm_write(
     return None if confirmed else CANCELLED
 
 
-def describe_values(values: dict[str, Any]) -> str:
-    """``title='Hello', status='draft'`` — what a confirmation asks about."""
+def describe_values(values: dict[str, Any], fields: list[EditableFieldInfo]) -> str:
+    """``title='Hello', status='draft'`` — what a confirmation asks about. A
+    write-only field shows the mask: this text goes through the client."""
+    secret_names = {field.name for field in fields if field.write_only}
 
     def short(value: Any) -> str:
         if isinstance(value, FileUploadInput):
@@ -219,7 +227,9 @@ def describe_values(values: dict[str, Any]) -> str:
         return text if len(text) <= 60 else f"{text[:57]}..."
 
     return ", ".join(
-        f"{name}={short(value)}" for name, value in values.items() if value is not None
+        f"{name}={SECRET_MASK if name in secret_names else short(value)}"
+        for name, value in values.items()
+        if value is not None
     )
 
 

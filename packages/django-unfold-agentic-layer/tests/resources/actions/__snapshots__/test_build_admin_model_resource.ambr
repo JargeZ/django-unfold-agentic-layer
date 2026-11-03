@@ -15,6 +15,7 @@
             'related_resource_uri': None,
             'required': False,
             'title': 'editor',
+            'write_only': False,
           }),
         ]),
         'name': 'publish_posts',
@@ -35,6 +36,7 @@
             'related_resource_uri': None,
             'required': False,
             'title': 'editor',
+            'write_only': False,
           }),
         ]),
         'name': 'assign_editor',
@@ -55,6 +57,7 @@
             'related_resource_uri': None,
             'required': False,
             'title': 'editor',
+            'write_only': False,
           }),
         ]),
         'name': 'archive_selected',
@@ -85,6 +88,7 @@
             'related_resource_uri': None,
             'required': True,
             'title': 'title',
+            'write_only': False,
           }),
         ]),
         'name': 'create_draft',
@@ -128,6 +132,7 @@
             'related_resource_uri': None,
             'required': True,
             'title': 'status',
+            'write_only': False,
           }),
         ]),
         'name': 'set_status',
@@ -158,6 +163,7 @@
             'related_resource_uri': None,
             'required': True,
             'title': 'note',
+            'write_only': False,
           }),
         ]),
         'name': 'append_note',
@@ -200,6 +206,7 @@
         'related_resource_uri': None,
         'required': True,
         'title': 'Title',
+        'write_only': False,
       }),
       dict({
         'choices': None,
@@ -210,6 +217,7 @@
         'related_resource_uri': None,
         'required': False,
         'title': 'Body',
+        'write_only': False,
       }),
       dict({
         'choices': None,
@@ -220,6 +228,7 @@
         'related_resource_uri': None,
         'required': True,
         'title': 'Author',
+        'write_only': False,
       }),
       dict({
         'choices': None,
@@ -230,6 +239,7 @@
         'related_resource_uri': None,
         'required': False,
         'title': 'Editor',
+        'write_only': False,
       }),
       dict({
         'choices': list([
@@ -253,6 +263,7 @@
         'related_resource_uri': None,
         'required': True,
         'title': 'Status',
+        'write_only': False,
       }),
       dict({
         'choices': None,
@@ -263,6 +274,7 @@
         'related_resource_uri': None,
         'required': False,
         'title': 'Is featured',
+        'write_only': False,
       }),
       dict({
         'choices': None,
@@ -273,6 +285,7 @@
         'related_resource_uri': None,
         'required': False,
         'title': 'Metadata',
+        'write_only': False,
       }),
       dict({
         'choices': None,
@@ -283,6 +296,7 @@
         'related_resource_uri': None,
         'required': False,
         'title': 'Attachment',
+        'write_only': False,
       }),
     ]),
     'description': None,
@@ -585,6 +599,7 @@
         'related_resource_uri': None,
         'required': True,
         'title': 'Title',
+        'write_only': False,
       }),
       dict({
         'choices': None,
@@ -595,6 +610,7 @@
         'related_resource_uri': None,
         'required': False,
         'title': 'Body',
+        'write_only': False,
       }),
       dict({
         'choices': None,
@@ -605,6 +621,7 @@
         'related_resource_uri': None,
         'required': True,
         'title': 'Author',
+        'write_only': False,
       }),
       dict({
         'choices': None,
@@ -615,6 +632,7 @@
         'related_resource_uri': None,
         'required': False,
         'title': 'Editor',
+        'write_only': False,
       }),
       dict({
         'choices': list([
@@ -638,6 +656,7 @@
         'related_resource_uri': None,
         'required': True,
         'title': 'Status',
+        'write_only': False,
       }),
       dict({
         'choices': None,
@@ -648,6 +667,7 @@
         'related_resource_uri': None,
         'required': False,
         'title': 'Is featured',
+        'write_only': False,
       }),
       dict({
         'choices': None,
@@ -658,6 +678,7 @@
         'related_resource_uri': None,
         'required': False,
         'title': 'Metadata',
+        'write_only': False,
       }),
       dict({
         'choices': None,
@@ -668,6 +689,7 @@
         'related_resource_uri': None,
         'required': False,
         'title': 'Attachment',
+        'write_only': False,
       }),
     ]),
     'verbose_name': 'blog post',

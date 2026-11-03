@@ -65,6 +65,8 @@ class EditableFieldInfo(BaseModel):
     #: ``multi``: one entry per subwidget of a composite field (Money, split
     #: datetime), in the order the agent passes them.
     parts: list["EditableFieldInfo"] | None = None
+    #: A password widget: reads return only a mask (see ``is_secret_widget``).
+    write_only: bool = False
 
 
 #: Strict base64: pydantic's own ``Base64Bytes`` silently drops non-alphabet

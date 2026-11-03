@@ -69,7 +69,7 @@ class BuildModelUpdateToolDefinition(BaseLogicAction):
                 question = confirm_write(
                     ctx,
                     f"Update {model_resource.verbose_name} {current} (pk={pk}): "
-                    f"{describe_values(kwargs)}?",
+                    f"{describe_values(kwargs, model_resource.update_fields)}?",
                     request_state=f"{run.__name__}:{pk}",
                 )
                 if question is not None:

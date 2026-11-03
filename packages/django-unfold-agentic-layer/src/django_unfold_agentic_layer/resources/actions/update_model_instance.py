@@ -7,7 +7,11 @@ from django.forms.models import model_to_dict
 from django.http import HttpRequest
 
 from django_unfold_agentic_layer.actions.base import BaseLogicAction
-from django_unfold_agentic_layer.resources.actions._shared import admin_atomic, to_form_data
+from django_unfold_agentic_layer.resources.actions._shared import (
+    admin_atomic,
+    drop_secret_placeholders,
+    to_form_data,
+)
 from django_unfold_agentic_layer.resources.actions.create_model_instance import (
     FormErrors,
     split_uploads,
@@ -22,9 +26,10 @@ class UpdateModelInstance(BaseLogicAction):
     instance's *current* values (``model_to_dict``, which already reports FK/
     M2M fields as raw pks — exactly what the form's fields expect) and
     overlays whatever the agent actually provided, before validating the
-    full form. Saving runs the same hooks in the same transaction as
-    ``CreateModelInstance`` (the admin's ``_changeform_view``), and
-    ``dry_run`` means the same.
+    full form. A blank value or the mask for a write-only field counts as
+    not provided (``drop_secret_placeholders``). Saving runs the same hooks
+    in the same transaction as ``CreateModelInstance`` (the admin's
+    ``_changeform_view``), and ``dry_run`` means the same.
     """
 
     def execute(
@@ -42,6 +47,8 @@ class UpdateModelInstance(BaseLogicAction):
             form_class = model_admin.get_form(request, instance, change=True)
             current = model_to_dict(instance, fields=list(form_class.base_fields))
             provided, files = split_uploads(data)
+            # Before the overlay, so a write-only field keeps its current value.
+            provided = drop_secret_placeholders(form_class.base_fields, provided)
             # A file field not in ``files`` keeps its current file (form initial).
             data = to_form_data(form_class.base_fields, {**current, **provided})
             form = form_class(data=data, files=files, instance=instance)
